@@ -1,0 +1,21 @@
+---
+
+# See: https://yamllint.readthedocs.io/en/stable/rules.html
+
+extends: default
+
+ignore:
+  - .direnv
+  - .venv
+  - .cache
+
+rules:
+  empty-lines:
+    level: warning
+    max: 2
+    max-start: 1
+    max-end: 1
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
