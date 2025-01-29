@@ -1,0 +1,62 @@
+[tool.poetry]
+name = "clak"
+version = "0.3.0a"
+description = "Command Line avec Klass"
+authors = ["mrjk <mrjk.78@gmail.com>"]
+license = "GPLv3"
+readme = "README.md"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Utilities",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+# Dependencies groups
+# ========================
+
+[tool.poetry.dependencies]
+python = "^3.9"
+argcomplete = "^3.5.3"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+jupyterlab = "^4.3.4"
+pytest-regressions = "^2.6.0"
+pytest-clarity = "^1.0.1"
+pylint = "^3.3.3"
+yamllint = "^1.35.1"
+pymarkdownlnt = "^0.9.26"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "^9.5.49"
+mkdocstrings = {extras = ["python"], version = "^0.27.0"}
+pylint = "^3.3.3"
+
+
+# Poetry bumpversion
+# ========================
+[tool.poetry_bumpversion.file."your_package/__init__.py"]
+
+
+# Pytest config
+# ========================
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+
