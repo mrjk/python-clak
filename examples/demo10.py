@@ -1,8 +1,24 @@
+#!/usr/bin/env python3
+
+"""
+This is a single level application with multiple arguments. It illustrates basic argparse usages.
+"""
 
 from clak import Parser, Argument, Command
 
 class AppMain(Parser):
-    "Main application"
+    """
+    Demo application with many arguments.
+    
+    This is a single level demo of an application with many argparse arguments:
+      - An option Argument: force
+      - An option Argument: config
+      - An option Argument: color
+      - An option Argument: items
+      - A positional argument: name
+      - A positional argument: surname
+      - A positional argument: aliases
+    """
 
     # Option examples
     force   = Argument('--force', '-f', action='store_true', help='Force mode')

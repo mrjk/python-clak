@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+"""
+This is a demo of a main application with two subcommands. This example illustrates how to define subcommands and
+reuse arguments from from other classes.
+"""
 
 from clak import Parser, Argument, Command
 
@@ -26,7 +32,14 @@ class AppCommand2(AppCommand1):
 
 
 class AppMain(Parser):
-    "Main application"
+    """
+    Demo application with options and two subcommands, and a common argument.
+
+    This is a two levels demo of an application with two subcommands:
+
+    - A subcommand: command1
+    - A subcommand: command2, inherited from command1
+    """
 
     class Meta:
         "Store Main app settings"

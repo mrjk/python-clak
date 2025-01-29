@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+"""
+This is a demo of a main application with two subcommands. This example illustrates how to define subcommands.
+"""
 
 from clak import Parser, Argument, Command
 
@@ -23,7 +28,15 @@ class AppCommand2(Parser):
 
 
 class AppMain(Parser):
-    "Main application"
+    """
+    Demo application with options and two subcommands.
+
+    This is a two levels demo of an application with two subcommands:
+
+    - A subcommand: command1
+    - A subcommand: command2
+    """
+
 
     debug = Argument('--debug', action='store_true', help='Enable debug mode')
     config = Argument('--config', '-c', help='Config file path', default="config.yaml")

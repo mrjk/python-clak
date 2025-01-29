@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+"""
+This is a demo of a main application with two subcommands. This example illustrates how to define subcommands and
+reuse arguments from from other classes. Also we see how to call a subcommand from another subcommand.
+"""
+
 import sys
 import argparse
 from clak import Parser, Argument, Command
