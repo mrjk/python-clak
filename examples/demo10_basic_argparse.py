@@ -2,6 +2,10 @@
 
 """
 This is a single level application with multiple arguments. It illustrates basic argparse usages.
+
+Purpose: 
+  - Illustrate argparse usage
+
 """
 
 from clak import Parser, Argument, Command

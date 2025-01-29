@@ -2,6 +2,9 @@
 
 """
 This is a demo of a main application with two subcommands. This example illustrates how to define subcommands.
+
+Purpose: 
+  -Illustrate 2 level subcommands
 """
 
 from clak import Parser, Argument, Command
@@ -48,4 +51,3 @@ class AppMain(Parser):
 
 # Instanciate your app, parse command line and run appropiate command.
 AppMain().dispatch()
-

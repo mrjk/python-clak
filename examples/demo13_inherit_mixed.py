@@ -4,7 +4,8 @@
 This is a demo of a main application with two subcommands. This example illustrates how to define subcommands and
 reuse arguments from from other classes.
 
-Purpose: Illustrate subcommands and arguments reusability via class inheritance
+Purpose: 
+  - Illustrate subcommands and arguments reusability via mixed class inheritance
 """
 
 from clak import Parser, Argument, Command
@@ -43,30 +44,13 @@ class AppMain(Parser):
     - A subcommand: command2, inherited from command1
 
     """
-
-    class Meta:
-        "Store Main app settings"
-
-        help_description = """
-        Hello World of CLI !
-
-        I'm the demo10 app, used to learn how to use clak.
-
-        However reusability is limited, see how text is shifted:
-        -- 8< -- 
-        {self.__doc__}
-        -- 8< -- 
-        """
-        help_epilog = "And this is a very short documentation epilog."
-
-
+    
     debug = Argument('--debug', action='store_true', help='Enable debug mode')
-    config = Argument('--config', '-c', help='Config file path')
+    config = Argument('--config', '-c', help='Config file path', default="config.yaml")
     
     # Define two subcommands
     command1 = Command(AppCommand1, help="Execute command 1")
     command2 = Command(AppCommand2, help='Execute command 2')
-
 
 # Instanciate your app, parse command line and run appropiate command.
 AppMain().dispatch()

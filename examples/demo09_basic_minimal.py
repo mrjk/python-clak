@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 This is a single level demo of an application with two arguments.
+
+Purpose: 
+  - Show a very basic command line
 """
 
 from clak import Parser, Argument, Command
