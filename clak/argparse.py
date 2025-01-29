@@ -8,6 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Expose common argparse elements
+from argparse import SUPPRESS, OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE
 
 
 # Store the original Action class

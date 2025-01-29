@@ -7,6 +7,10 @@ from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.completion import CompRenderOptMixin, CompRenderCmdMixin, CompCmdRender
 
+# Argparse public helpers
+from clak.argparse import SUPPRESS, OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE
+
+
 # Classic API
 ArgumentParser = Parser
 # Argument = Argument
