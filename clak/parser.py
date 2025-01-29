@@ -234,7 +234,7 @@ class SubParser(ArgParseItem):
             }
 
             # Create a new subparser for this command (flat structure)
-            parser_help = prepare_docstring(parser_help, variables=ctx_vars)
+            parser_help = prepare_docstring(first_doc_line(parser_help), variables=ctx_vars)
             parser_kwargs = {
                 "formatter_class": RecursiveHelpFormatter,
                 "add_help": parser_help_enabled, # Add support for --help
@@ -257,7 +257,7 @@ class SubParser(ArgParseItem):
             # logger.debug("Create new SUBPARSER %s %s %s", child.get_fname(attr="key"), key, self.kwargs)
 
             child_usage = child.query_cfg_inst("help_usage", default=None)
-            child_desc = child.query_cfg_inst("help_description", default=first_doc_line(child.__doc__))
+            child_desc = first_doc_line(child.query_cfg_inst("help_description", default=child.__doc__))
             child_epilog = child.query_cfg_inst("help_epilog", default=None)
             # print(f"DESC: |{desc}|")
 
