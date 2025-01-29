@@ -256,8 +256,8 @@ class SubParser(ArgParseItem):
 
             # logger.debug("Create new SUBPARSER %s %s %s", child.get_fname(attr="key"), key, self.kwargs)
 
-            child_desc = child.query_cfg_inst("help_description", default=child.__doc__)
             child_usage = child.query_cfg_inst("help_usage", default=None)
+            child_desc = child.query_cfg_inst("help_description", default=first_doc_line(child.__doc__))
             child_epilog = child.query_cfg_inst("help_epilog", default=None)
             # print(f"DESC: |{desc}|")
 
@@ -303,15 +303,25 @@ class RegistryEntry():
     def __repr__(self):
         return f"RegistryEntry({self._config})"
 
+def first_doc_line(text):
+    "Get first line of text, ignore empty lines"
+    lines = text.split("\n")
+    for line in lines:
+        if line.strip():
+            return line
+    return ""
+
 def prepare_docstring(text, variables=None, reindent="  "):
     "Prepare docstring"
-    
+
+    variables = variables or {}
+    assert isinstance(variables, dict), f"Got {type(variables)} instead of dict"
+
     if text is None:
         return None
     if text == SUPPRESS:
         return SUPPRESS
 
-    variables = variables or {}
 
     text = deindent_docstring(text, reindent=reindent)
     try:
@@ -323,6 +333,31 @@ def prepare_docstring(text, variables=None, reindent="  "):
         raise e
 
     return text
+
+class FormatEnv(dict):
+    "Format env"
+
+    _default = {
+        "type": "type FUNC",
+    }
+
+    def __init__(self, variables=None):
+        self._variables = variables or {}
+
+    # def __str__(self):
+    #     return self.value.format(**self.variables)
+
+    def get(self):
+        "Get dict of vars"
+        out = {}
+        out.update(self._default)
+        out.update(self._variables)
+        return out
+
+    def __dict__(self):
+        return dict(self.get())
+
+
 
 # Main parser object
 
@@ -370,16 +405,20 @@ class Parser(Node):
         self.registry[self.fkey] = self #RegistryEntry(config=self)
 
         if parser is None:
-            doc = prepare_docstring(self.__doc__, variables={"self": self})
             usage = self.query_cfg_parents("help_usage", default=None)      
-            description = self.query_cfg_parents("help_description", default=doc)
+            desc = self.query_cfg_parents("help_description", default=self.__doc__)
             epilog = self.query_cfg_parents("help_epilog", default=None)
+
+            fenv = FormatEnv({"self": self})
+            usage = prepare_docstring(usage, variables=fenv.get())
+            desc = prepare_docstring(desc, variables=fenv.get())
+            epilog = prepare_docstring(epilog, variables=fenv.get())
             self.parser = argparse.ArgumentParser(
                 usage=usage,
-                description=description,
+                description=desc,
+                epilog=epilog,
                 formatter_class=RecursiveHelpFormatter,
                 add_help=add_help,
-                epilog=epilog,
                 exit_on_error=False,
             )
             self.proc_name = self.parser.prog
