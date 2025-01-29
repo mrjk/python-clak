@@ -1,12 +1,30 @@
 # lib_dual.py
 
 from types import SimpleNamespace
-import argparse
+import argparse as _argparse
 import argcomplete
 from pprint import pprint
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+
+# Store the original Action class
+_OriginalAction = _argparse.Action
+
+# Create your new Action class
+class Action(_OriginalAction):
+    """Enhanced version of argparse.Action with custom behavior"""
+
+    def __init__(self, *args, clak_config=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.clak_config = clak_config
+
+# Replace the original Action class
+_argparse.Action = Action
+
+argparse = _argparse
 
 # Version: v4
 
@@ -228,10 +246,34 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
             # pprint(subaction.__dict__)
 
             choice = action.choices[subaction.dest]
-            parts.append(f"{bullet}{subaction.dest:<{self._max_help_position2}} {subaction.help or ''}\n")
+            if subaction.help != argparse.SUPPRESS:
+                parts.append(f"{bullet}{subaction.dest:<{self._max_help_position2}} {subaction.help or ''}\n")
             add_subparser_to_parts(
                 choice, prefix=f"{subaction.dest} ", level=1, indent=""
             )
 
         return "".join(parts)
 
+
+
+
+
+
+class ArgumentParserPlus(argparse.ArgumentParser):
+    "Improved version of ArgumentParser"
+
+    def parse_args(self, args=None, namespace=None):
+        args, argv = self.parse_known_args(args, namespace)
+        if argv:
+            msg = _('unrecognized arguments: %s') % ' '.join(argv)
+            if self.exit_on_error:
+                self.error(msg)
+            else:
+                raise ArgumentError(None, msg)
+        return args 
+    
+
+    # def add_argument(self, *args, config=None**kwargs):
+        
+    #     super().add_argument(*args, **kwargs)
+    #     self._fields_index[kwargs["dest"]] = self
