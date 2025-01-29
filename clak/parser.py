@@ -496,6 +496,11 @@ class Parser(Node):
 
     def show_help(self):
         self.parser.print_help()
+    def show_usage(self):
+        self.parser.print_usage()
+    def show_epilog(self):
+        self.parser.print_epilog()
+
 
 
     def cli_run(self, ctx, **kwargs):
