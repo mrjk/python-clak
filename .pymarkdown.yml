@@ -1,0 +1,17 @@
+---
+
+# See: https://pymarkdown.readthedocs.io/en/latest/rules/
+extensions:
+  pragmas:
+    enabled: True
+
+plugins:
+  md012:
+    maximum: 2
+  md013:
+    enabled: false
+    line_length: 120
+  md022:
+    enabled: false
+  md029:
+    enabled: false
