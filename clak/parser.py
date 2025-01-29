@@ -391,11 +391,12 @@ class Parser(Node):
         children_dict = self.children or {}
 
         # Add arguments from class attributes that are Command instances
-        for attr_name, attr_value in self.__class__.__dict__.items():
-            if isinstance(attr_value, Command):
-                # Store the attribute name as the key in the Fn instance
-                attr_value.destination = attr_name
-                children_dict[attr_name] = attr_value
+        for cls in self.__class__.__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                if isinstance(attr_value, Command):
+                    # Store the attribute name as the key in the Fn instance
+                    attr_value.destination = attr_name
+                    children_dict[attr_name] = attr_value
 
         for key, arg in children_dict.items():
             arg.create_subcommand(key, self)
@@ -540,7 +541,7 @@ class Parser(Node):
 
 
             # Update ctx with node attributes
-            ctx["cli_parent"] = hierarchy[-2]
+            ctx["cli_parent"] = hierarchy[-2] if len(hierarchy) > 1 else None
             ctx["cli_parents"] = hierarchy[:idx]
             ctx["cli_children"] = self.children
             ctx["cli_last"] = last_node
