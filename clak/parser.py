@@ -18,9 +18,13 @@ if os.environ.get('CLAK_DEBUG') == '1':
                         )
     logger.debug("Debug logging enabled via CLAK_DEBUG environment variable")
 
-from clak.argparse import _argparse as argparse
+from clak.common import deindent_docstring
+from clak.argparse import _argparse as argparse, SUPPRESS
 from clak.argparse import RecursiveHelpFormatter, argparse_merge_parents, argparse_inject_as_subparser
 from clak.nodes import Fn, Node, NOT_SET
+
+
+
 
 # Version: v6
 
@@ -214,38 +218,58 @@ class SubParser(ArgParseItem):
             logger.debug("Create new subparser %s.%s", config.get_fname(attr="key"), key ) #, self.kwargs)
 
             # Fetch help from class
-            child_help = self.kwargs.get("help",
+            parser_help = self.kwargs.get("help",
                 self.cls.query_cfg_inst(
                     self.cls, "help_description", 
                     default=self.cls.__doc__)
             )
-            child_enabled = self.kwargs.get("help_flags", 
+            parser_help_enabled = self.kwargs.get("help_flags", 
                 self.cls.query_cfg_inst(
                     self.cls, "help_flags", 
                     default=True))
             
+            ctx_vars = {
+                "key": key, 
+                "self": config
+            }
 
             # Create a new subparser for this command (flat structure)
+            parser_help = prepare_docstring(parser_help, variables=ctx_vars)
+            parser_kwargs = {
+                "formatter_class": RecursiveHelpFormatter,
+                "add_help": parser_help_enabled, # Add support for --help
+                "exit_on_error": False,
+                "help": parser_help,
+            }
+            # if parser_help is not None:
+            #     parser_kwargs["help"] = parser_help
+
+            # Create parser
             subparser = config.subparsers.add_parser(
                 key,
-                formatter_class=RecursiveHelpFormatter,
-                add_help=child_enabled, # Add support for --help
-                exit_on_error=False,
-                help=child_help,
+                **parser_kwargs,
             )
-
 
             # Create an instance of the command class with the subparser
             child = self.cls(parent=config, parser=subparser, key=key)
+            ctx_vars["self"] = child
 
             # logger.debug("Create new SUBPARSER %s %s %s", child.get_fname(attr="key"), key, self.kwargs)
 
+            child_desc = child.query_cfg_inst("help_description", default=child.__doc__)
+            child_usage = child.query_cfg_inst("help_usage", default=None)
+            child_epilog = child.query_cfg_inst("help_epilog", default=None)
+            # print(f"DESC: |{desc}|")
 
             # Reconfigure subparser
+            child_usage = prepare_docstring(child_usage, variables=ctx_vars)
+            child_desc = prepare_docstring(child_desc, variables=ctx_vars)
+            child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
+
             subparser.add_help = False #child.query_cfg_inst("help_enable", default=True)
-            subparser.usage = child.query_cfg_inst("help_usage", default=None)
-            subparser.description = child.query_cfg_inst("help_description", default=child.__doc__)
-            subparser.epilog = child.query_cfg_inst("help_epilog", default=None)
+            subparser.usage = child_usage
+            subparser.description = child_desc
+            subparser.epilog = child_epilog
 
             # pprint (subparser.__dict__)
 
@@ -279,6 +303,26 @@ class RegistryEntry():
     def __repr__(self):
         return f"RegistryEntry({self._config})"
 
+def prepare_docstring(text, variables=None, reindent="  "):
+    "Prepare docstring"
+    
+    if text is None:
+        return None
+    if text == SUPPRESS:
+        return SUPPRESS
+
+    variables = variables or {}
+
+    text = deindent_docstring(text, reindent=reindent)
+    try:
+        text = text.format(**variables)
+    except KeyError as e:
+        print (f"Error formatting docstring: {e}")
+        print (f"Variables: {variables}")
+        print (f"Text: {text}")
+        raise e
+
+    return text
 
 # Main parser object
 
@@ -326,8 +370,9 @@ class Parser(Node):
         self.registry[self.fkey] = self #RegistryEntry(config=self)
 
         if parser is None:
+            doc = prepare_docstring(self.__doc__, variables={"self": self})
             usage = self.query_cfg_parents("help_usage", default=None)      
-            description = self.query_cfg_parents("help_description", default=self.__doc__)
+            description = self.query_cfg_parents("help_description", default=doc)
             epilog = self.query_cfg_parents("help_epilog", default=None)
             self.parser = argparse.ArgumentParser(
                 usage=usage,
