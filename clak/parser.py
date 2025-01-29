@@ -508,7 +508,7 @@ class Parser(Node):
 
 
         # Check if class is a leaf or not
-        if ctx.cli_children:
+        if not ctx.cli_last:
             self.show_help()
         else:
 
