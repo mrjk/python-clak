@@ -51,6 +51,7 @@ class AppMain(Parser):
         for item in (items or []):
             print (f"  Item: {item}")
 
-# Instanciate your app, parse command line and run appropiate command.
-AppMain().dispatch()
+if __name__ == "__main__":
+  # Instanciate your app, parse command line and run appropiate command.
+  AppMain().dispatch()
 

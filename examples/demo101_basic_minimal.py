@@ -36,6 +36,8 @@ class AppMain(Parser):
         # Show the file docstring message
         print(f"File docstring message: {__doc__}")
 
-# Instanciate your app, parse command line and run appropiate command.
-AppMain().dispatch()
+
+if __name__ == "__main__":
+  # Instanciate your app, parse command line and run appropiate command.
+  AppMain().dispatch()
 

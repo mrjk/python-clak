@@ -75,7 +75,8 @@ class AppMain(Parser):
     command1 = Command(AppCommand1, help="Execute command 1")
     command2 = Command(AppCommand2, help='Execute command 2')
 
+if __name__ == "__main__":
 
-# Instanciate your app, parse command line and run appropiate command.
-AppMain().dispatch()
+    # Instanciate your app, parse command line and run appropiate command.
+    AppMain().dispatch()
 
