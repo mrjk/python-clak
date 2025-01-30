@@ -1,0 +1,6 @@
+cli_args:
+- command2
+err: '1'
+output: 'Manipulated error: Custom exception
+
+  '

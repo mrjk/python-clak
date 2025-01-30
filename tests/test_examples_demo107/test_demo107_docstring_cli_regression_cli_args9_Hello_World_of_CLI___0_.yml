@@ -1,0 +1,15 @@
+cli_args: []
+err: None
+output: "usage: demo107-test [-h] [--debug] [--config CONFIG] {command1,command2}\
+  \ ...\n\nHello World of CLI !\n\nI'm the demo10 app, used to learn how to use clak.\n\
+  \nTOFIX: However var interpolation is limited to text only. In the next\nexample,\
+  \ see how text is shifted, and there if anything we can do:\n-- 8< -- \n\n    Demo\
+  \ application with options and two subcommands, and a common argument.\n\n    This\
+  \ is a two levels demo of an application with two subcommands:\n\n    - A subcommand:\
+  \ command1\n    - A subcommand: command2, inherited from command1\n\n    \n-- 8<\
+  \ -- \n\npositional arguments:\n\nsubcommands:\n  command1                  Execute\
+  \ command 1                               \n  command2                  Execute\
+  \ command 2                               \n\noptions:\n  -h, --help           \
+  \       show this help message and exit\n  --debug                     Enable debug\
+  \ mode (default: False)\n  --config CONFIG, -c CONFIG  Config file path (default:\
+  \ None)\n\nAnd this is a very short documentation epilog.\n"

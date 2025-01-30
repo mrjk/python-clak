@@ -1,0 +1,4 @@
+cli_args:
+- command3
+err: '1'
+output: ''

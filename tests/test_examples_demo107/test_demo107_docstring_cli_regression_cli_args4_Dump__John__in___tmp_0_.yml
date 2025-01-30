@@ -1,0 +1,14 @@
+cli_args:
+- command2
+- --source
+- Lake
+- --force
+- --destination
+- /tmp
+- John
+err: None
+output: 'Run Command 2: World
+
+  Dump ''John'' in: /tmp
+
+  '

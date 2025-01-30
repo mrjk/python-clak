@@ -1,0 +1,7 @@
+cli_args:
+- command1
+err: '31'
+output: 'No ''cli_run'' method found for <examples.demo108_exceptions.AppCommand1
+  object>
+
+  '

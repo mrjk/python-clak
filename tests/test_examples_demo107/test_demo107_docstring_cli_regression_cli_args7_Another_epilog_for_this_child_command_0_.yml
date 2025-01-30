@@ -1,0 +1,9 @@
+cli_args:
+- command1
+- --help
+err: '0'
+output: "usage: demo107-test command1 [-h] [--source SOURCE] [--force]\n\nCommand\
+  \ 1, which do something with a source\n\noptions:\n  -h, --help                \
+  \  show this help message and exit\n  --source SOURCE, -s SOURCE  Source path (default:\
+  \ None)\n  --force, -f                 Force (default: False)\n\nAnother epilog\
+  \ for this child command.\n"
