@@ -501,7 +501,13 @@ class Parser(Node):
     def show_epilog(self):
         self.parser.print_epilog()
 
+    def cli_exit(self, status=0, message=None):
+        "Exit application"
+        self.parser.exit(status=status, message=message)
 
+    def cli_exit_error(self, message):
+        "Exit application with error message"
+        self.parser.error(message)
 
     def cli_run(self, ctx, **kwargs):
         "Placeholder for cli_run"
