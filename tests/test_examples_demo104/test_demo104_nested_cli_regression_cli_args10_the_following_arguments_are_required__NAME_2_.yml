@@ -1,0 +1,8 @@
+cli_args:
+- command2
+err: '2'
+output: 'usage: demo104-test command2 [-h] [--alias ALIASES] NAME
+
+  demo104-test command2: error: the following arguments are required: NAME
+
+  '

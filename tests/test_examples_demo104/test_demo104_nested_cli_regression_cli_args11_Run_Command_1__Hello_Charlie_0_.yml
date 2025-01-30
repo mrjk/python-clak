@@ -1,0 +1,8 @@
+cli_args:
+- --debug
+- command1
+- Charlie
+err: None
+output: 'Run Command 1: Hello Charlie
+
+  '

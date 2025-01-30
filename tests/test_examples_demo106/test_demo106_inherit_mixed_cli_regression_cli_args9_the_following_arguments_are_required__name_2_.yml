@@ -1,0 +1,6 @@
+cli_args:
+- command2
+err: '2'
+output: "usage: demo106-test command2 [-h] [--destination DESTINATION]\n         \
+  \                    [--source SOURCE] [--force]\n                             name\n\
+  demo106-test command2: error: the following arguments are required: name\n"

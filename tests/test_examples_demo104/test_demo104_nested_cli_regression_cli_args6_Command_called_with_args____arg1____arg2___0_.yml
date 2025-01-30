@@ -1,0 +1,11 @@
+cli_args:
+- command1
+- sub2
+- sub2
+- sub2a
+- arg1
+- arg2
+err: None
+output: 'Command called with args: [''arg1'', ''arg2'']
+
+  '

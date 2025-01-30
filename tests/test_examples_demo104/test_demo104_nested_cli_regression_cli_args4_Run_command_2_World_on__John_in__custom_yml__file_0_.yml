@@ -1,0 +1,9 @@
+cli_args:
+- --config
+- custom.yml
+- command2
+- John
+err: None
+output: 'Run command 2 World on: John in ''custom.yml'' file (force_mode=False)
+
+  '

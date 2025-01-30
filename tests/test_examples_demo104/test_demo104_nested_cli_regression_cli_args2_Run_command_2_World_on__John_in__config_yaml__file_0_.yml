@@ -1,0 +1,7 @@
+cli_args:
+- command2
+- John
+err: None
+output: 'Run command 2 World on: John in ''config.yaml'' file (force_mode=False)
+
+  '

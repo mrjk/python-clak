@@ -1,0 +1,10 @@
+cli_args:
+- --config
+- custom.yml
+- command1
+err: None
+output: 'Run Command 1: Hello
+
+  Source: Water from the mountains
+
+  '

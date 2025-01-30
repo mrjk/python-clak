@@ -1,0 +1,10 @@
+cli_args:
+- invalid-command
+err: '2'
+output: 'usage: demo105-test [-h] [--debug] [--config CONFIG] {command1,command2}
+  ...
+
+  Could not parse command line: __cli_cmd__1 invalid choice: ''invalid-command'' (choose
+  from ''command1'', ''command2'')
+
+  '
