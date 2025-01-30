@@ -24,7 +24,18 @@ from clak.argparse import RecursiveHelpFormatter, argparse_merge_parents, argpar
 from clak.nodes import Fn, Node, NOT_SET
 
 
+class ClakError(Exception):
+    "Argument error"
 
+class ClakParseError(ClakError):
+    "Raised when there is a parse issue"
+
+class ClakExitError(ClakError):
+    "Raised when there is a exit"
+
+
+class ClakNotImplementedError(ClakError):
+    "Raised when a method is not implemented"
 
 # Version: v6
 
@@ -385,6 +396,7 @@ class Parser(Node):
         key: str = None,
         parser: argparse.ArgumentParser = None,
         inject_as_subparser: bool = True,
+        proc_name: str = None,
     ):
 
 
@@ -395,7 +407,7 @@ class Parser(Node):
         self.key = key
         self.fkey = self.get_fname(attr="key")
         self.inject_as_subparser = inject_as_subparser
-
+        self.proc_name = proc_name
 
         # Add children link
         self.children = {}
@@ -415,6 +427,7 @@ class Parser(Node):
             desc = prepare_docstring(desc, variables=fenv.get())
             epilog = prepare_docstring(epilog, variables=fenv.get())
             self.parser = argparse.ArgumentParser(
+                prog=self.proc_name,
                 usage=usage,
                 description=desc,
                 epilog=epilog,
@@ -486,12 +499,10 @@ class Parser(Node):
         for key, arg in children_dict.items():
             arg.create_subcommand(key, self)
 
-    def parse_args(self):
+    def parse_args(self, *args):
         parser = self.parser
         argcomplete.autocomplete(parser)
-
-
-        return parser.parse_args()
+        return parser.parse_args(*args)
     
 
 
@@ -520,19 +531,19 @@ class Parser(Node):
         else:
 
             print(f"No code to execute, method is missing: {self.__class__.__name__}.cli_run(self, ctx, **kwargs)")
-            raise NotImplementedError(f"No 'cli_run' method found for {self}")
+            raise ClakNotImplementedError(f"No 'cli_run' method found for {self}")
 
 
     def cli_group(self, ctx, **kwargs):
         "Placeholder for cli_group"
 
 
-    def dispatch(self):
+    def dispatch(self, *args, exit=True):
         "Main dispatch function"
 
         # Try to parse arguments
         try:
-            args = self.parse_args()
+            args = self.parse_args(*args)
         except argparse.ArgumentError as e:
 
             # To fix, it does not display the correct Parser usage
@@ -556,24 +567,14 @@ class Parser(Node):
                 else:
                     break
                     
-            # Show help for the deepest valid subcommand found
-            last_child.parser.print_usage()
-            # last_child.show_help()
-            # TOTO: Read the current line argparse, and loop over each items
-            # Create laast_child = self
-            # on each item, test if it exists in self.children 
-              # If not, skip and break
-              # If yes, then, 
-                # Create last_child = self.children[item]
-
-            # Create last_child.show_help()
-
-
-            # pprint(self.__dict__)
-            # # pprint(e)
-            # # pprint(e.__dict__)
             print (f"Error parsing arguments: {e}")
-            sys.exit(1)
+            last_child.parser.print_usage()
+
+            if exit:
+                sys.exit(1)
+
+            raise ClakParseError(e)
+            # raise argparse.ArgumentError(e.argument_name, e.message) from e
 
         # Prepare args and context
         hook_list = {}

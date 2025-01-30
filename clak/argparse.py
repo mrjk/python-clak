@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Expose common argparse elements
 from argparse import SUPPRESS, OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE
-
+from argparse import ArgumentError
 
 # Store the original Action class
 _OriginalAction = _argparse.Action
