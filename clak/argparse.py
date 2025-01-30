@@ -5,6 +5,7 @@ import argparse as _argparse
 import argcomplete
 from pprint import pprint
 import logging
+from gettext import gettext as _
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,6 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
         if not isinstance(action, argparse._SubParsersAction):
             out = super()._format_action(action)
-            print (f"OUT\n\n{out}\n\nOUT")
             return out
 
         # Get the original format parts
@@ -269,17 +269,18 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
             )
 
         if len(parts) > 0:
-            parts.insert(0, "\ncommands available:\n")
+            parts.insert(0, "\nsubcommands:\n")
 
         return "".join(parts)
 
 
 
-
-
-
 class ArgumentParserPlus(argparse.ArgumentParser):
     "Improved version of ArgumentParser"
+
+    def __init__(self, *args, clak_instance=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.clak_instance = clak_instance
 
     def parse_args(self, args=None, namespace=None):
         args, argv = self.parse_known_args(args, namespace)
@@ -288,11 +289,6 @@ class ArgumentParserPlus(argparse.ArgumentParser):
             if self.exit_on_error:
                 self.error(msg)
             else:
-                raise ArgumentError(None, msg)
+                raise argparse.ArgumentError(None, msg)
         return args 
     
-
-    # def add_argument(self, *args, config=None**kwargs):
-        
-    #     super().add_argument(*args, **kwargs)
-    #     self._fields_index[kwargs["dest"]] = self

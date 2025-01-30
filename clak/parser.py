@@ -308,10 +308,11 @@ def first_doc_line(text):
     lines = text.split("\n")
     for line in lines:
         if line.strip():
+            assert not line.startswith(" "), f"First line of docstring should not start with 2 spaces: {line}"
             return line
     return ""
 
-def prepare_docstring(text, variables=None, reindent="  "):
+def prepare_docstring(text, variables=None, reindent=""):
     "Prepare docstring"
 
     variables = variables or {}
