@@ -4,6 +4,7 @@ import sys
 from types import SimpleNamespace
 # import argparse
 import argcomplete
+import traceback
 from pprint import pprint
 import logging
 import os
@@ -11,31 +12,21 @@ import os
 logger = logging.getLogger(__name__)
 
 # Enable debug logging if CLAK_DEBUG environment variable is set to 1
+CLAK_DEBUG = False
 if os.environ.get('CLAK_DEBUG') == '1':
     logging.basicConfig(level=logging.DEBUG,
     format='[%(levelname)8s] %(name)s - %(message)s',
-
                         )
     logger.debug("Debug logging enabled via CLAK_DEBUG environment variable")
+    CLAK_DEBUG = True
 
+import clak.exception as exception
 from clak.common import deindent_docstring
 from clak.argparse import _argparse as argparse, SUPPRESS
 from clak.argparse import RecursiveHelpFormatter, argparse_merge_parents, argparse_inject_as_subparser
 from clak.nodes import Fn, Node, NOT_SET
 
 
-class ClakError(Exception):
-    "Argument error"
-
-class ClakParseError(ClakError):
-    "Raised when there is a parse issue"
-
-class ClakExitError(ClakError):
-    "Raised when there is a exit"
-
-
-class ClakNotImplementedError(ClakError):
-    "Raised when a method is not implemented"
 
 # Version: v6
 
@@ -373,6 +364,9 @@ class FormatEnv(dict):
 
 # Main parser object
 
+
+
+
 class Parser(Node):
     """An extensible argument parser that can be inherited to add custom fields.
 
@@ -499,11 +493,6 @@ class Parser(Node):
         for key, arg in children_dict.items():
             arg.create_subcommand(key, self)
 
-    def parse_args(self, *args):
-        parser = self.parser
-        argcomplete.autocomplete(parser)
-        return parser.parse_args(*args)
-    
 
 
     def show_help(self):
@@ -530,51 +519,164 @@ class Parser(Node):
             self.show_help()
         else:
 
-            print(f"No code to execute, method is missing: {self.__class__.__name__}.cli_run(self, ctx, **kwargs)")
-            raise ClakNotImplementedError(f"No 'cli_run' method found for {self}")
+            # print(f"No code to execute, method is missing: {self.__class__.__name__}.cli_run(self, ctx, **kwargs)")
+            raise exception.ClakNotImplementedError(f"No 'cli_run' method found for {self}")
 
 
     def cli_group(self, ctx, **kwargs):
         "Placeholder for cli_group"
 
 
-    def dispatch(self, *args, exit=True):
+    def find_closest_subcommand(self, args=None):
+        "Find the closest subcommand from CLI args"
+
+        # Get the current command line from sys.argv
+        current_cmd = sys.argv[1:] if args is None else args
+        last_child = self
+
+        # Loop through each argument to find the deepest valid subcommand
+        for arg in current_cmd:
+            # Skip options (starting with -)
+            if arg.startswith('-'):
+                break
+                
+            # Check if argument exists as a subcommand
+            if arg in last_child.children:
+                last_child = last_child.children[arg]
+            else:
+                break
+
+        return last_child
+
+
+    def clean_terminate(self, err):
+        "Terminate nicely the program depending the exception"
+
+        oserrors = [
+            PermissionError,
+            FileExistsError,
+            FileNotFoundError,
+            InterruptedError,
+            IsADirectoryError,
+            NotADirectoryError,
+            TimeoutError,
+        ]
+
+        # If user made an error on command line, show usage before leaving
+        if isinstance(err, exception.ClakParseError):
+            self.show_usage()
+            logger.error(err)
+            sys.exit(err.rc)
+
+
+        # Choose dead end way
+        if isinstance(err, exception.ClakUserError):
+            err_name = err.__class__.__name__
+            if isinstance(err.advice, str):
+                logger.warning(err.advice)
+            # err_message = err.message
+            # if not err_message:
+            #     err_message = err.__doc__
+
+            logger.error(err)
+            # logger.critical(f"Program exited with: error {err.rc}: {err_name}")
+            sys.exit(err.rc)
+
+        if isinstance(err, exception.ClakError):
+            err_name = err.__class__.__name__
+            if isinstance(err.advice, str):
+                logger.warning(err.advice)
+
+            err_message = err.message
+            if not err_message:
+                err_message = err.__doc__
+
+            logger.error(err)
+            logger.critical(f"Program exited with bug {err_name}({err.rc}): {err_message}")
+            sys.exit(err.rc)
+
+        # if isinstance(err, yaml.scanner.ScannerError):
+        #     log.critical(err)
+        #     log.critical("Paasify exited with: YAML Scanner error (file syntax)")
+        #     sys.exit(error.YAMLError.rc)
+
+        # if isinstance(err, yaml.composer.ComposerError):
+        #     log.critical(err)
+        #     log.critical("Paasify exited with: YAML Composer error (file syntax)")
+        #     sys.exit(error.YAMLError.rc)
+
+        # if isinstance(err, yaml.parser.ParserError):
+        #     log.critical(err)
+        #     log.critical("Paasify exited with: YAML Parser error (file format)")
+        #     sys.exit(error.YAMLError.rc)
+
+        # if isinstance(err, sh.ErrorReturnCode):
+        #     log.critical(err)
+        #     log.critical(
+        #         f"Paasify exited with: failed command returned {err.exit_code}")
+        #     sys.exit(error.ShellCommandFailed.rc)
+
+        if err.__class__ in oserrors:
+
+            # Decode OS errors
+            # errno = os.strerror(err.errno)
+            # errint = str(err.errno)
+
+            logger.critical(f"Program exited with OS error: {err}")
+            sys.exit(err.errno)
+
+    def parse_args(self, args=None):
+        parser = self.parser
+        argcomplete.autocomplete(parser)
+
+        # args = args[0] if len(args) > 0 else sys.argv[1:]
+
+        if args is None:
+            args = sys.argv[1:]
+        elif isinstance(args, str):
+            args = args.split(" ")
+        elif isinstance(args, list):
+            args = args
+        elif isinstance(args, dict):
+            return args
+        else:
+            raise ValueError(f"Invalid args type: {type(args)}")
+
+        return parser.parse_args(args)
+    
+
+    def dispatch(self, args=None, exit=None, debug=None):
+        "Main dispatch function, must correctly handle exit status and exceptions and so"
+        # It must correctly handle exit status and exceptions.
+
+        try:
+            return self.cli_execute(args=args)
+        except Exception as err:
+            error = err
+
+            # Always show traceback if debug mode is enabled
+            if CLAK_DEBUG is True:
+                logger.error(traceback.format_exc())
+
+            self.clean_terminate(error)
+
+            # Developper catchall
+            if CLAK_DEBUG is False:
+                logger.error(traceback.format_exc())
+            logger.critical(f"Uncatched error {err.__class__}; this may be a bug!")
+            logger.critical("Exit 1 with bugs")
+            sys.exit(1)
+
+
+    def cli_execute(self, args=None):
         "Main dispatch function"
 
-        # Try to parse arguments
+
         try:
-            args = self.parse_args(*args)
-        except argparse.ArgumentError as e:
-
-            # To fix, it does not display the correct Parser usage
-            # self.parser.print_usage()
-            # So let's display the full root help instead of just usage
-            # self.show_help()
-
-            # Get the current command line from sys.argv
-            current_cmd = sys.argv[1:]
-            last_child = self
-
-            # Loop through each argument to find the deepest valid subcommand
-            for arg in current_cmd:
-                # Skip options (starting with -)
-                if arg.startswith('-'):
-                    break
-                    
-                # Check if argument exists as a subcommand
-                if arg in last_child.children:
-                    last_child = last_child.children[arg]
-                else:
-                    break
-                    
-            print (f"Error parsing arguments: {e}")
-            last_child.parser.print_usage()
-
-            if exit:
-                sys.exit(1)
-
-            raise ClakParseError(e)
-            # raise argparse.ArgumentError(e.argument_name, e.message) from e
+            args = self.parse_args(args)
+        except argparse.ArgumentError as err:
+            msg = f"Could not parse command line, {err.message}"
+            raise exception.ClakParseError(msg) from err
 
         # Prepare args and context
         hook_list = {}
