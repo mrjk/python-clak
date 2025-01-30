@@ -42,6 +42,8 @@ class AppMain(Parser):
 
         if force:
             print(f"Force mode update config file: {config}")
+        else:
+            print(f"No force mode, config file: {config}")
     
         print (f"Identity: {name} {surname or 'MISSING_SURNAME'}")
         print (f"Favorite color is: {color}")
