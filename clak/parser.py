@@ -2,6 +2,7 @@
 
 import sys
 from types import SimpleNamespace
+from typing import Sequence
 # import argparse
 import argcomplete
 import traceback
@@ -513,12 +514,13 @@ class Parser(Node):
     def cli_run(self, ctx, **kwargs):
         "Placeholder for cli_run"
 
+        # pprint(ctx)
+
 
         # Check if class is a leaf or not
-        if not ctx.cli_last:
+        if len(ctx.cli_children) > 0:
             self.show_help()
         else:
-
             # print(f"No code to execute, method is missing: {self.__class__.__name__}.cli_run(self, ctx, **kwargs)")
             raise exception.ClakNotImplementedError(f"No 'cli_run' method found for {self}")
 
@@ -549,18 +551,38 @@ class Parser(Node):
         return last_child
 
 
-    def clean_terminate(self, err):
+    def clean_terminate(self, err, known_exceptions=None):
         "Terminate nicely the program depending the exception"
 
-        oserrors = [
-            PermissionError,
-            FileExistsError,
-            FileNotFoundError,
-            InterruptedError,
-            IsADirectoryError,
-            NotADirectoryError,
-            TimeoutError,
-        ]
+        def default_exception_handler(self, exception):
+            print(f"Default exception handler: {exception}")
+            sys.exit(1)
+
+        # Prepare known exceptions list
+        known_exceptions = known_exceptions or []
+        known_exceptions_conf = {}
+        for _exception in known_exceptions:
+            exception_fn = default_exception_handler
+            if isinstance(_exception, Sequence):
+                exception_cls = _exception[0]
+                if len(_exception) > 1:
+                    exception_fn = _exception[1]
+            else:
+                exception_cls = _exception
+
+            exception_name = str(exception_cls)
+            known_exceptions_conf[exception_name] = {
+                "fn": exception_fn,
+                "exception": exception_cls,
+            }
+        known_exceptions_list = tuple([val["exception"] for val in known_exceptions_conf.values()])
+
+        # Check user overrides
+        if known_exceptions_list and isinstance(err, known_exceptions_list):
+            get_handler = known_exceptions_conf[str(type(err))]["fn"]
+            get_handler(self,err)
+            # If handler did not exited, ensure we do
+            sys.exit(1)
 
         # If user made an error on command line, show usage before leaving
         if isinstance(err, exception.ClakParseError):
@@ -569,8 +591,7 @@ class Parser(Node):
             print(f"{err}")
             sys.exit(err.rc)
 
-
-        # Choose dead end way
+        # Choose dead end way generic user error
         if isinstance(err, exception.ClakUserError):
             if isinstance(err.advice, str):
                 logger.warning(err.advice)
@@ -578,6 +599,7 @@ class Parser(Node):
             print(f"{err}")
             sys.exit(err.rc)
 
+        # Internal clak errors
         if isinstance(err, exception.ClakError):
             err_name = err.__class__.__name__
             if isinstance(err.advice, str):
@@ -612,6 +634,16 @@ class Parser(Node):
         #     log.critical(
         #         f"Paasify exited with: failed command returned {err.exit_code}")
         #     sys.exit(error.ShellCommandFailed.rc)
+
+        oserrors = [
+            PermissionError,
+            FileExistsError,
+            FileNotFoundError,
+            InterruptedError,
+            IsADirectoryError,
+            NotADirectoryError,
+            TimeoutError,
+        ]
 
         if err.__class__ in oserrors:
 
@@ -650,15 +682,18 @@ class Parser(Node):
             return self.cli_execute(args=args)
         except Exception as err:
             error = err
+            debug = debug if isinstance(debug, bool) else CLAK_DEBUG
 
             # Always show traceback if debug mode is enabled
-            if CLAK_DEBUG is True:
+            if debug is True:
                 logger.error(traceback.format_exc())
 
-            self.clean_terminate(error)
+            known_exceptions = self.query_cfg_parents("known_exceptions", default=[])      
+
+            self.clean_terminate(error, known_exceptions)
 
             # Developper catchall
-            if CLAK_DEBUG is False:
+            if debug is False:
                 logger.error(traceback.format_exc())
             logger.critical(f"Uncatched error {err.__class__}; this may be a bug!")
             logger.critical("Exit 1 with bugs")
@@ -740,7 +775,7 @@ class Parser(Node):
             # Update ctx with node attributes
             ctx["cli_parent"] = hierarchy[-2] if len(hierarchy) > 1 else None
             ctx["cli_parents"] = hierarchy[:idx]
-            ctx["cli_children"] = self.children
+            ctx["cli_children"] = dict(node.children)
             ctx["cli_last"] = last_node
             ctx["cli_hooks"] = hook_list
             ctx["cli_index"] = idx
