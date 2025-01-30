@@ -186,17 +186,15 @@ ZERO_OR_MORE = argparse.ZERO_OR_MORE
 class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """A recursive help formatter to help command discovery."""
 
-    config__max_help_position = 50
+    config__max_help_position = 30
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, max_help_position=None, **kwargs):
+        super().__init__(*args, max_help_position=self.config__max_help_position, **kwargs)
 
-        # Hack column alignment
-        self._max_help_position = min(
-            self.config__max_help_position,
-            max(self._width - 20, self._indent_increment * 2))
-        self._max_help_position2 = self._max_help_position - 3
-    
+    def _get_default_metavar_for_positional(self, action):
+        "Automatically show positional as uppercase"
+        return action.dest.upper()
+
     
     # Show default values
     def _get_help_string(self, action):
@@ -211,16 +209,28 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                     help += (' (default: %(default)s)')
         return help
     
-
     # Ensure all subparsers are shown
     def _format_action(self, action):
+        "Override and improve helper output"
+
+        # Notes:
+        # - Why not use add_argument_group()?
+        #    - See: https://docs.python.org/3/library/argparse.html#argument-groups
+        # Implement register for subcommands: https://docs.python.org/3/library/argparse.html#registering-custom-types-or-actions
+
+
         if not isinstance(action, argparse._SubParsersAction):
-            return super()._format_action(action)
+            out = super()._format_action(action)
+            print (f"OUT\n\n{out}\n\nOUT")
+            return out
 
         # Get the original format parts
-        # parts = ["\nCommands available:\n"]
         parts = []
         bullet: str = "  "
+
+        help_position = min(self._action_max_length + 2, self._max_help_position)
+        help_width = max(self._width - help_position, 11)
+        action_width = help_position - self._current_indent - 2
 
         def add_subparser_to_parts(
             parser: argparse.ArgumentParser,
@@ -236,9 +246,11 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                         choice = act.choices[subaction.dest]
                         cmd = f"{prefix}{subaction.dest}"
                         if subaction.help != argparse.SUPPRESS:
-                            parts.append(
-                                f"{_indent}{bullet}{cmd:<{self._max_help_position2}} {subaction.help or ''}\n"
-                            )
+                            help_msg = subaction.help or ''
+                            line = f"{_indent}{bullet}{cmd:<{action_width}}{help_msg:<{help_width}}\n"
+                            parts.append(line)
+                            cmd = f"{cmd}"
+
                         add_subparser_to_parts(
                             choice, prefix=f"{cmd} ", level=level + 1, indent=indent
                         )
@@ -249,10 +261,15 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
             choice = action.choices[subaction.dest]
             if subaction.help != argparse.SUPPRESS:
-                parts.append(f"{bullet}{subaction.dest:<{self._max_help_position2}} {subaction.help or ''}\n")
+                help_msg = subaction.help or ''
+                line = f"{bullet}{subaction.dest:<{action_width}}{help_msg:<{help_width}}\n"
+                parts.append(line)
             add_subparser_to_parts(
                 choice, prefix=f"{subaction.dest} ", level=1, indent=""
             )
+
+        if len(parts) > 0:
+            parts.insert(0, "\ncommands available:\n")
 
         return "".join(parts)
 
