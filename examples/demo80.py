@@ -3,6 +3,10 @@
 """
 This is a demo of a main application with two subcommands. This example illustrates how to define subcommands and
 reuse arguments from from other classes. Also we see how to call a subcommand from another subcommand.
+
+Purpose:
+  - Illustrate how to call another subcommand from a subcommand
+
 """
 
 import sys
@@ -70,8 +74,12 @@ class ForwardCommand(Parser):
         pprint(ctx)
 
         if kind in ["phone", "computer"]:
-            # TOFIX not implemented yet
-            # There is no way to do that in current implementation.
+            # TODO
+            # TOFIX it's possible to access the subcommand object
+            # However it's not possible to call it like command line.
+            # You need to use: root.run_cmd(obj_name=".{kind}.{action}", *args, **kwargs)
+            # But this is not implemented yet
+
             print("Redirect to another command")
             func = ctx.cli_root[kind][action].cli_run
 
