@@ -1,0 +1,17 @@
+cli_args:
+- --help
+err: '0'
+output: "usage: demo102-test [-h] [--force] [--config CONFIG]\n                  \
+  \  [--color {red,green,blue,unknown}] [--items ITEMS]\n                    NAME\
+  \ [SURNAME] [ALIAS ...]\n\nDemo application with many arguments.\n\nThis is a single\
+  \ level demo of an application with many argparse arguments:\n  - An option Argument:\
+  \ force\n  - An option Argument: config\n  - An option Argument: color\n  - An option\
+  \ Argument: items\n  - A positional argument: name\n  - A positional argument: surname\n\
+  \  - A positional argument: aliases\n\npositional arguments:\n  NAME           \
+  \             First Name\n  SURNAME                     Last Name (default: Doe)\n\
+  \  ALIAS                       Aliases (default: Doe)\n\noptions:\n  -h, --help\
+  \                  show this help message and exit\n  --force, -f              \
+  \   Force mode (default: False)\n  --config CONFIG, -c CONFIG  Config file path\
+  \ (default: config.yaml)\n  --color {red,green,blue,unknown}, -r {red,green,blue,unknown}\n\
+  \                              Favorite color (default: unknown)\n  --items ITEMS,\
+  \ -m ITEMS     Preferred items (default: None)\n"

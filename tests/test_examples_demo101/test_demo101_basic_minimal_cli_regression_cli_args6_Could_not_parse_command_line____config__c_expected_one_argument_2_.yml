@@ -1,0 +1,8 @@
+cli_args:
+- --config
+err: '2'
+output: 'usage: demo101-test [-h] [--config CONFIG] [NAME]
+
+  Could not parse command line: --config/-c expected one argument
+
+  '

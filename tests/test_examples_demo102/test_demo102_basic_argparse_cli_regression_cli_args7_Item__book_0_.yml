@@ -1,0 +1,9 @@
+cli_args:
+- --items
+- book
+- --items
+- pen
+- John
+err: None
+output: "No force mode, config file: config.yaml\nIdentity: John Doe\nFavorite color\
+  \ is: unknown\n  Alias: D\n  Alias: o\n  Alias: e\n  Item: book\n  Item: pen\n"

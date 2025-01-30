@@ -1,0 +1,6 @@
+cli_args:
+- John
+- Smith
+err: None
+output: "No force mode, config file: config.yaml\nIdentity: John Smith\nFavorite color\
+  \ is: unknown\n  Alias: D\n  Alias: o\n  Alias: e\n"

@@ -1,0 +1,11 @@
+cli_args:
+- invalid-command
+err: '2'
+output: 'Error parsing arguments: argument __cli_cmd__1: invalid choice: ''invalid-command''
+  (choose from ''command1'', ''command2'')
+
+  usage: demo103-test [-h] [--debug] [--config CONFIG] {command1,command2} ...
+
+  CLI EXIT 2
+
+  '

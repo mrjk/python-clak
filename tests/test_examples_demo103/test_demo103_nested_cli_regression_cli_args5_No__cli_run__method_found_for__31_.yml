@@ -1,0 +1,5 @@
+cli_args: []
+err: '31'
+output: 'No ''cli_run'' method found for <examples.demo103_nested.AppMain object>
+
+  '

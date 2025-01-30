@@ -1,0 +1,5 @@
+cli_args: []
+err: None
+output: 'No name provided, please provide a name as first argument.
+
+  '

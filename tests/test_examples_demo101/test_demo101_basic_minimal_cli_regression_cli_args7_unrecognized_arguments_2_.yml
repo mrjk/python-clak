@@ -1,0 +1,9 @@
+cli_args:
+- John
+- Alice
+err: '2'
+output: 'usage: demo101-test [-h] [--config CONFIG] [NAME]
+
+  demo101-test: error: unrecognized arguments: Alice
+
+  '

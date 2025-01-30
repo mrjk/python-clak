@@ -1,0 +1,9 @@
+cli_args:
+- --help
+err: '0'
+output: "usage: demo101-test [-h] [--config CONFIG] [NAME]\n\nDemo application with\
+  \ two arguments.\n\nThis is a single level demo of an application with two arguments:\n\
+  \n- An option Argument: config\n- A positional argument: name\n\npositional arguments:\n\
+  \  NAME                        First Name (default: None)\n\noptions:\n  -h, --help\
+  \                  show this help message and exit\n  --config CONFIG, -c CONFIG\
+  \  Config file path (default: config.yaml)\n"

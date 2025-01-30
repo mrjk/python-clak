@@ -1,0 +1,7 @@
+cli_args:
+- command1
+- --force
+err: None
+output: 'Run Command 1: Hello
+
+  '

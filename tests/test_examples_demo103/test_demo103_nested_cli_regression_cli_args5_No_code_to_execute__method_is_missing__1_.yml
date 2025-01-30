@@ -1,0 +1,12 @@
+cli_args: []
+err: '2'
+output: 'No code to execute, method is missing: AppMain.cli_run(self, ctx, **kwargs)
+
+  Error parsing arguments: No ''cli_run'' method found for <examples.demo103_nested.AppMain
+  object>
+
+  usage: demo103-test [-h] [--debug] [--config CONFIG] {command1,command2} ...
+
+  CLI EXIT 2
+
+  '
