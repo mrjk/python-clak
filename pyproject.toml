@@ -41,6 +41,7 @@ pytest-clarity = "^1.0.1"
 pylint = "^3.3.3"
 yamllint = "^1.35.1"
 pymarkdownlnt = "^0.9.26"
+pytest-tagging = "^1.6.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.5.49"
@@ -57,6 +58,6 @@ pylint = "^3.3.3"
 # ========================
 [tool.pytest.ini_options]
 pythonpath = [
-  "."
+  ".", "tests"
 ]
 

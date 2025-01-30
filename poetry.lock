@@ -2243,6 +2243,21 @@ image = ["numpy", "pillow"]
 num = ["numpy", "pandas"]
 
 [[package]]
+name = "pytest-tagging"
+version = "1.6.0"
+description = "a pytest plugin to tag tests"
+optional = false
+python-versions = "<4.0,>=3.8"
+groups = ["dev"]
+files = [
+    {file = "pytest_tagging-1.6.0-py3-none-any.whl", hash = "sha256:2b6ba4053b226a4911a749ecdc2dacce04337d2748682a5cb6bbcec3a401be1c"},
+    {file = "pytest_tagging-1.6.0.tar.gz", hash = "sha256:950ab148a27f688a322cde656248cdcb97d75f88f0b91e26312c2e005ec9dab2"},
+]
+
+[package.dependencies]
+pytest = ">=7.1.3"
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -3260,4 +3275,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "29112b63b7fd1181c4319df85be82984fb60198e548302b181222edd1aa394ff"
+content-hash = "ca6d2adda10f962285cb437be13eaf8c3c495cf40ffec7784ee54990850b3a18"
