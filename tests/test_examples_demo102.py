@@ -56,6 +56,7 @@ TEST_PARAMETERS = [
      0),
 ]
 
+@pytest.mark.tags("examples", "examples-unit")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo102_basic_argparse_cli(demo102_app, capsys, cli_args, expected_output, expected_exit):
     """Test various CLI combinations for the basic argparse example."""
@@ -84,6 +85,7 @@ def test_demo102_basic_argparse_cli(demo102_app, capsys, cli_args, expected_outp
     assert exit_code == expected_exit, \
         f"Expected exit code {expected_exit}, but got: {exit_code}"
 
+@pytest.mark.tags("examples", "examples-regressions")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo102_basic_argparse_cli_regression(demo102_app, capsys, data_regression, cli_args, expected_output, expected_exit):
     """Regression test that captures and compares output data against stored values."""

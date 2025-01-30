@@ -57,6 +57,7 @@ TEST_PARAMETERS = [
      2),
 ]
 
+@pytest.mark.tags("examples", "examples-unit")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo101_basic_minimal_cli(demo101_app, capsys, cli_args, expected_output, expected_exit):
     """Test various CLI combinations for the basic minimal example."""

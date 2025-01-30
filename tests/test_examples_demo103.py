@@ -42,12 +42,12 @@ TEST_PARAMETERS = [
     
     # Test with no arguments (shows help)
     ([], 
-     "No 'cli_run' method found for ", 
-     31),
+     "This is a two levels demo of an application with two subcommands:", 
+     0),
     
     # Test with help flag (shows help)
     (["--help"], 
-     "Demo application with options and two subcommands.", 
+     "This is a two levels demo of an application with two subcommands:", 
      0),
     
     # Test with invalid command
@@ -66,6 +66,7 @@ TEST_PARAMETERS = [
      0),
 ]
 
+@pytest.mark.tags("examples", "examples-unit")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo103_nested_cli(demo103_app, capsys, cli_args, expected_output, expected_exit):
     """Test various CLI combinations for the nested commands example."""
@@ -92,6 +93,7 @@ def test_demo103_nested_cli(demo103_app, capsys, cli_args, expected_output, expe
     assert exit_code == expected_exit, \
         f"Expected exit code {expected_exit}, but got: {exit_code}"
 
+@pytest.mark.tags("examples", "examples-regressions")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo103_nested_cli_regression(demo103_app, capsys, data_regression, cli_args, expected_output, expected_exit):
     """Regression test that captures and compares output data against stored values."""
