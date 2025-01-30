@@ -155,6 +155,22 @@ Check the `examples/` directory in the source code for more complex examples inc
 - Custom help formatting
 - Command grouping
 
+## TODO
+
+Implementation:
+
+- [ ] Use more argparse plugins mechanisms
+
+Features:
+
+- [ ] Add support for `argcomplete`
+- [ ] Add support for argparse Argument groups
+    - [Argument groups](https://docs.python.org/3/library/argparse.html#argument-groups)
+    - [Mutual exclusive groups](https://docs.python.org/3/library/argparse.html#mutual-exclusion)
+- [ ] Add support for intermixed arguments
+    - [Intermixed arguments](https://docs.python.org/3/library/argparse.html#intermixed-arguments)
+- [ ] Add support for `fire`
+
 ## Requirements
 
 - Python 3.9 or higher

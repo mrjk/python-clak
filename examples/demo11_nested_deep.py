@@ -46,12 +46,13 @@ class AppCommand1(Parser):
     "Command 1, which says hello"
 
     force = Argument('--force', '-f', action='store_true', help='Force')
+    name = Argument('NAME', help='Name')
 
     sub1 = Command(SubCommand1)
     sub2 = Command(SubCommand2)
 
-    def cli_run(self, force=None, **_):
-        print (f"Run Command 1: Hello")
+    def cli_run(self, force=None, name=None, **_):
+        print (f"Run Command 1: Hello {name}")
 
 class AppCommand2(Parser):
     "Command 2, with option and positional arguments"
