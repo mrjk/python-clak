@@ -564,22 +564,18 @@ class Parser(Node):
 
         # If user made an error on command line, show usage before leaving
         if isinstance(err, exception.ClakParseError):
+            # Must go to stdout
             self.show_usage()
-            logger.error(err)
+            print(f"{err}")
             sys.exit(err.rc)
 
 
         # Choose dead end way
         if isinstance(err, exception.ClakUserError):
-            err_name = err.__class__.__name__
             if isinstance(err.advice, str):
                 logger.warning(err.advice)
-            # err_message = err.message
-            # if not err_message:
-            #     err_message = err.__doc__
 
-            logger.error(err)
-            # logger.critical(f"Program exited with: error {err.rc}: {err_name}")
+            print(f"{err}")
             sys.exit(err.rc)
 
         if isinstance(err, exception.ClakError):
@@ -591,7 +587,8 @@ class Parser(Node):
             if not err_message:
                 err_message = err.__doc__
 
-            logger.error(err)
+            # logger.error(err)
+            print(f"{err}")
             logger.critical(f"Program exited with bug {err_name}({err.rc}): {err_message}")
             sys.exit(err.rc)
 
@@ -675,7 +672,8 @@ class Parser(Node):
         try:
             args = self.parse_args(args)
         except argparse.ArgumentError as err:
-            msg = f"Could not parse command line, {err.message}"
+            msg = f"Could not parse command line: {err.argument_name} {err.message}"
+            # print(f"Error: {msg}")
             raise exception.ClakParseError(msg) from err
 
         # Prepare args and context
