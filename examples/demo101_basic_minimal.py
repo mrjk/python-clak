@@ -6,7 +6,8 @@ Purpose:
   - Show a very basic command line
 """
 
-from clak import Parser, Argument, Command
+from clak import Argument, Command, Parser
+
 
 class AppMain(Parser):
     """
@@ -19,9 +20,9 @@ class AppMain(Parser):
     """
 
     # Option examples
-    config  = Argument('--config', '-c', help='Config file path', default="config.yaml")
+    config = Argument("--config", "-c", help="Config file path", default="config.yaml")
     # Define positional arguments
-    name = Argument('NAME', help='First Name', nargs='?')
+    name = Argument("NAME", help="First Name", nargs="?")
 
     # Define our command, with arguments
     def cli_run(self, config=None, name=None, **_):
@@ -38,6 +39,5 @@ class AppMain(Parser):
 
 
 if __name__ == "__main__":
-  # Instanciate your app, parse command line and run appropiate command.
-  AppMain().dispatch()
-
+    # Instanciate your app, parse command line and run appropiate command.
+    AppMain().dispatch()

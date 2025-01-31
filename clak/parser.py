@@ -1,33 +1,34 @@
 # lib_dual.py
 
-import sys
-from types import SimpleNamespace
-from typing import Sequence
-# import argparse
-import argcomplete
-import traceback
-from pprint import pprint
 import logging
 import os
+import sys
+import traceback
+from pprint import pprint
+from types import SimpleNamespace
+from typing import Sequence
+
+# import argparse
+import argcomplete
 
 logger = logging.getLogger(__name__)
 
 # Enable debug logging if CLAK_DEBUG environment variable is set to 1
 CLAK_DEBUG = False
-if os.environ.get('CLAK_DEBUG') == '1':
-    logging.basicConfig(level=logging.DEBUG,
-    format='[%(levelname)8s] %(name)s - %(message)s',
-                        )
+if os.environ.get("CLAK_DEBUG") == "1":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="[%(levelname)8s] %(name)s - %(message)s",
+    )
     logger.debug("Debug logging enabled via CLAK_DEBUG environment variable")
     CLAK_DEBUG = True
 
 import clak.exception as exception
+from clak.argparse import SUPPRESS, RecursiveHelpFormatter
+from clak.argparse import _argparse as argparse
+from clak.argparse import argparse_inject_as_subparser, argparse_merge_parents
 from clak.common import deindent_docstring
-from clak.argparse import _argparse as argparse, SUPPRESS
-from clak.argparse import RecursiveHelpFormatter, argparse_merge_parents, argparse_inject_as_subparser
-from clak.nodes import Fn, Node, NOT_SET
-
-
+from clak.nodes import NOT_SET, Fn, Node
 
 # Version: v6
 
@@ -52,7 +53,6 @@ USE_SUBPARSERS = True
 # ################################################################################
 
 # Top objects
-
 
 
 class ArgParseItem(Fn):
@@ -96,7 +96,6 @@ class ArgParseItem(Fn):
     def build_params(self, dest: str):
         # Create parser arguments
 
-
         # Create parser
         kwargs = self.kwargs
 
@@ -106,7 +105,7 @@ class ArgParseItem(Fn):
                 raise ValueError(
                     f"Too many arguments found for {self.__class__.__name__}: {self.args}"
                 )
-            
+
             args = self.args
 
             arg1 = args[0]
@@ -118,8 +117,6 @@ class ArgParseItem(Fn):
                 args = ()
                 kind = "argument"
 
-
-
         elif dest:
             if len(dest) <= 2:
                 args = (f"-{dest}",)
@@ -129,7 +126,6 @@ class ArgParseItem(Fn):
             raise ValueError(
                 f"No arguments found for {self.__class__.__name__}: {self.__dict__}"
             )
-
 
         # TOFIX
         # Update dest if forced
@@ -151,6 +147,7 @@ class ArgParseItem(Fn):
 
 # Developper objects
 
+
 class Argument(ArgParseItem):
     """A argparse.argument arguments."""
 
@@ -162,11 +159,16 @@ class Argument(ArgParseItem):
         ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
 
         # Create parser
-        logger.debug("Create new argument %s.%s: %s", config.get_fname(attr="key"), key, self.kwargs)
+        logger.debug(
+            "Create new argument %s.%s: %s",
+            config.get_fname(attr="key"),
+            key,
+            self.kwargs,
+        )
 
         # logger.debug("Create new parser %s %s %s", self.__class__.__name__, args, kwargs)
         # conf_errors = [x for x in args if not x.startswith("-")]
-        
+
         # if len(conf_errors) != 0:
         #     # There are positional args
 
@@ -194,15 +196,12 @@ class Argument(ArgParseItem):
 class SubParser(ArgParseItem):
     """A argparse.argument sub command."""
 
-
     # If true, enable -h and --help support
     meta__help_flags = True
-
 
     meta__usage = None
     meta__description = None
     meta__epilog = None
-
 
     def __init__(self, cls, *args, use_subparsers: bool = USE_SUBPARSERS, **kwargs):
         super().__init__(*args, **kwargs)
@@ -218,29 +217,31 @@ class SubParser(ArgParseItem):
 
         if self.use_subparsers:
 
-            logger.debug("Create new subparser %s.%s", config.get_fname(attr="key"), key ) #, self.kwargs)
+            logger.debug(
+                "Create new subparser %s.%s", config.get_fname(attr="key"), key
+            )  # , self.kwargs)
 
             # Fetch help from class
-            parser_help = self.kwargs.get("help",
+            parser_help = self.kwargs.get(
+                "help",
                 self.cls.query_cfg_inst(
-                    self.cls, "help_description", 
-                    default=self.cls.__doc__)
+                    self.cls, "help_description", default=self.cls.__doc__
+                ),
             )
-            parser_help_enabled = self.kwargs.get("help_flags", 
-                self.cls.query_cfg_inst(
-                    self.cls, "help_flags", 
-                    default=True))
-            
-            ctx_vars = {
-                "key": key, 
-                "self": config
-            }
+            parser_help_enabled = self.kwargs.get(
+                "help_flags",
+                self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
+            )
+
+            ctx_vars = {"key": key, "self": config}
 
             # Create a new subparser for this command (flat structure)
-            parser_help = prepare_docstring(first_doc_line(parser_help), variables=ctx_vars)
+            parser_help = prepare_docstring(
+                first_doc_line(parser_help), variables=ctx_vars
+            )
             parser_kwargs = {
                 "formatter_class": RecursiveHelpFormatter,
-                "add_help": parser_help_enabled, # Add support for --help
+                "add_help": parser_help_enabled,  # Add support for --help
                 "exit_on_error": False,
                 "help": parser_help,
             }
@@ -260,7 +261,9 @@ class SubParser(ArgParseItem):
             # logger.debug("Create new SUBPARSER %s %s %s", child.get_fname(attr="key"), key, self.kwargs)
 
             child_usage = child.query_cfg_inst("help_usage", default=None)
-            child_desc = first_doc_line(child.query_cfg_inst("help_description", default=child.__doc__))
+            child_desc = first_doc_line(
+                child.query_cfg_inst("help_description", default=child.__doc__)
+            )
             child_epilog = child.query_cfg_inst("help_epilog", default=None)
             # print(f"DESC: |{desc}|")
 
@@ -269,7 +272,9 @@ class SubParser(ArgParseItem):
             child_desc = prepare_docstring(child_desc, variables=ctx_vars)
             child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
 
-            subparser.add_help = False #child.query_cfg_inst("help_enable", default=True)
+            subparser.add_help = (
+                False  # child.query_cfg_inst("help_enable", default=True)
+            )
             subparser.usage = child_usage
             subparser.description = child_desc
             subparser.epilog = child_epilog
@@ -280,7 +285,6 @@ class SubParser(ArgParseItem):
         else:
             # This part is in BETA
 
-
             # Create nested structure
             child = self.cls(parent=config)
             # Pass help text from Command class kwargs
@@ -290,7 +294,7 @@ class SubParser(ArgParseItem):
             return child
 
 
-class RegistryEntry():
+class RegistryEntry:
     "Registry entry"
 
     def __init__(self, config):
@@ -299,21 +303,24 @@ class RegistryEntry():
         self._config = config
         self._entries = {}
 
-
     def add_entry(self, key, value):
         self._entries[key] = value
 
     def __repr__(self):
         return f"RegistryEntry({self._config})"
 
+
 def first_doc_line(text):
     "Get first line of text, ignore empty lines"
     lines = text.split("\n")
     for line in lines:
         if line.strip():
-            assert not line.startswith(" "), f"First line of docstring should not start with 2 spaces: {line}"
+            assert not line.startswith(
+                " "
+            ), f"First line of docstring should not start with 2 spaces: {line}"
             return line
     return ""
+
 
 def prepare_docstring(text, variables=None, reindent=""):
     "Prepare docstring"
@@ -326,17 +333,17 @@ def prepare_docstring(text, variables=None, reindent=""):
     if text == SUPPRESS:
         return SUPPRESS
 
-
     text = deindent_docstring(text, reindent=reindent)
     try:
         text = text.format(**variables)
     except KeyError as e:
-        print (f"Error formatting docstring: {e}")
-        print (f"Variables: {variables}")
-        print (f"Text: {text}")
+        print(f"Error formatting docstring: {e}")
+        print(f"Variables: {variables}")
+        print(f"Text: {text}")
         raise e
 
     return text
+
 
 class FormatEnv(dict):
     "Format env"
@@ -362,10 +369,7 @@ class FormatEnv(dict):
         return dict(self.get())
 
 
-
 # Main parser object
-
-
 
 
 class Parser(Node):
@@ -378,7 +382,6 @@ class Parser(Node):
     arguments_dict: dict[str, ArgParseItem] = {}
     children: dict[str, type] = {}  # Dictionary of subcommand name to subcommand class
     inject_as_subparser: bool = True
-
 
     meta__name: str = NOT_SET
 
@@ -394,8 +397,6 @@ class Parser(Node):
         proc_name: str = None,
     ):
 
-
-
         super().__init__(parent=parent)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
@@ -410,10 +411,10 @@ class Parser(Node):
         if parent:
             parent.children[self.key] = self
             self.registry = parent.registry
-        self.registry[self.fkey] = self #RegistryEntry(config=self)
+        self.registry[self.fkey] = self  # RegistryEntry(config=self)
 
         if parser is None:
-            usage = self.query_cfg_parents("help_usage", default=None)      
+            usage = self.query_cfg_parents("help_usage", default=None)
             desc = self.query_cfg_parents("help_description", default=self.__doc__)
             epilog = self.query_cfg_parents("help_epilog", default=None)
 
@@ -445,7 +446,6 @@ class Parser(Node):
     def __getitem__(self, key):
         return self.children[key]
 
-
     @property
     def subparsers(self):
         """Lazily create and return the subparsers object."""
@@ -455,16 +455,15 @@ class Parser(Node):
         if self._subparsers is None:
             level = len(self.get_hierarchy())
             self._subparsers = self.parser.add_subparsers(
-                dest=f"__cli_cmd__{level}", 
-                help="Available commands"
+                dest=f"__cli_cmd__{level}", help="Available commands"
             )
         return self._subparsers
 
     def init_options(self):
         """Add all options defined in the arguments_dict dictionary."""
         # Start with explicit dict and add class attributes
-        arguments = getattr(self, 'arguments_dict', {}) or {}
-        
+        arguments = getattr(self, "arguments_dict", {}) or {}
+
         # Add arguments from class attributes including inherited ones
         for cls in self.__class__.__mro__:
             for name, value in vars(cls).items():
@@ -494,12 +493,12 @@ class Parser(Node):
         for key, arg in children_dict.items():
             arg.create_subcommand(key, self)
 
-
-
     def show_help(self):
         self.parser.print_help()
+
     def show_usage(self):
         self.parser.print_usage()
+
     def show_epilog(self):
         self.parser.print_epilog()
 
@@ -516,18 +515,17 @@ class Parser(Node):
 
         # pprint(ctx)
 
-
         # Check if class is a leaf or not
         if len(ctx.cli_children) > 0:
             self.show_help()
         else:
             # print(f"No code to execute, method is missing: {self.__class__.__name__}.cli_run(self, ctx, **kwargs)")
-            raise exception.ClakNotImplementedError(f"No 'cli_run' method found for {self}")
-
+            raise exception.ClakNotImplementedError(
+                f"No 'cli_run' method found for {self}"
+            )
 
     def cli_group(self, ctx, **kwargs):
         "Placeholder for cli_group"
-
 
     def find_closest_subcommand(self, args=None):
         "Find the closest subcommand from CLI args"
@@ -539,9 +537,9 @@ class Parser(Node):
         # Loop through each argument to find the deepest valid subcommand
         for arg in current_cmd:
             # Skip options (starting with -)
-            if arg.startswith('-'):
+            if arg.startswith("-"):
                 break
-                
+
             # Check if argument exists as a subcommand
             if arg in last_child.children:
                 last_child = last_child.children[arg]
@@ -549,7 +547,6 @@ class Parser(Node):
                 break
 
         return last_child
-
 
     def clean_terminate(self, err, known_exceptions=None):
         "Terminate nicely the program depending the exception"
@@ -575,12 +572,14 @@ class Parser(Node):
                 "fn": exception_fn,
                 "exception": exception_cls,
             }
-        known_exceptions_list = tuple([val["exception"] for val in known_exceptions_conf.values()])
+        known_exceptions_list = tuple(
+            [val["exception"] for val in known_exceptions_conf.values()]
+        )
 
         # Check user overrides
         if known_exceptions_list and isinstance(err, known_exceptions_list):
             get_handler = known_exceptions_conf[str(type(err))]["fn"]
-            get_handler(self,err)
+            get_handler(self, err)
             # If handler did not exited, ensure we do
             sys.exit(1)
 
@@ -611,7 +610,9 @@ class Parser(Node):
 
             # logger.error(err)
             print(f"{err}")
-            logger.critical(f"Program exited with bug {err_name}({err.rc}): {err_message}")
+            logger.critical(
+                f"Program exited with bug {err_name}({err.rc}): {err_message}"
+            )
             sys.exit(err.rc)
 
         # if isinstance(err, yaml.scanner.ScannerError):
@@ -672,7 +673,6 @@ class Parser(Node):
             raise ValueError(f"Invalid args type: {type(args)}")
 
         return parser.parse_args(args)
-    
 
     def dispatch(self, args=None, exit=None, debug=None):
         "Main dispatch function, must correctly handle exit status and exceptions and so"
@@ -688,7 +688,7 @@ class Parser(Node):
             if debug is True:
                 logger.error(traceback.format_exc())
 
-            known_exceptions = self.query_cfg_parents("known_exceptions", default=[])      
+            known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
 
             self.clean_terminate(error, known_exceptions)
 
@@ -699,10 +699,8 @@ class Parser(Node):
             logger.critical("Exit 1 with bugs")
             sys.exit(1)
 
-
     def cli_execute(self, args=None):
         "Main dispatch function"
-
 
         try:
             args = self.parse_args(args)
@@ -713,10 +711,18 @@ class Parser(Node):
 
         # Prepare args and context
         hook_list = {}
-        
+
         args = args.__dict__
-        cli_command_hier = [value for key, value in sorted(args.items()) if key.startswith("__cli_cmd__")]
-        args = {key: value for key, value in args.items() if not key.startswith("__cli_cmd__")}
+        cli_command_hier = [
+            value
+            for key, value in sorted(args.items())
+            if key.startswith("__cli_cmd__")
+        ]
+        args = {
+            key: value
+            for key, value in args.items()
+            if not key.startswith("__cli_cmd__")
+        }
         cli_self = args.pop("__cli_self__")
 
         # Prepare data
@@ -735,9 +741,13 @@ class Parser(Node):
         # Fetch settings
         ctx["name"] = name
         ctx["app_name"] = self.query_cfg_parents("app_name", default=name)
-        ctx["app_proc_name"] = self.query_cfg_parents("app_proc_name", default=self.proc_name)
-        ctx["app_env_prefix"] = self.query_cfg_parents("app_env_prefix", default=name.upper())
-        
+        ctx["app_proc_name"] = self.query_cfg_parents(
+            "app_proc_name", default=self.proc_name
+        )
+        ctx["app_env_prefix"] = self.query_cfg_parents(
+            "app_env_prefix", default=name.upper()
+        )
+
         # Loop constant
         ctx["cli_self"] = cli_self
         ctx["cli_root"] = self
@@ -763,14 +773,15 @@ class Parser(Node):
             # print(f"Node {idx}:{node}")
 
             # Prepare hooks list
-            cls_hooks = [ method for method in dir(self) if method.startswith(fn_hook_prefix)]
+            cls_hooks = [
+                method for method in dir(self) if method.startswith(fn_hook_prefix)
+            ]
             for hook_name in cls_hooks:
                 if not hook_name in hook_list:
                     hook_fn = getattr(self, hook_name, None)
                     if hook_fn is not None:
                         # Hooks order should be preserved with dict
                         hook_list[hook_name] = hook_fn
-
 
             # Update ctx with node attributes
             ctx["cli_parent"] = hierarchy[-2] if len(hierarchy) > 1 else None
@@ -779,7 +790,6 @@ class Parser(Node):
             ctx["cli_last"] = last_node
             ctx["cli_hooks"] = hook_list
             ctx["cli_index"] = idx
-            
 
             # Sort ctx dict by keys before creating namespace
             sorted_ctx = dict(sorted(ctx.items()))
@@ -795,7 +805,6 @@ class Parser(Node):
 
             # Store the list of available plugins methods
             _ctx.cli_methods = getattr(node, "cli_methods", {})
-
 
             # Run group_run
             _ctx.cli_state = "run_groups"
@@ -820,13 +829,16 @@ class Parser(Node):
                         # TOFIX: Sys.exit(1)
                         return
                     # pprint(_ctx)
-                    raise NotImplementedError(f"No '{fn_exec_name}' function found for {node}")
+                    raise NotImplementedError(
+                        f"No '{fn_exec_name}' function found for {node}"
+                    )
 
                 logger.info(f"Run function execute: {idx}:{node}.{fn_exec_name}")
                 run_fn(ctx=_ctx, **_ctx.args.__dict__)
-            
+
             # Change status
             ctx["cli_first"] = False
+
 
 # # # Compatibility
 # ArgumentParser = Parser

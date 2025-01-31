@@ -22,16 +22,16 @@ For Fish
 
     $ register-python-argcomplete --shell fish my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
 """
-import os
 import argparse
 import logging
+import os
 import sys
-from types import SimpleNamespace
 from pprint import pprint
+from types import SimpleNamespace
 
 import argcomplete
-from clak.parser import Parser, Argument
 
+from clak.parser import Argument, Parser
 
 # PEP 366
 __package__ = "argcomplete.scripts"
@@ -41,14 +41,19 @@ logger = logging.getLogger(__name__)
 # Completion support
 # ============================
 
-class CompRenderMixin():
+
+class CompRenderMixin:
     "Completion support Methods"
 
     def print_completion_stdout(self, args):
 
         sys.stdout.write(
             argcomplete.shellcode(
-                args.executable, args.use_defaults, args.shell, args.complete_arguments, args.external_argcomplete_script
+                args.executable,
+                args.use_defaults,
+                args.shell,
+                args.complete_arguments,
+                args.external_argcomplete_script,
             )
         )
 
@@ -76,7 +81,8 @@ class CompRenderCmdMixin(CompRenderMixin):
         help="output code for the specified shell",
     )
     external_argcomplete_script = Argument(
-        "-e", "--external-argcomplete-script", 
+        "-e",
+        "--external-argcomplete-script",
         help=argparse.SUPPRESS,
         # help="external argcomplete script for auto completion of the executable"
     )
@@ -87,13 +93,12 @@ class CompRenderCmdMixin(CompRenderMixin):
         default=["my_app_name"],
     )
 
-
     def cli_run(self, ctx, **kwargs):
 
         print("COMPLETION")
         self.print_completion_stdout(ctx)
         print("COMPLETION")
- 
+
 
 class CompRenderOptMixin(CompRenderMixin):
     "Completion options support"
@@ -108,11 +113,11 @@ class CompRenderOptMixin(CompRenderMixin):
         args = ctx.args
 
         kwargs = {
-            'executable': ['my_app_name'],
-            'shell': 'bash',
-            'use_defaults': True,
-            'complete_arguments': [],
-            'external_argcomplete_script': None,    
+            "executable": ["my_app_name"],
+            "shell": "bash",
+            "use_defaults": True,
+            "complete_arguments": [],
+            "external_argcomplete_script": None,
         }
         if args.completion_cmd is True:
             self.print_completion_stdout(SimpleNamespace(**kwargs))
@@ -123,8 +128,10 @@ class CompRenderOptMixin(CompRenderMixin):
 # Command configuration
 # ============================
 
+
 class CompCmdRender(CompRenderCmdMixin, Parser):
     pass
+
 
 # class CompOptRender(CompRenderOptMixin, Parser):
 #     pass

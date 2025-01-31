@@ -7,13 +7,15 @@ def deindent_docstring(text, reindent=False):
     out = text
     lines = text.split("\n")
     if len(lines) > 1 and lines[0] == "":
-        indent = lines[1][:len(lines[1]) - len(lines[1].lstrip())]
-        out = "\n".join([line[len(indent):] if line.startswith(indent) else line for line in lines])
-    
+        indent = lines[1][: len(lines[1]) - len(lines[1].lstrip())]
+        out = "\n".join(
+            [line[len(indent) :] if line.startswith(indent) else line for line in lines]
+        )
+
     if isinstance(reindent, str) and reindent:
         # Reindent all lines
-        out = "\n".join([reindent + line if line.strip() else line for line in out.split("\n")])
-    
+        out = "\n".join(
+            [reindent + line if line.strip() else line for line in out.split("\n")]
+        )
+
     return out
-
-

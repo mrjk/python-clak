@@ -1,6 +1,6 @@
-from types import SimpleNamespace
-import logging
 import copy
+import logging
+from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,13 @@ class NullType:
     def __bool__(self):
         return False
 
+
 class NotSet(NullType):
     "Represent an unset arg"
 
     def repr(self):
         return "<NOT_SET>"
+
 
 class UnSetArg(NullType):
     "Represent an unset arg"
@@ -45,6 +47,7 @@ class Failure(NullType):
 
     def repr(self):
         return "<FAILURE>"
+
 
 class Default(NullType):
     "Represent a default"
@@ -68,8 +71,7 @@ class Fn(SimpleNamespace):
         self.kwargs = kwargs
 
 
-
-class Node():
+class Node:
     "New version and simpler version of node"
 
     name: str = None
@@ -78,16 +80,17 @@ class Node():
     class Meta:
         """Class to store class-level configuration overrides."""
 
-
     def __init__(self, name=UNSET_ARG, parent=None):
 
         # Initialize name
-        self.name = name if name is not UNSET_ARG else f"{self.__class__.__name__}()" #({hex(id(self))})"
-        assert isinstance(self.name, str) # To unit test
+        self.name = (
+            name if name is not UNSET_ARG else f"{self.__class__.__name__}()"
+        )  # ({hex(id(self))})"
+        assert isinstance(self.name, str)  # To unit test
 
         # Initialize parent
         self.parent = parent
-        assert isinstance(self.parent, (Node, type(None))) # To unit test
+        assert isinstance(self.parent, (Node, type(None)))  # To unit test
 
     def get_hierarchy(self):
         "Return the hierarchy of the node"
@@ -100,13 +103,11 @@ class Node():
         hierarchy.reverse()
         return hierarchy
 
-
     def get_name(self, attr="name", default=UNSET_ARG):
         "Return the name of the parser"
         if default is not UNSET_ARG:
             return getattr(self, attr, default)
         return getattr(self, attr)
-
 
     def get_fname(self, attr="key"):
         "Return the full name of the parser"
@@ -115,7 +116,6 @@ class Node():
             fname = [x.get_name(attr=attr, default=None) or "" for x in parents]
             return ".".join(fname) or ""
         return ""
-
 
     def query_cfg_parents(
         self,
@@ -151,7 +151,7 @@ class Node():
                 f"Setting '{name}' has not been declared in hierarchy of '{repr(self)}'"
             )
             raise Exception(msg)
-        
+
         # Prepare lookup chain
         _report = []
         parents = self.get_hierarchy()
@@ -173,7 +173,9 @@ class Node():
 
             # If not found in direct attribute, try query_cfg_inst
             try:
-                out, _report2 = parent.query_cfg_inst(name, default=NOT_SET, report=True)
+                out, _report2 = parent.query_cfg_inst(
+                    name, default=NOT_SET, report=True
+                )
                 _report.append(_report2)
                 if out is not NOT_SET:
                     _report.append(f"Found '{name}' in parent {parent}= {out}")
@@ -194,7 +196,6 @@ class Node():
         if report:
             return out, _report
         return out
-
 
     def query_cfg_inst(self, name, override=None, default=UNSET_ARG, report=False):
         "Query configuration from instance"
@@ -257,4 +258,3 @@ class Node():
         if report:
             return out, _report
         return out
-

@@ -1,20 +1,21 @@
 # lib_dual.py
 
-from types import SimpleNamespace
 import argparse as _argparse
-import argcomplete
-from pprint import pprint
 import logging
 from gettext import gettext as _
+from pprint import pprint
+from types import SimpleNamespace
+
+import argcomplete
 
 logger = logging.getLogger(__name__)
 
 # Expose common argparse elements
-from argparse import SUPPRESS, OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE
-from argparse import ArgumentError
+from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 
 # Store the original Action class
 _OriginalAction = _argparse.Action
+
 
 # Create your new Action class
 class Action(_OriginalAction):
@@ -23,6 +24,7 @@ class Action(_OriginalAction):
     def __init__(self, *args, clak_config=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.clak_config = clak_config
+
 
 # Replace the original Action class
 _argparse.Action = Action
@@ -178,6 +180,7 @@ def argparse_inject_as_subparser(parent_parser, key, child_parser):
 
     return parent_parser
 
+
 SUPPRESS = argparse.SUPPRESS
 OPTIONAL = argparse.OPTIONAL
 ZERO_OR_MORE = argparse.ZERO_OR_MORE
@@ -190,26 +193,27 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
     config__max_help_position = 30
 
     def __init__(self, *args, max_help_position=None, **kwargs):
-        super().__init__(*args, max_help_position=self.config__max_help_position, **kwargs)
+        super().__init__(
+            *args, max_help_position=self.config__max_help_position, **kwargs
+        )
 
     def _get_default_metavar_for_positional(self, action):
         "Automatically show positional as uppercase"
         return action.dest.upper()
 
-    
     # Show default values
     def _get_help_string(self, action):
         help = action.help
         if help is None:
-            help = ''
+            help = ""
 
-        if '%(default)' not in help:
+        if "%(default)" not in help:
             if action.default is not SUPPRESS:
                 defaulting_nargs = [OPTIONAL, ZERO_OR_MORE]
                 if action.option_strings or action.nargs in defaulting_nargs:
-                    help += (' (default: %(default)s)')
+                    help += " (default: %(default)s)"
         return help
-    
+
     # Ensure all subparsers are shown
     def _format_action(self, action):
         "Override and improve helper output"
@@ -218,7 +222,6 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         # - Why not use add_argument_group()?
         #    - See: https://docs.python.org/3/library/argparse.html#argument-groups
         # Implement register for subcommands: https://docs.python.org/3/library/argparse.html#registering-custom-types-or-actions
-
 
         if not isinstance(action, argparse._SubParsersAction):
             out = super()._format_action(action)
@@ -246,7 +249,7 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                         choice = act.choices[subaction.dest]
                         cmd = f"{prefix}{subaction.dest}"
                         if subaction.help != argparse.SUPPRESS:
-                            help_msg = subaction.help or ''
+                            help_msg = subaction.help or ""
                             line = f"{_indent}{bullet}{cmd:<{action_width}}{help_msg:<{help_width}}\n"
                             parts.append(line)
                             cmd = f"{cmd}"
@@ -261,7 +264,7 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
             choice = action.choices[subaction.dest]
             if subaction.help != argparse.SUPPRESS:
-                help_msg = subaction.help or ''
+                help_msg = subaction.help or ""
                 line = f"{bullet}{subaction.dest:<{action_width}}{help_msg:<{help_width}}\n"
                 parts.append(line)
             add_subparser_to_parts(
@@ -274,7 +277,6 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         return "".join(parts)
 
 
-
 class ArgumentParserPlus(argparse.ArgumentParser):
     "Improved version of ArgumentParser"
 
@@ -285,10 +287,9 @@ class ArgumentParserPlus(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):
         args, argv = self.parse_known_args(args, namespace)
         if argv:
-            msg = _('unrecognized arguments: %s') % ' '.join(argv)
+            msg = _("unrecognized arguments: %s") % " ".join(argv)
             if self.exit_on_error:
                 self.error(msg)
             else:
                 raise argparse.ArgumentError(None, msg)
-        return args 
-    
+        return args
