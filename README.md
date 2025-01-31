@@ -9,7 +9,7 @@ Clak (Command Line avec Klass) is a Python library that simplifies the creation 
 
 ## Features
 
-- Hierarchical command based structure built with python class. No need to learn a new framewok, just use Python! 
+- Hierarchical command based structure built with python class. No need to learn a new framewok, just use Python!
 - Easy to use, easy to extend, easy to understand. Focus on your app, not your CLI.
 - Based on Python Argparser. All what your learned is still useful, you wont be lost as it follows the same syntax.
 - Light and minimalistic, while providing standard features via optional components.
@@ -25,6 +25,7 @@ Clak (Command Line avec Klass) is a Python library that simplifies the creation 
 ## Quick Start
 
 Add `clak` to your project dependecies:
+
 ```bash
 pip install clak
 
@@ -54,66 +55,65 @@ MainApp().dispatch()
 ```
 
 This will create a CLI with the following structure:
-```
+
+```bash
 $ python demo.py --help
 myapp [-h] [--debug] [--config CONFIG] {show} ...
   show [-h] [--target TARGET] [--format {json,text}]
 ```
 
 
-## Detailed Highlights:
+## Detailed Highlights
 
 
 - Argparse friendly:
-    - Reuse as much as possible from argparse, but allow a new modular way to built CLI.
-    - If you know argparse, then you already know how to use clak.
-    - Same API:
-        - `argparse.ArgumentParser()` becomes `class MyApp(Parser):`
-        - `.add_argument(...)` becomes `dest = Argument(...)`
-        - `.add_subparser(...)` becomes `subcmd1 = SubCommand(...)`
-    - Extended API:
-        - `.add_argument("--option", "o", help="Optional argument")` => `option = Opt("--option", "o", help="Optional argument")`
-        - `.add_argument("param", help="Positional argument")` => `param = Arg(help="Positional argument")`
-        - `.add_suparser(...)` => `subcmd1 = Cmd(ChildrenParserClass, help="Subcommand help")`
+  - Reuse as much as possible from argparse, but allow a new modular way to built CLI.
+  - If you know argparse, then you already know how to use clak.
+  - Same API:
+    - `argparse.ArgumentParser()` becomes `class MyApp(Parser):`
+    - `.add_argument(...)` becomes `dest = Argument(...)`
+    - `.add_subparser(...)` becomes `subcmd1 = SubCommand(...)`
+  - Extended API:
+    - `.add_argument("--option", "o", help="Optional argument")` => `option = Opt("--option", "o", help="Optional argument")`
+    - `.add_argument("param", help="Positional argument")` => `param = Arg(help="Positional argument")`
+    - `.add_suparser(...)` => `subcmd1 = Cmd(ChildrenParserClass, help="Subcommand help")`
 
 - Class based approach:
-    - Use Python class to provide declarative command line.
-    - Since we use class, we can take advantage of Python inheritance to create CLI.
-        - Including organizing command in a tree structure.
-        - Inherit and share settings among different class, to allow maximum reusability.
-    - Hide internal argparse implementation from user, so you can focus on your app.
+  - Use Python class to provide declarative command line.
+  - Since we use class, we can take advantage of Python inheritance to create CLI.
+    - Including organizing command in a tree structure.
+    - Inherit and share settings among different class, to allow maximum reusability.
+  - Hide internal argparse implementation from user, so you can focus on your app.
 
 - Build git-like CLI with ease
-    - Rely on arparse subparser functionality.
-    - Pythonic class based approach to represent.
-    - Each subcommands are `Parser` instances, referenced via the `SubCommand` field.
+  - Rely on arparse subparser functionality.
+  - Pythonic class based approach to represent.
+  - Each subcommands are `Parser` instances, referenced via the `SubCommand` field.
 
 - Easy sub-command discovery
-    - All possible command are show in the root help
-    - All subcommands display indiviudal and customizable help message.
+  - All possible command are show in the root help
+  - All subcommands display indiviudal and customizable help message.
 
 - Modular components and reusable components:
-    - Help: 
-        - Comprehensive help message with command tree display.
-        - Manage `--help` and `-h` flags.
-        - Easily change usage, description or epilog
-    - Logging:
-        - Configure and enable Basic Logger
-        - Provide per Node logger
-        - Provide `--verbose` and `-v,-vv,-vvv` flags
-    - Config:
-        - Use XDG Base Directory Specification to provide config files and directory paths.
-        - Load yaml, json, toml, ini files easily
-    - Completion:
-        - Provide `completion` or `--complete` flag to generate completion script.
-        - Support most common shell via the `argcomplete` library.
-    - More to come ...
-        - Environment var support
-        - Automatic app config reader/writer
-    - Build your own:
-        - Reuse your existing code, your favorite CLI options, put them in a library and ship it.
-
-
+  - Help:
+    - Comprehensive help message with command tree display.
+    - Manage `--help` and `-h` flags.
+    - Easily change usage, description or epilog
+  - Logging:
+    - Configure and enable Basic Logger
+    - Provide per Node logger
+    - Provide `--verbose` and `-v,-vv,-vvv` flags
+  - Config:
+    - Use XDG Base Directory Specification to provide config files and directory paths.
+    - Load yaml, json, toml, ini files easily
+  - Completion:
+    - Provide `completion` or `--complete` flag to generate completion script.
+    - Support most common shell via the `argcomplete` library.
+  - More to come ...
+    - Environment var support
+    - Automatic app config reader/writer
+  - Build your own:
+    - Reuse your existing code, your favorite CLI options, put them in a library and ship it.
 
 ## Key Concepts
 
@@ -165,10 +165,10 @@ Features:
 
 - [ ] Add support for `argcomplete`
 - [ ] Add support for argparse Argument groups
-    - [Argument groups](https://docs.python.org/3/library/argparse.html#argument-groups)
-    - [Mutual exclusive groups](https://docs.python.org/3/library/argparse.html#mutual-exclusion)
+  - [Argument groups](https://docs.python.org/3/library/argparse.html#argument-groups)
+  - [Mutual exclusive groups](https://docs.python.org/3/library/argparse.html#mutual-exclusion)
 - [ ] Add support for intermixed arguments
-    - [Intermixed arguments](https://docs.python.org/3/library/argparse.html#intermixed-arguments)
+  - [Intermixed arguments](https://docs.python.org/3/library/argparse.html#intermixed-arguments)
 - [ ] Add support for `fire`
 
 ## Requirements
