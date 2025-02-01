@@ -20,6 +20,7 @@ Key components:
 - LoggingOptMixin: For logging setup
 """
 
+
 # Parsers imports
 # Argparse public helpers
 from clak.argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
@@ -44,3 +45,6 @@ Command = SubParser
 # Opt = Opt - TODO
 # Arg = Arg - TODO
 Cmd = SubParser
+
+__version__ = "0.3.0a0"
+

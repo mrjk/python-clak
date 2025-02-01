@@ -51,7 +51,7 @@ pylint = "^3.3.3"
 
 # Poetry bumpversion
 # ========================
-[tool.poetry_bumpversion.file."your_package/__init__.py"]
+[tool.poetry_bumpversion.file."clak/__init__.py"]
 
 
 # Pytest config
