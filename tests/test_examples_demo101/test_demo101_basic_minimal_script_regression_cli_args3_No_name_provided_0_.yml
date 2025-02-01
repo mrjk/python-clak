@@ -1,0 +1,5 @@
+cli_args: []
+exit_code: 0
+output: 'No name provided, please provide a name as first argument.
+
+  '

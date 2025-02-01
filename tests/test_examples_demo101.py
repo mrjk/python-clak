@@ -2,16 +2,25 @@
 Test examples from demo101.
 """
 
+import os.path
+
 import pytest
+import sh
 
 # from clak.parser import ClakParseError, ClakNotImplementedError
 from examples.demo101_basic_minimal import AppMain
+from common import replace_with_placeholders
 
 
 @pytest.fixture
 def demo101_app():
     """Fixture that provides an instance of the Demo101 application."""
     return AppMain(parse=False, proc_name="demo101-test")
+
+@pytest.fixture
+def demo101_file():
+    """Fixture that provides an instance of the Demo101 application."""
+    return "examples/demo101_basic_minimal.py"
 
 
 TEST_PARAMETERS = [
@@ -97,6 +106,78 @@ def test_demo101_basic_minimal_cli_regression(
         "cli_args": cli_args,
         "output": output,
         "err": str(err),
+    }
+
+    # Compare against stored data
+    data_regression.check(test_data)
+
+
+# from pprint import pprint
+
+
+# # @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+# def test_demo101_basic_minimal_script_regression(capsys, data_regression):
+#     """Regression test that executes the actual script file using sh library."""
+
+#     # Get the path to the demo script
+#     script_path = os.path.join("examples", "demo101_basic_minimal.py")
+
+#     # Prepare the command
+#     demo_script = sh.Command(script_path)
+
+#     # pprint(demo_script)
+#     # return
+#     # Run the command and capture results
+#     output = "<NOT_SET>"
+#     error = "<NOT_SET>"
+#     exit_code = 0
+
+#     try:
+#         # Execute the script with the test parameters
+#         output = demo_script(["--help"], _err_to_out=True, _tty_out=True)
+#         # pprint(demo_script)
+#         # pprint(type(output))
+#     except sh.ErrorReturnCode as e:
+#         # Capture output even in case of error
+#         output = e
+#         error = str(e)
+#         exit_code = e.exit_code
+#     except Exception as e:
+#         error = str(e)
+#         exit_code = -1
+
+#     print("OUTPUT: ", output)
+#     print("ERROR: ", error)
+#     print("EXIT CODE: ", exit_code)
+#     assert False, "WIP"
+
+@pytest.mark.tags("examples", "examples-regressions-cli")
+@pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+def test_demo101_basic_minimal_script_regression(
+    capsys, data_regression, cli_args, demo101_file, expected_output, expected_exit
+):
+    """Regression test that executes the actual script file using sh library."""
+
+    # Get the path to the demo script
+    demo_script = sh.Command(demo101_file)
+    output = "<???>"
+    exit_code = 0
+
+    try:
+        output = demo_script(*cli_args, _err_to_out=True, _tty_out=True)
+    except sh.ErrorReturnCode as e:
+        output = str(e)
+        exit_code = int(e.exit_code)
+
+    output = replace_with_placeholders(output)
+    assert expected_exit == exit_code
+
+    # Prepare regression data structure
+    test_data = {
+        "cli_args": cli_args,
+        "output": output,
+        # "error": error,
+        "exit_code": exit_code,
     }
 
     # Compare against stored data
