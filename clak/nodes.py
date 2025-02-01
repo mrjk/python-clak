@@ -1,8 +1,25 @@
+"""
+Core node classes and utilities for the Clak framework.
+
+This module provides the foundational classes and types used throughout Clak for
+building command-line interfaces. It includes special null-type markers for handling
+unset values and configuration inheritance.
+
+Key components:
+- NullType: Base class for special null-type markers
+- NotSet: Marker for unset configuration values 
+- UnSetArg: Marker for unset command arguments
+- Node: Base class for building hierarchical command structures
+- Fn: Function wrapper for command handlers
+"""
+
 import copy
 import logging
 from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=too-few-public-methods
 
 
 class NullType:
@@ -12,6 +29,9 @@ class NullType:
     the user explicitly. This is useful for the ``CommandLine`` loader, when
     CLI parsers force you to set a default value, and thus, break the discovery
     chain.
+
+    This is intentionally a simple class with minimal methods as it serves
+    as a base for null-type markers.
     """
 
     def repr(self):
@@ -29,28 +49,40 @@ class NullType:
 
 
 class NotSet(NullType):
-    "Represent an unset arg"
+    """Represent an unset arg.
+
+    Simple marker class intentionally containing minimal functionality.
+    """
 
     def repr(self):
         return "<NOT_SET>"
 
 
 class UnSetArg(NullType):
-    "Represent an unset arg"
+    """Represent an unset arg.
+
+    Simple marker class intentionally containing minimal functionality.
+    """
 
     def repr(self):
         return "<UNSET_ARG>"
 
 
 class Failure(NullType):
-    "Represent a failure"
+    """Represent a failure.
+
+    Simple marker class intentionally containing minimal functionality.
+    """
 
     def repr(self):
         return "<FAILURE>"
 
 
 class Default(NullType):
-    "Represent a default"
+    """Represent a default.
+
+    Simple marker class intentionally containing minimal functionality.
+    """
 
     def repr(self):
         return "<DEFAULT>"
@@ -63,12 +95,19 @@ DEFAULT = Default()
 
 
 class Fn(SimpleNamespace):
-    """A simple namespace that keep in memomy its init arguments."""
+    """A simple namespace that keeps in memory its init arguments.
+
+    This class is intentionally minimal as it serves as a function wrapper.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.args = args
         self.kwargs = kwargs
+
+
+class ConfigurationError(Exception):
+    """Raised when a configuration setting cannot be found."""
 
 
 class Node:
@@ -78,7 +117,10 @@ class Node:
     parent: "Node" = None
 
     class Meta:
-        """Class to store class-level configuration overrides."""
+        """Class to store class-level configuration overrides.
+
+        This is intentionally an empty class used as a configuration container.
+        """
 
     def __init__(self, name=UNSET_ARG, parent=None):
 
@@ -120,8 +162,6 @@ class Node:
     def query_cfg_parents(
         self,
         name,
-        as_subkey=False,
-        cast=None,
         default=UNSET_ARG,
         include_self=True,
         report=False,
@@ -130,15 +170,15 @@ class Node:
 
         Args:
             name: Configuration setting name to query
-            as_subkey: If True and parent value is dict, get self.key from it
-            cast: Optional type to cast the result to
             default: Default value if setting is not found
+            include_self: Whether to include this node in the search
+            report: Whether to return detailed report of the search
 
         Returns:
-            The configuration value from the parent, optionally cast to specified type
+            The configuration value from the parent
 
         Raises:
-            UnknownSetting: If no parent exists and no default is provided
+            ConfigurationError: If no parent exists and no default is provided
         """
 
         # Fast exit or raise exception
@@ -150,18 +190,19 @@ class Node:
             msg = (
                 f"Setting '{name}' has not been declared in hierarchy of '{repr(self)}'"
             )
-            raise Exception(msg)
+            raise ConfigurationError(msg)
 
         # Prepare lookup chain
         _report = []
         parents = self.get_hierarchy()
         if include_self is False:
-            # Remove itself from hierarchy
-            parents = parents[:-1]  # Changed from parents[1:] to parents[:-1]
+            parents = parents[:-1]
         parents.reverse()  # Start from self/immediate parent
         out = NOT_SET
+        last_checked_parent = None
 
         for parent in parents:
+            last_checked_parent = parent
             _report.append(f"Check '{name}' in parent {parent}")
 
             # Check for _name attribute directly first
@@ -184,14 +225,14 @@ class Node:
                 continue
 
         if out is NOT_SET:
-            _report.append(f"NotFound '{name}' in parent: {parent}")
+            _report.append(f"NotFound '{name}' in parent: {last_checked_parent}")
         if out is NOT_SET and default is not UNSET_ARG:
             out = default
         elif out is NOT_SET:
             msg = (
                 f"Setting '{name}' has not been declared in hierarchy of '{repr(self)}'"
             )
-            raise Exception(msg)
+            raise ConfigurationError(msg)
 
         if report:
             return out, _report
