@@ -11,23 +11,19 @@ Accepted
 The issue motivating this decision, and any context that influences or constrains the decision.
 
 
-
 Amazing:
 
 - Decorators on functions
 - Very easy to start
-
 
 Pros:
 
 - Hierarchy in nested structure
 - Very low lerning curve
 
-
 Cons:
 
 - Has the same limitation as typer in term of scability.
-
 
 ## Decision
 

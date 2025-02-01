@@ -19,7 +19,7 @@ tasks:
   prep_doc:
     desc: Prepare documentation assets
     cmds:
-      #- task: copy_logo
+      # - task: copy_logo
       - task: gen_class_graph
       - task: gen_adr_toc
 

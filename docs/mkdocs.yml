@@ -59,7 +59,7 @@ markdown_extensions:
   # Ensure we have easy list parsing
   - mdx_truly_sane_lists:
       nested_indent: 2
-      truly_sane: True
+      truly_sane: true
 
 plugins:
   - search
@@ -72,7 +72,7 @@ plugins:
             show_root_heading: true
 
 nav:
-  - Home: 
+  - Home:
       - Index: index.md
       - Install: install.md
       - Quickstart: quickstart.md
@@ -88,24 +88,23 @@ nav:
       - Cast: docs/cast.md
 
   - Reference:
-  
       - Overview:
 
-        - Module: reference/module.md
+          - Module: reference/module.md
 
-        # - Diagram: reference/diagram.md
-        - Architecture: architecture/list.md
+          # - Diagram: reference/diagram.md
+          - Architecture: architecture/list.md
 
       - Core:
-        - Parser: reference/parser.md
-        - Nodes: reference/nodes.md
+          - Parser: reference/parser.md
+          - Nodes: reference/nodes.md
       - Plugins:
-        - Completion: reference/plugin_complete.md
-        - Logging: reference/plugin_logging.md
-        - Config: reference/plugin_config.md
-      # - Plugins:
+          - Completion: reference/plugin_complete.md
+          - Logging: reference/plugin_logging.md
+          - Config: reference/plugin_config.md
+          # - Plugins:
 
   - Project:
-    - Contributing: info/contributing.md
-    - Code of Conduct: info/code_of_conduct.md
-    - License: info/license.md
+      - Contributing: info/contributing.md
+      - Code of Conduct: info/code_of_conduct.md
+      - License: info/license.md

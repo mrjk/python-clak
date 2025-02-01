@@ -11,7 +11,6 @@ Accepted
 The issue motivating this decision, and any context that influences or constrains the decision.
 
 
-
 Amazing:
 
 - Heavy usage of python annotations
@@ -30,7 +29,7 @@ Pros:
 
 Cons:
 
-- Complex command lines can be make 
+- Complex command lines can be make
 - Changing things like help is difficult
 - Executing group commands require extra function
 - Documentation is extensive, but hard to follow

@@ -19,6 +19,7 @@ There are plenty of other libraries, and they have their own pros and cons, some
 I ve been inspirated from many existing libraries
 
 Other libraries doing this apporach:
+
 - cliff (openstack)
   - Views
   - strong opiniated architecture
@@ -27,19 +28,17 @@ Other libraries doing this apporach:
   - Arg/Options distinction
   - decorator based config
 - Typer ()
-  - 
+
 
 ## Decision
 
 The change that we're proposing or have agreed to implement.
 
-We want to use argparse as primer parsing libray. 
+We want to use argparse as primer parsing libray.
 
 We want to keep the same api, but we want to provide a new opiniated architecture:
 add_argument() => Argument, Option, Subcommand
-  * We use click/Typer semantic here, as it's easier to make distinction between arguments, options and subcommands. In argparse, those concepts are quite mixed, and eventually make difficult onboarding.
-
-
+- We use click/Typer semantic here, as it's easier to make distinction between arguments, options and subcommands. In argparse, those concepts are quite mixed, and eventually make difficult onboarding.
 
 ## Consequences
 
@@ -53,5 +52,3 @@ minimize learning curve
 bring opiniated architecture
 allow easy command based recursions, like git
 declarative configuration via class
-
-
