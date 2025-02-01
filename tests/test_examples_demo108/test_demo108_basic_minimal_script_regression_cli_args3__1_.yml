@@ -3,8 +3,8 @@ cli_args:
 exit_code: 1
 output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo108_exceptions.py\
   \ command3\n\n  STDOUT:\nTraceback (most recent call last):\n  File \"/home/jez/volumes/data/prj/mrjk/lab/python-clak/clak/parser.py\"\
-  , line 889, in dispatch\n    return self.cli_execute(args=args)\n  File \"/home/jez/volumes/data/prj/mrjk/lab/python-clak/clak/parser.py\"\
-  , line 1056, in cli_execute\n    run_fn(ctx=_ctx, **_ctx.args.__dict__)\n  File\
+  , line 887, in dispatch\n    return self.cli_execute(args=args)\n  File \"/home/jez/volumes/data/prj/mrjk/lab/python-clak/clak/parser.py\"\
+  , line 1054, in cli_execute\n    run_fn(ctx=_ctx, **_ctx.args.__dict__)\n  File\
   \ \"/home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo108_exceptions.py\"\
   , line 51, in cli_run\n    raise RuntimeError(\"Custom exception\")\nRuntimeError:\
   \ Custom exception\n\nUncaught error <class 'RuntimeError'>; this may be a bug!\n\

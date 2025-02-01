@@ -2,7 +2,6 @@ cli_args: []
 err: None
 output: "usage: demo108-test [-h] {command1,command2,command3} ...\n\nDemo application\
   \ with exception handlers\n\npositional arguments:\n\nsubcommands:\n  command1 \
-  \                 Execute command 1                               \n  command2 \
-  \                 Execute command 2                               \n  command3 \
-  \                 Execute command 3                               \n\noptions:\n\
-  \  -h, --help                  show this help message and exit\n"
+  \                 Execute command 1\n  command2                  Execute command\
+  \ 2\n  command3                  Execute command 3\n\noptions:\n  -h, --help   \
+  \               show this help message and exit\n"

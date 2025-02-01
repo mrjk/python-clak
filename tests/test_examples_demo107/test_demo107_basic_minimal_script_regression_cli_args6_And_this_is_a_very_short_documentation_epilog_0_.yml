@@ -9,9 +9,8 @@ output: "usage: demo107_docstring_meta.py [-h] [--debug] [--config CONFIG]\n    
   \ subcommands, and a common argument.\n\n    This is a two levels demo of an application\
   \ with two subcommands:\n\n    - A subcommand: command1\n    - A subcommand: command2,\
   \ inherited from command1\n\n    \n-- 8< -- \n\npositional arguments:\n\nsubcommands:\n\
-  \  command1                  Execute command 1                               \n\
-  \  command2                  Execute command 2                               \n\n\
-  options:\n  -h, --help                  show this help message and exit\n  --debug\
-  \                     Enable debug mode (default: False)\n  --config CONFIG, -c\
-  \ CONFIG  Config file path (default: None)\n\nAnd this is a very short documentation\
-  \ epilog.\n"
+  \  command1                  Execute command 1\n  command2                  Execute\
+  \ command 2\n\noptions:\n  -h, --help                  show this help message and\
+  \ exit\n  --debug                     Enable debug mode (default: False)\n  --config\
+  \ CONFIG, -c CONFIG  Config file path (default: None)\n\nAnd this is a very short\
+  \ documentation epilog.\n"

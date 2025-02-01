@@ -271,9 +271,8 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                         if subaction.help != argparse.SUPPRESS:
                             help_msg = subaction.help or ""
                             line = f"{_indent}{bullet}"
-                            line = (
-                                f"{line}{cmd:<{action_width}}{help_msg:<{help_width}}\n"
-                            )
+                            # TOFIX: Check if line > help_width
+                            line = f"{line}{cmd:<{action_width}}{help_msg}\n"
                             parts.append(line)
                             cmd = f"{cmd}"
 
@@ -288,7 +287,8 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
             choice = action.choices[subaction.dest]
             if subaction.help != argparse.SUPPRESS:
                 help_msg = subaction.help or ""
-                line = f"{bullet}{subaction.dest:<{action_width}}{help_msg:<{help_width}}\n"
+                # TOFIX: Check if line > help_width
+                line = f"{bullet}{subaction.dest:<{action_width}}{help_msg}\n"
                 parts.append(line)
             add_subparser_to_parts(
                 choice, prefix=f"{subaction.dest} ", level=1, indent=""
