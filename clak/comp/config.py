@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-# PYTHON_ARGCOMPLETE_OK
-
-# Copyright 2012-2023, Andrey Kislyuk and argcomplete contributors.
-# Licensed under the Apache License. See https://github.com/kislyuk/argcomplete for more info.
-
 """
 Register a Python executable for use with the argcomplete module.
 
@@ -20,18 +14,22 @@ For Tcsh
 
 For Fish
 
-    $ register-python-argcomplete --shell fish my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
+    $ register-python-argcomplete --shell fish \
+        my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
 """
+
 import argparse
 import logging
 import os
-import sys
-from pprint import pprint
-from types import SimpleNamespace
 
-import argcomplete
+from clak.parser import Argument
 
-from clak.parser import Argument, Parser
+# import sys
+# from pprint import pprint
+# from types import SimpleNamespace
+
+# import argcomplete
+
 
 # PEP 366
 # __package__ = "argcomplete.scripts"
@@ -43,10 +41,18 @@ logger = logging.getLogger(__name__)
 # ============================
 
 
-class XDGConfigMixin:
-    "XDG configuration support"
+class XDGConfigMixin:  # pylint: disable=too-few-public-methods
+    """XDG configuration support mixin.
 
-    # config_dir = Argument('--config-dir', help=argparse.SUPPRESS, default=os.path.expanduser("~/.config/my_app"))
+    Provides standard XDG base directory arguments for configuration files and directories:
+    - --conf-file: Config file path ($XDG_CONFIG_HOME/my_app/config.yaml)
+    - --data-dir: Data directory ($XDG_DATA_HOME/my_app)
+    - --cache-dir: Cache directory ($XDG_CACHE_HOME/my_app)
+    - --log-dir: Log directory ($XDG_CACHE_HOME/my_app/logs)
+    """
+
+    # config_dir = Argument('--config-dir', help=argparse.SUPPRESS,
+    #     default=os.path.expanduser("~/.config/my_app"))
 
     # For AI:
     # This class should provide following arguments:

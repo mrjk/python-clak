@@ -20,22 +20,18 @@ For Tcsh
 
 For Fish
 
-    $ register-python-argcomplete --shell fish my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
+    $ register-python-argcomplete --shell fish \
+        my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
 """
 import argparse
 import logging
-import os
 import sys
-from pprint import pprint
-from types import SimpleNamespace
 
-import argcomplete
-
-from clak.parser import Argument, Parser
+from clak.parser import Argument
 from clak.plugins import PluginHelpers
 
 # PEP 366
-__package__ = "argcomplete.scripts"
+# __package__ = "argcomplete.scripts"
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +48,13 @@ VERBOSITY_LEVELS = {
     5: logging.DEBUG,  # -vvvv (most detailed)
 }
 
-# LOGGING_LEVELS, a var conatinng the mapping between log levels and names
-LOGGING_LEVELS = dict(zip(logging._nameToLevel.values(), logging._nameToLevel.keys()))
+# LOGGING_LEVELS, a var containing the mapping between log levels and names
+LOGGING_LEVELS = dict(
+    zip(
+        logging._nameToLevel.values(),  # pylint: disable=protected-access
+        logging._nameToLevel.keys(),  # pylint: disable=protected-access
+    )
+)
 
 
 def get_logger_level(log_level=None, verbosity=None, level=None):
@@ -98,20 +99,6 @@ class LoggingOptMixin(PluginHelpers):
         help="Increase verbosity level (-v, -vv, -vvv, -vvvv)",
     )
 
-    # # arguments_dict = {
-    # # completion = Argument('--completion', choices=['bash', 'zsh', 'sh'], help='Generate completion script')
-    # log_level = Argument('--log-level', choices=['debug', 'info', 'warning', 'error', 'critical'], help='Set log level')
-    # debug = Argument('--debug', action='store_true', help='Enable debug mode')
-    # trace = Argument('--trace', action='store_true', help='Enable trace mode')
-    # # trace = Argument('--trace', choices=['clak', 'cli', 'lib'], help='Set log scope')
-    # # }
-
-    # logger_level = Argument('--logger-level',
-    #                     choices=['debug', 'info', 'warning', 'error', 'critical'],
-    #                     # help='Set log level'
-    #                     help=argparse.SUPPRESS,
-    #                     default="info")
-
     logger_level_default = Argument(
         "--logger-level",
         choices=["debug", "info", "warning", "error", "critical"],
@@ -131,7 +118,7 @@ class LoggingOptMixin(PluginHelpers):
     logger = None
     # _public_logger = False
 
-    def cli_hook__logging(self, instance, ctx, **kwargs):
+    def cli_hook__logging(self, instance, ctx, **_):
         "Inject or create logger into instance"
 
         log_prefix = self.query_cfg_parents(
@@ -194,10 +181,10 @@ class LoggingOptMixin(PluginHelpers):
             log_name = f"{log_prefix}{suffix}"
             if instance.parent is None:
                 instance.logger = logging.getLogger(log_name)
-            elif True:
-                instance.logger = logging.getLogger(log_name)
             else:
-                instance.logger = instance.parent.logger
+                instance.logger = logging.getLogger(log_name)
+            # else:
+            #     instance.logger = instance.parent.logger
 
             # logger.debug("Enable logging for %s:%s", instance, log_name)
             instance.logger.debug("Enable logging for %s", instance)
@@ -217,8 +204,12 @@ class LoggingOptMixin(PluginHelpers):
             }
         )
 
-    # TODO: All children instances must have the instance=None support ...
     def test_logger(self, instance=None):
+        """Test the logger by sending test messages at different log levels.
+
+        Args:
+            instance: The instance to test logging for. If None, uses self.
+        """
         instance = instance if instance else self
 
         # print("Test log self=", self, "instance=", instance)
