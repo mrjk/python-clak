@@ -1,0 +1,76 @@
+---
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+
+  list:
+    desc: "Show available commands"
+    aliases:
+      - default
+    silent: true
+    cmds:
+      - task --list-all
+
+  # Generate
+  # =============
+
+  prep_doc:
+    desc: Prepare documentation assets
+    cmds:
+      #- task: copy_logo
+      - task: gen_class_graph
+      - task: gen_adr_toc
+
+  copy_logo:
+    desc: inject logo into documentation
+    cmds:
+      - cp -R ../logo/. content/logo
+
+  gen_adr_toc:
+    desc: generate adr toc
+    cmds:
+      - |
+        if command -v adr &>/dev/null; then
+          echo "Update adr toc update"
+          adr generate toc > content/architecture/list.md
+        else
+          echo "Skip adr toc update"
+        fi
+
+  gen_class_graph:
+    desc: generate clak class diagrams
+    cmds:
+      - mkdir -p content/images
+      - pyreverse -my -A -o svg -p clak -d content/images/ ../clak/
+      - for:
+          - parser
+          - plugins
+          - argparse
+          - nodes
+          - common
+        cmd: |
+          mkdir -p content/images/schema_{{.ITEM | replace "/" "_" }}
+          pyreverse -my -A -o svg \
+            -p clak \
+            -d content/images/schema_{{.ITEM | replace "/" "_"}} \
+            ../clak/{{.ITEM}}.py
+      - >
+        echo "Image generated in: content/images/"
+
+  # Mkdocs
+  # =============
+
+  serve:
+    desc: serve mkdoc website locally
+    cmds:
+      - task: prep_doc
+      - mkdocs serve
+
+  publish:
+    desc: update gh_page branch with new documentation
+    cmds:
+      - task: prep_doc
+      - poetry run mkdocs gh-deploy --force
+
