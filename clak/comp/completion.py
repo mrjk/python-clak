@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 class CompRenderMixin:  # pylint: disable=too-few-public-methods
     "Completion support Methods"
 
-    def print_completion_stdout(self, args):
+    def print_completion_stdout(self, args: SimpleNamespace) -> None:
         """Print completion script to stdout.
 
         Generates and outputs shell completion code for the specified executable using argcomplete.

@@ -204,7 +204,7 @@ class LoggingOptMixin(PluginHelpers):
             }
         )
 
-    def test_logger(self, instance=None):
+    def test_logger(self, instance: object | None = None) -> None:
         """Test the logger by sending test messages at different log levels.
 
         Args:

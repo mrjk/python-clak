@@ -45,7 +45,7 @@ import traceback
 
 # from pprint import pprint
 from types import SimpleNamespace
-from typing import Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 # import argparse
 import argcomplete
@@ -98,6 +98,8 @@ USE_SUBPARSERS = True
 
 # Top objects
 
+T = TypeVar("T")  # For generic type hints
+
 
 class ArgParseItem(Fn):
     """Base class for argument parser items.
@@ -112,11 +114,12 @@ class ArgParseItem(Fn):
     _destination: str = None
 
     @property
-    def destination(self):
+    def destination(self) -> Optional[str]:
         """Get the destination name for this argument.
 
         Returns:
             str: The destination name, derived from the argument name if not explicitly set
+            None: If no destination can be determined
         """
         return self._get_best_dest()
 
@@ -124,7 +127,8 @@ class ArgParseItem(Fn):
     def destination(self, value):
         self._destination = value
 
-    def _get_best_dest(self):
+    def _get_best_dest(self) -> str:
+        "Get the best destination name for this argument"
         if self._destination is not None:
             return self._destination
 
@@ -149,7 +153,7 @@ class ArgParseItem(Fn):
 
         return key
 
-    def build_params(self, dest: str):
+    def build_params(self, dest: str) -> Tuple[tuple, dict]:
         """Build parameter dictionary for argument parser.
 
         Args:
@@ -220,7 +224,7 @@ class Argument(ArgParseItem):
     the appropriate type based on the argument format.
     """
 
-    def create_arg(self, key, config):
+    def create_arg(self, key: str, config: "Parser") -> argparse.Action:
         """Create and add an argument to the parser.
 
         Args:
@@ -274,7 +278,7 @@ class SubParser(ArgParseItem):
         self.cls = cls
         self.use_subparsers = use_subparsers
 
-    def create_subcommand(self, key, config):
+    def create_subcommand(self, key: str, config: "Parser") -> "Parser":
         """Create a subcommand parser for this command.
 
         Creates a new subparser for the command and configures it with the appropriate
@@ -288,7 +292,7 @@ class SubParser(ArgParseItem):
             ValueError: If command name contains spaces
 
         Returns:
-            None
+            Parser: The created child parser instance
         """
 
         if " " in key:
@@ -390,7 +394,7 @@ class RegistryEntry:
         self._config = config
         self._entries = {}
 
-    def add_entry(self, key, value):
+    def add_entry(self, key: str, value: Any) -> None:
         """Add a new entry to the registry.
 
         Args:
@@ -403,7 +407,7 @@ class RegistryEntry:
         return f"RegistryEntry({self._config})"
 
 
-def first_doc_line(text):
+def first_doc_line(text: str) -> str:
     """Get the first non-empty line from a text string.
 
     Args:
@@ -425,7 +429,9 @@ def first_doc_line(text):
     return ""
 
 
-def prepare_docstring(text, variables=None, reindent=""):
+def prepare_docstring(
+    text: Optional[str], variables: Optional[Dict[str, Any]] = None, reindent: str = ""
+) -> Optional[str]:
     """Prepare a docstring by deindenting and formatting with variables.
 
     Args:
@@ -676,7 +682,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         """
         self.parser.error(message)
 
-    def cli_run(self, ctx, **kwargs):  # pylint: disable=unused-argument
+    def cli_run(
+        self, ctx: SimpleNamespace, **kwargs: Any  # pylint: disable=unused-argument
+    ) -> None:
         """Execute the command implementation.
 
         This method should be overridden by subclasses to implement command behavior.
@@ -700,7 +708,7 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
                 f"No 'cli_run' method found for {self}"
             )
 
-    def cli_group(self, ctx, **_):
+    def cli_group(self, ctx: SimpleNamespace, **_: Any) -> None:
         """Execute group-level command behavior.
 
         Args:
@@ -708,7 +716,7 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             **_: Unused keyword arguments
         """
 
-    def find_closest_subcommand(self, args=None):
+    def find_closest_subcommand(self, args: Optional[List[str]] = None) -> "Parser":
         """Find the deepest valid subcommand from given arguments.
 
         Args:
@@ -829,7 +837,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             logger.critical("Program exited with OS error: %s", err)
             sys.exit(err.errno)
 
-    def parse_args(self, args=None):
+    def parse_args(
+        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+    ) -> argparse.Namespace:
         """Parse command line arguments.
 
         Args:
@@ -863,7 +873,12 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
 
         return parser.parse_args(args)
 
-    def dispatch(self, args=None, debug=None, **_):
+    def dispatch(
+        self,
+        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
+        debug: Optional[bool] = None,
+        **_: Any,
+    ) -> Any:
         """Main dispatch function for command execution.
 
         Args:
@@ -891,9 +906,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             logger.critical("Exit 1 with bugs")
             sys.exit(1)
 
-    def cli_execute(
-        self, args=None
-    ):  # pylint: disable=too-many-statements,too-many-locals
+    def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
+        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+    ) -> Any:
         """Execute the command with given arguments.
 
         Args:

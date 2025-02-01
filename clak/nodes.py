@@ -16,6 +16,7 @@ Key components:
 import copy
 import logging
 from types import SimpleNamespace
+from typing import Any, List, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -161,12 +162,12 @@ class Node:
 
     def query_cfg_parents(
         self,
-        name,
-        default=UNSET_ARG,
-        include_self=True,
-        report=False,
-    ):
-        """Query configuration from parent object.
+        name: str,
+        default: Any = UNSET_ARG,
+        include_self: bool = True,
+        report: bool = False,
+    ) -> Union[Any, Tuple[Any, Union[str, List[str]]]]:
+        """Query configuration from parent objects in the hierarchy.
 
         Args:
             name: Configuration setting name to query
@@ -175,10 +176,13 @@ class Node:
             report: Whether to return detailed report of the search
 
         Returns:
-            The configuration value from the parent
+            If report=False:
+                The configuration value found in the hierarchy or default
+            If report=True:
+                Tuple of (value, report_str) where report_str contains search details
 
         Raises:
-            ConfigurationError: If no parent exists and no default is provided
+            ConfigurationError: If no parent exists, include_self=False, and no default provided
         """
 
         # Fast exit or raise exception
