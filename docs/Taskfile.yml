@@ -47,7 +47,7 @@ tasks:
       - for:
           - parser
           - plugins
-          - argparse
+          - argparse_
           - nodes
           - common
         cmd: |
