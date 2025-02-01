@@ -19,6 +19,7 @@ theme:
     - search.highlight
     - content.code.copy
     - navigation.tabs
+    - content.code.annotate
 
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -39,15 +40,27 @@ theme:
 markdown_extensions:
   # - literate-nav:
   #     nav_file: SUMMARY.md
+
+  - abbr
+  - attr_list
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.highlight:
       anchor_linenums: true
+      pygments_lang_class: true
+      auto_title: false
+      linenums: true
+
   - pymdownx.inlinehilite
   - pymdownx.snippets:
       # auto_append: ["../LICENSE"]
       base_path: [".."]
+      auto_append:
+        - includes/abbreviations.md
+
 
   - pymdownx.tabbed:
       alternate_style: true
@@ -60,6 +73,7 @@ markdown_extensions:
   - mdx_truly_sane_lists:
       nested_indent: 2
       truly_sane: true
+
 
 plugins:
   - search
@@ -77,15 +91,15 @@ nav:
       - Install: install.md
       - Quickstart: quickstart.md
   - Guides:
-      - Basic Guide: guides/guide_101.md
-      - Nested Configuration: guides/guide_102_nested.md
-      - Feeding Values: guides/guide_103_feeding_values.md
+      - Basic application: guides/guide_101.md
+      - Nested application: guides/guide_102.md
       - Best Practices: guides/best_practices.md
   - Documentation:
-      - Configurations: docs/configurations.md
-      - Fields: docs/fields.md
-      - Loaders: docs/loaders.md
-      - Cast: docs/cast.md
+      - Features: docs/features.md
+      - Execution: docs/execution.md
+      # - Fields: docs/fields.md
+      # - Loaders: docs/loaders.md
+      # - Cast: docs/cast.md
 
   - Reference:
       - Overview:
@@ -105,6 +119,6 @@ nav:
           # - Plugins:
 
   - Project:
-      - Contributing: info/contributing.md
-      - Code of Conduct: info/code_of_conduct.md
-      - License: info/license.md
+      - Contributing: project/CONTRIBUTING.md
+      - Code of Conduct: project/CODE_OF_CONDUCT.md
+      - License: project/license.md
