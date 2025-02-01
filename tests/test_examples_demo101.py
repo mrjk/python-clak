@@ -5,8 +5,6 @@ Test examples from demo101.
 import pytest
 
 # from clak.parser import ClakParseError, ClakNotImplementedError
-import clak.exception as exception
-from clak.argparse import ArgumentError
 from examples.demo101_basic_minimal import AppMain
 
 

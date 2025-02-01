@@ -5,7 +5,6 @@ Test examples from demo102.
 import pytest
 from common import replace_with_placeholders
 
-import clak.exception as exception
 from examples.demo102_basic_argparse import AppMain
 
 

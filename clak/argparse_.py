@@ -14,19 +14,25 @@ versions of core classes.
 # pylint: disable=protected-access unused-import
 
 
-import argparse as _argparse
+import argparse
 import logging
 from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
+
+# from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 from gettext import gettext as _
 from pprint import pprint
 from types import SimpleNamespace
 
-import argcomplete
+# import argcomplete
 
 # Expose common argparse elements
 
 
 logger = logging.getLogger(__name__)
+
+# SUPPRESS = argparse.SUPPRESS
+# OPTIONAL = argparse.OPTIONAL
+# ZERO_OR_MORE = argparse.ZERO_OR_MORE
 
 
 # # Store the original Action class
@@ -45,7 +51,7 @@ logger = logging.getLogger(__name__)
 # # Replace the original Action class
 # _argparse.Action = Action
 
-argparse = _argparse
+# argparse = _argparse
 
 # Version: v4
 
@@ -68,7 +74,9 @@ USE_SUBPARSERS = True
 
 
 # Merge parent argparsers, and create on merged child.
-def argparse_merge_parents(*parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+def argparse_merge_parents(
+    *parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """Merge X parsers with their subparsers into a new one."""
     parents = list(*parser)
     # TOfix, first parent should inherit default settings
@@ -195,11 +203,6 @@ def argparse_inject_as_subparser(parent_parser, key, child_parser):
     copy_parser_with_subcommands(child_parser, subparser, f"{key}_")
 
     return parent_parser
-
-
-SUPPRESS = argparse.SUPPRESS
-OPTIONAL = argparse.OPTIONAL
-ZERO_OR_MORE = argparse.ZERO_OR_MORE
 
 
 # Inherit from Raw formatter.

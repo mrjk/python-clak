@@ -52,9 +52,12 @@ import argcomplete
 
 # import clak.exception as exception
 from clak import exception
-from clak.argparse import SUPPRESS, RecursiveHelpFormatter
-from clak.argparse import _argparse as argparse
-from clak.argparse import argparse_inject_as_subparser
+from clak.argparse_ import (
+    SUPPRESS,
+    RecursiveHelpFormatter,
+    argparse,
+    argparse_inject_as_subparser,
+)
 from clak.common import deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
 

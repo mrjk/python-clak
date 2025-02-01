@@ -6,7 +6,7 @@ Purpose:
   - Show a very basic command line
 """
 
-from clak import Argument, Command, Parser
+from clak import Argument, Parser
 
 
 class AppMain(Parser):

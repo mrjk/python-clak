@@ -22,7 +22,7 @@ Key components:
 
 # Parsers imports
 # Argparse public helpers
-from clak.argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
+from clak.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 
 # Plugins import
