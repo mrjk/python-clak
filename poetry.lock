@@ -2893,6 +2893,18 @@ test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "ini2toml[lite] (>=
 type = ["importlib_metadata (>=7.0.2)", "jaraco.develop (>=7.21)", "mypy (==1.14.*)", "pytest-mypy"]
 
 [[package]]
+name = "sh"
+version = "2.2.1"
+description = "Python subprocess replacement"
+optional = false
+python-versions = "<4.0,>=3.8.1"
+groups = ["test"]
+files = [
+    {file = "sh-2.2.1-py3-none-any.whl", hash = "sha256:c7369c4ae13729d8ea100b5e93af1a8be528a008433428e38651c9f2b5b5fe2c"},
+    {file = "sh-2.2.1.tar.gz", hash = "sha256:287021ae84183dea49787985e33797dda7fe769e4f95f2c94dff8e245ab4cb00"},
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -3290,4 +3302,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "2f3bf80cada7759371562ee3f69de54194b565c75e0cf06a1629682929a71f34"
+content-hash = "4386f49b546eaf24d2840c874c1e65c5eb6520ae3468f0473e1b8115263281ba"
