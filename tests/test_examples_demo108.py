@@ -2,7 +2,10 @@
 Test examples from demo108 (exception handling).
 """
 
+import os.path
+
 import pytest
+import sh
 from common import replace_with_placeholders
 
 import clak.exception as exception
@@ -13,6 +16,12 @@ from examples.demo108_exceptions import AppMain, CustomError
 def demo108_app():
     """Fixture that provides an instance of the Demo108 application."""
     return AppMain(parse=False, proc_name="demo108-test")
+
+
+@pytest.fixture
+def demo108_file():
+    """Fixture that provides the path to the Demo108 script file."""
+    return "examples/demo108_exceptions.py"
 
 
 TEST_PARAMETERS = [
@@ -84,6 +93,39 @@ def test_demo108_exceptions_cli_regression(
         "cli_args": cli_args,
         "output": output,
         "err": str(err),
+    }
+
+    # Compare against stored data
+    data_regression.check(test_data)
+
+
+@pytest.mark.tags("examples", "examples-regressions-cli")
+@pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+def test_demo108_basic_minimal_script_regression(
+    capsys, data_regression, cli_args, demo108_file, expected_output, expected_exit
+):
+    """Regression test that executes the actual script file using sh library."""
+
+    # Get the path to the demo script
+    demo_script = sh.Command(demo108_file)
+
+    output = "<???>"
+    exit_code = 0
+
+    try:
+        output = demo_script(*cli_args, _err_to_out=True, _tty_out=True)
+    except sh.ErrorReturnCode as e:
+        output = str(e)
+        exit_code = int(e.exit_code)
+
+    output = replace_with_placeholders(output)
+    assert expected_exit == exit_code
+
+    # Prepare regression data structure
+    test_data = {
+        "cli_args": cli_args,
+        "output": output,
+        "exit_code": exit_code,
     }
 
     # Compare against stored data
