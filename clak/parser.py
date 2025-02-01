@@ -682,9 +682,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         """
         self.parser.error(message)
 
-    def cli_run(
-        self, **kwargs: Any  # pylint: disable=unused-argument
-    ) -> None:
+    def cli_run(self, **kwargs: Any) -> None:  # pylint: disable=unused-argument
         """Execute the command implementation.
 
         This method should be overridden by subclasses to implement command behavior.
