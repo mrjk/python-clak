@@ -683,7 +683,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self.parser.error(message)
 
     def cli_run(
-        self, ctx: SimpleNamespace, **kwargs: Any  # pylint: disable=unused-argument
+        self, **kwargs: Any  # pylint: disable=unused-argument
     ) -> None:
         """Execute the command implementation.
 
@@ -701,7 +701,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # pprint(ctx)
 
         # Check if class is a leaf or not
-        if len(ctx.cli_children) > 0:
+        if len(kwargs["ctx"].cli_children) > 0:
             self.show_help()
         else:
             raise exception.ClakNotImplementedError(
