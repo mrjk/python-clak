@@ -1059,6 +1059,29 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ctx["cli_first"] = False
 
 
+class Parser(ParserNode):
+    """A simplified parser class that extends ParserNode.
+
+    This class provides a more streamlined interface to ParserNode by:
+    - Automatically parsing arguments on initialization
+    - Maintaining compatibility with legacy argument parser names
+    - Providing simpler command/argument creation methods
+
+    Args:
+        *args: Positional arguments passed to ParserNode
+        parse (bool): Whether to automatically parse arguments on init,
+            only on root nodes
+        **kwargs: Keyword arguments passed to ParserNode
+    """
+
+    def __init__(self, *args, parse=True, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.parent and parse is True:
+            logger.debug("Starting automatig arg_parse")
+            self.dispatch(*args)
+
+
 # # # Compatibility
 # ArgumentParser = ParserNode
 # ArgumentParserPlus = ParserNode
@@ -1076,28 +1099,3 @@ Command = SubParser
 # Opt()
 # Arg()
 # Cmd()
-
-# Parser = ParserNode
-
-
-class Parser(ParserNode):
-    """A simplified parser class that extends ParserNode.
-
-    This class provides a more streamlined interface to ParserNode by:
-    - Automatically parsing arguments on initialization
-    - Maintaining compatibility with legacy argument parser names
-    - Providing simpler command/argument creation methods
-
-    Args:
-        *args: Positional arguments passed to ParserNode
-        parse (bool): Whether to automatically parse arguments on init
-        **kwargs: Keyword arguments passed to ParserNode
-    """
-
-    def __init__(self, *args, parse=True, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.tototototo = parse
-
-        # if parse is True:
-        #     self.dispatch(*args)
