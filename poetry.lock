@@ -2898,7 +2898,7 @@ version = "2.2.1"
 description = "Python subprocess replacement"
 optional = false
 python-versions = "<4.0,>=3.8.1"
-groups = ["test"]
+groups = ["dev"]
 files = [
     {file = "sh-2.2.1-py3-none-any.whl", hash = "sha256:c7369c4ae13729d8ea100b5e93af1a8be528a008433428e38651c9f2b5b5fe2c"},
     {file = "sh-2.2.1.tar.gz", hash = "sha256:287021ae84183dea49787985e33797dda7fe769e4f95f2c94dff8e245ab4cb00"},
@@ -3302,4 +3302,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "4386f49b546eaf24d2840c874c1e65c5eb6520ae3468f0473e1b8115263281ba"
+content-hash = "9ba1fc3088bec18173a877bd3d20d88902b3cc95ede390477816bdc46bac54e0"
