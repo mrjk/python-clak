@@ -182,9 +182,11 @@ commit_and_tag() {
         [[ -f "$file" ]] || continue
         targets="$targets $file"
     done
-
+    
+    # shellcheck disable=SC2086
     git add $targets    
     echo ">>> Committing version bump and create tag"
+    # shellcheck disable=SC2086
     git commit -m "bump: version v$version" $targets
     git tag -m "release: version v$version" "v$version"
 }
