@@ -1,0 +1,7 @@
+cli_args:
+- command2
+exit_code: 2
+output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo104_nested_deep.py\
+  \ command2\n\n  STDOUT:\nusage: demo104_nested_deep.py command2 [-h] [--alias ALIASES]\
+  \ NAME\ndemo104_nested_deep.py command2: error: the following arguments are required:\
+  \ NAME\n\n\n  STDERR:\n"

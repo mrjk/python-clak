@@ -1,0 +1,21 @@
+cli_args:
+- command2
+- --alias
+- johnny
+- --alias
+- j-man
+- John
+exit_code: 0
+output: 'Run command 2 World on: John in ''config.yaml'' file (force_mode=False)
+
+  Map: johnny -> John
+
+  Map: j-man -> John
+
+  Run command 2 World on: John in ''config.yaml'' file (force_mode=False)
+
+  Map: johnny -> John
+
+  Map: j-man -> John
+
+  '
