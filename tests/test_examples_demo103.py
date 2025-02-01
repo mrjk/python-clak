@@ -3,6 +3,7 @@ Test examples from demo103.
 """
 
 import os.path
+
 import pytest
 import sh
 from common import replace_with_placeholders
@@ -15,6 +16,7 @@ from examples.demo103_nested import AppMain
 def demo103_app():
     """Fixture that provides an instance of the Demo103 application."""
     return AppMain(parse=False, proc_name="demo103-test")
+
 
 @pytest.fixture
 def demo103_file():
