@@ -4,6 +4,7 @@ This module provides an enhanced command-line argument parsing system built on t
 It supports hierarchical command structures, subcommands, and argument injection.
 
 Key Features:
+
 - Hierarchical command structure support via subparsers
 - Argument injection capabilities
 - Enhanced help formatting
@@ -11,20 +12,27 @@ Key Features:
 - Exception handling for clean program termination
 
 The module provides several key classes:
+
 - Parser: Main parser class extending argparse functionality
 - SubParser: For creating nested command structures 
 - Command: Alias for SubParser for compatibility
 
 Usage can be in either argparse-style:
-    ArgumentParser()
-    Argument() 
-    SubParser()
+
+```python
+ArgumentParser()
+Argument() 
+SubParser()
+```
 
 Or Clak-style:
-    ClakParser()
-    Opt()
-    Arg() 
-    Cmd()
+
+```python
+ClakParser()
+Opt()
+Arg() 
+Cmd()
+```
 
 Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
 """
