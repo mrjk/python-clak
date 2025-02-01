@@ -11,8 +11,4 @@ output: 'Run Command 2: World
 
   Dump ''John'' in: /tmp
 
-  Run Command 2: World
-
-  Dump ''John'' in: /tmp
-
   '

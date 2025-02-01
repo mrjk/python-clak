@@ -5,6 +5,4 @@ cli_args:
 exit_code: 0
 output: 'Run Command 1: Hello Charlie
 
-  Run Command 1: Hello Charlie
-
   '

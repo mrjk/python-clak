@@ -57,4 +57,4 @@ class AppMain(Parser):
 if __name__ == "__main__":
 
     # Instanciate your app, parse command line and run appropiate command.
-    AppMain().dispatch()
+    AppMain()

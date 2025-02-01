@@ -7,6 +7,4 @@ cli_args:
 exit_code: 0
 output: 'Command called with args: [''arg1'', ''arg2'']
 
-  Command called with args: [''arg1'', ''arg2'']
-
   '

@@ -4,6 +4,4 @@ cli_args:
 exit_code: 0
 output: 'Run command 2 World on: John in ''config.yaml'' file (force_mode=False)
 
-  Run command 2 World on: John in ''config.yaml'' file (force_mode=False)
-
   '

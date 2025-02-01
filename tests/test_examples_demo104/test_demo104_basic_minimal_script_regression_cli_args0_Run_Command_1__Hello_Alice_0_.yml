@@ -4,6 +4,4 @@ cli_args:
 exit_code: 0
 output: 'Run Command 1: Hello Alice
 
-  Run Command 1: Hello Alice
-
   '
