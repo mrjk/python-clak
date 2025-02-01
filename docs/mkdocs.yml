@@ -88,13 +88,17 @@ nav:
       - Cast: docs/cast.md
 
   - Reference:
+  
       - Overview:
 
-        - API: reference/api.md
-        - Plugins: reference/plugins.md
+        - Module: reference/module.md
 
         # - Diagram: reference/diagram.md
         - Architecture: architecture/list.md
+
+      - Core:
+        - Parser: reference/parser.md
+        - Nodes: reference/nodes.md
       - Plugins:
         - Completion: reference/plugin_complete.md
         - Logging: reference/plugin_logging.md
