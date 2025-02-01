@@ -41,7 +41,7 @@ class PluginHelpers:
         Args:
             name (str): Name of the hook to register
             instance: Instance to register the hook on
-            force (bool, optional): Whether to force registration even if already 
+            force (bool, optional): Whether to force registration even if already
                     exists. Defaults to False.
 
         Raises:

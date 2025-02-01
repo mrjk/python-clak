@@ -1,33 +1,49 @@
-# lib_dual.py
+"""Enhanced argument parsing functionality for the Clak framework.
+
+This module extends Python's built-in argparse module with additional features
+needed by Clak, including:
+
+- Custom Action class with Clak-specific configuration
+- Helper functions for merging and injecting parsers
+- Utilities for managing parser hierarchies
+
+The module re-exports common argparse elements while providing its own enhanced
+versions of core classes.
+"""
+
+# pylint: disable=protected-access unused-import
+
 
 import argparse as _argparse
 import logging
+from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 from gettext import gettext as _
 from pprint import pprint
 from types import SimpleNamespace
 
 import argcomplete
 
+# Expose common argparse elements
+
+
 logger = logging.getLogger(__name__)
 
-# Expose common argparse elements
-from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 
-# Store the original Action class
-_OriginalAction = _argparse.Action
+# # Store the original Action class
+# _OriginalAction = _argparse.Action
 
 
-# Create your new Action class
-class Action(_OriginalAction):
-    """Enhanced version of argparse.Action with custom behavior"""
+# # Create your new Action class
+# class Action(_OriginalAction):  # pylint: disable=too-few-public-methods
+#     """Enhanced version of argparse.Action with custom behavior"""
 
-    def __init__(self, *args, clak_config=None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.clak_config = clak_config
+#     def __init__(self, *args, clak_config=None, **kwargs) -> None:
+#         super().__init__(*args, **kwargs)
+#         self.clak_config = clak_config
 
 
-# Replace the original Action class
-_argparse.Action = Action
+# # Replace the original Action class
+# _argparse.Action = Action
 
 argparse = _argparse
 
@@ -100,7 +116,7 @@ def argparse_inject_as_subparser(parent_parser, key, child_parser):
         """Helper to get kwargs for an action based on its type."""
         kwargs = {
             "help": action.help,
-            "default": action.default if action.default != None else None,
+            "default": action.default if action.default is not None else None,
             "type": action.type if action.type != str else None,
             "choices": action.choices if hasattr(action, "choices") else None,
             "metavar": action.metavar if hasattr(action, "metavar") else None,
@@ -203,25 +219,26 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
     # Show default values
     def _get_help_string(self, action):
-        help = action.help
-        if help is None:
-            help = ""
+        help_msg = action.help
+        if help_msg is None:
+            help_msg = ""
 
-        if "%(default)" not in help:
+        if "%(default)" not in help_msg:
             if action.default is not SUPPRESS:
                 defaulting_nargs = [OPTIONAL, ZERO_OR_MORE]
                 if action.option_strings or action.nargs in defaulting_nargs:
-                    help += " (default: %(default)s)"
-        return help
+                    help_msg += " (default: %(default)s)"
+        return help_msg
 
     # Ensure all subparsers are shown
     def _format_action(self, action):
         "Override and improve helper output"
 
         # Notes:
-        # - Why not use add_argument_group()?
-        #    - See: https://docs.python.org/3/library/argparse.html#argument-groups
-        # Implement register for subcommands: https://docs.python.org/3/library/argparse.html#registering-custom-types-or-actions
+        # Why not use add_argument_group()?
+        # - See: https://docs.python.org/3/library/argparse.html#argument-groups
+        # Implement register for subcommands:
+        # - See: https://docs.python.org/3/library/argparse.html#registering-custom-types-or-actions
 
         if not isinstance(action, argparse._SubParsersAction):
             out = super()._format_action(action)
@@ -250,7 +267,10 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                         cmd = f"{prefix}{subaction.dest}"
                         if subaction.help != argparse.SUPPRESS:
                             help_msg = subaction.help or ""
-                            line = f"{_indent}{bullet}{cmd:<{action_width}}{help_msg:<{help_width}}\n"
+                            line = f"{_indent}{bullet}"
+                            line = (
+                                f"{line}{cmd:<{action_width}}{help_msg:<{help_width}}\n"
+                            )
                             parts.append(line)
                             cmd = f"{cmd}"
 
