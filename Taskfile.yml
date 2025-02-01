@@ -70,9 +70,9 @@ tasks:
       # - task: test_pytest
       # - task: test_regressions
       - task: test_report
-      #- task: test_lab
+      # - task: test_lab
       # - task: test_examples
-      - task: test_lint
+      - task: test_lint_full
 
   test_pytest:
     desc: Test with pytest

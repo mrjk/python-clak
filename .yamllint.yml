@@ -8,6 +8,7 @@ ignore:
   - .direnv
   - .venv
   - .cache
+  - tests/test_examples_*
 
 rules:
   empty-lines:
