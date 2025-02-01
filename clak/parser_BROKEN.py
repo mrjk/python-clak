@@ -674,16 +674,18 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         """
         self.parser.exit(status=status, message=message)
 
-    def cli_exit_error(self, message):
-        """Exit the CLI application with an error message.
+    # def cli_exit_error(self, message):
+    #     """Exit the CLI application with an error message.
 
-        Args:
-            message (str): Error message to display
-        """
-        self.parser.error(message)
+    #     Args:
+    #         message (str): Error message to display
+    #     """
+    #     self.parser.error(message)
 
     def cli_run(
-        self, ctx: SimpleNamespace, **kwargs: Any  # pylint: disable=unused-argument
+        self,
+        ctx: SimpleNamespace = None,
+        **kwargs: Any,  # pylint: disable=unused-argument
     ) -> None:
         """Execute the command implementation.
 
@@ -877,6 +879,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self,
         args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
         debug: Optional[bool] = None,
+        exit: Optional[bool] = False,
         **_: Any,
     ) -> Any:
         """Main dispatch function for command execution.
@@ -885,8 +888,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             args: Arguments to parse
             **_: Unused keyword arguments
         """
+        rc = 0
         try:
-            return self.cli_execute(args=args)
+            self.cli_execute(args=args)
         except Exception as err:  # pylint: disable=broad-exception-caught
             error = err
             debug = debug if isinstance(debug, bool) else CLAK_DEBUG
@@ -904,7 +908,14 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 logger.error(traceback.format_exc())
             logger.critical("Uncaught error %s; this may be a bug!", err.__class__)
             logger.critical("Exit 1 with bugs")
-            sys.exit(1)
+            rc = 1
+
+        if exit is True:
+            sys.exit(rc)
+        # self.cli_exit(rc)
+
+        return rc
+
 
     def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
         self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
@@ -1077,27 +1088,33 @@ Command = SubParser
 # Arg()
 # Cmd()
 
-# Parser = ParserNode
-
 
 class Parser(ParserNode):
-    """A simplified parser class that extends ParserNode.
+    """A simplified alias for ParserNode that provides the same functionality.
 
-    This class provides a more streamlined interface to ParserNode by:
-    - Automatically parsing arguments on initialization
-    - Maintaining compatibility with legacy argument parser names
-    - Providing simpler command/argument creation methods
+    This class inherits all capabilities from ParserNode including:
+    - Hierarchical subcommands
+    - Automatic help generation
+    - Plugin support
+    - Custom argument types
+    - Exception handling
+
+    The main difference is that it provides a simpler constructor that can automatically
+    parse arguments on initialization if parse=True is specified.
 
     Args:
-        *args: Positional arguments passed to ParserNode
+        *args: Positional arguments to parse if parse=True
         parse (bool): Whether to automatically parse arguments on init
-        **kwargs: Keyword arguments passed to ParserNode
+        **kwargs: Additional keyword arguments passed to ParserNode
     """
 
-    def __init__(self, *args, parse=True, **kwargs):
-        super().__init__(*args, **kwargs)
+    parse = True
 
-        self.tototototo = parse
+    def __init__(self, *args, parse=None, **kwargs):
+        super().__init__(**kwargs)
 
-        # if parse is True:
-        #     self.dispatch(*args)
+        parse = self.parse if parse is None else parse
+
+        if parse is True:
+            self.dispatch(*args)
+            # sys.exit()

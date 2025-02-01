@@ -28,7 +28,7 @@ from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOp
 # Plugins import
 from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
-from clak.parser import Argument, Parser, SubParser
+from clak.parser import Argument, Parser, ParserNode, SubParser
 
 # Classic API
 ArgumentParser = Parser

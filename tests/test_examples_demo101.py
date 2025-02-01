@@ -11,7 +11,7 @@ from examples.demo101_basic_minimal import AppMain
 @pytest.fixture
 def demo101_app():
     """Fixture that provides an instance of the Demo101 application."""
-    return AppMain(proc_name="demo101-test")
+    return AppMain(parse=False, proc_name="demo101-test")
 
 
 TEST_PARAMETERS = [

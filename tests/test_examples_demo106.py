@@ -12,7 +12,7 @@ from examples.demo106_inherit_mixed import AppMain
 @pytest.fixture
 def demo106_app():
     """Fixture that provides an instance of the Demo106 application."""
-    return AppMain(proc_name="demo106-test")
+    return AppMain(parse=False, proc_name="demo106-test")
 
 
 TEST_PARAMETERS = [

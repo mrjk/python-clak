@@ -12,7 +12,7 @@ from examples.demo108_exceptions import AppMain, CustomError
 @pytest.fixture
 def demo108_app():
     """Fixture that provides an instance of the Demo108 application."""
-    return AppMain(proc_name="demo108-test")
+    return AppMain(parse=False, proc_name="demo108-test")
 
 
 TEST_PARAMETERS = [

@@ -12,7 +12,7 @@ from examples.demo107_docstring_meta import AppMain
 @pytest.fixture
 def demo107_app():
     """Fixture that provides an instance of the Demo107 application."""
-    return AppMain(proc_name="demo107-test")
+    return AppMain(parse=False, proc_name="demo107-test")
 
 
 TEST_PARAMETERS = [

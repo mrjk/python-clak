@@ -12,7 +12,7 @@ from examples.demo103_nested import AppMain
 @pytest.fixture
 def demo103_app():
     """Fixture that provides an instance of the Demo103 application."""
-    return AppMain(proc_name="demo103-test")
+    return AppMain(parse=False, proc_name="demo103-test")
 
 
 TEST_PARAMETERS = [

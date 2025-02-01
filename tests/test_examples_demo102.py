@@ -11,7 +11,7 @@ from examples.demo102_basic_argparse import AppMain
 @pytest.fixture
 def demo102_app():
     """Fixture that provides an instance of the Demo102 application."""
-    return AppMain(proc_name="demo102-test")
+    return AppMain(parse=False, proc_name="demo102-test")
 
 
 TEST_PARAMETERS = [
