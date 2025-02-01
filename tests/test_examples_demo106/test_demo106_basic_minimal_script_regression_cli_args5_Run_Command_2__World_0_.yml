@@ -1,0 +1,15 @@
+cli_args:
+- command2
+- --source
+- River
+- John
+exit_code: 0
+output: 'Run Command 2: World
+
+  Dump ''John'' in: None
+
+  Run Command 2: World
+
+  Dump ''John'' in: None
+
+  '

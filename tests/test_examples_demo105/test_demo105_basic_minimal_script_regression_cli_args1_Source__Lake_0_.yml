@@ -1,0 +1,14 @@
+cli_args:
+- command1
+- --source
+- Lake
+exit_code: 0
+output: 'Run Command 1: Hello
+
+  Source: Lake
+
+  Run Command 1: Hello
+
+  Source: Lake
+
+  '

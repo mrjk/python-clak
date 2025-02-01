@@ -1,0 +1,5 @@
+cli_args:
+- command2
+exit_code: 1
+output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo108_exceptions.py\
+  \ command2\n\n  STDOUT:\nManipulated error: Custom exception\n\n\n  STDERR:\n"

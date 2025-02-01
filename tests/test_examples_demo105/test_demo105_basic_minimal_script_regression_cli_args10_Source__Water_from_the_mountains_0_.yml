@@ -1,0 +1,13 @@
+cli_args:
+- --debug
+- command1
+exit_code: 0
+output: 'Run Command 1: Hello
+
+  Source: Water from the mountains
+
+  Run Command 1: Hello
+
+  Source: Water from the mountains
+
+  '

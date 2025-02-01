@@ -1,0 +1,15 @@
+cli_args:
+- command1
+- --force
+- --source
+- River
+exit_code: 0
+output: 'Run Command 1: Hello
+
+  Source: River
+
+  Run Command 1: Hello
+
+  Source: River
+
+  '

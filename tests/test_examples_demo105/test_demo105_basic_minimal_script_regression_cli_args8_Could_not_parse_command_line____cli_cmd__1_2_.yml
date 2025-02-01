@@ -1,0 +1,8 @@
+cli_args:
+- invalid-command
+exit_code: 2
+output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo105_inherit.py\
+  \ invalid-command\n\n  STDOUT:\nusage: demo105_inherit.py [-h] [--debug] [--config\
+  \ CONFIG]\n                          {command1,command2} ...\nCould not parse command\
+  \ line: __cli_cmd__1 invalid choice: 'invalid-command' (choose from 'command1',\
+  \ 'command2')\n\n\n  STDERR:\n"
