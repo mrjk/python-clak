@@ -1,7 +1,7 @@
 cli_args:
 - command2
 exit_code: 2
-output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo105_inherit.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo105_inherit.py\
   \ command2\n\n  STDOUT:\nusage: demo105_inherit.py command2 [-h] [--destination\
   \ DESTINATION]\n                                   [--source SOURCE] [--force]\n\
   \                                   name\ndemo105_inherit.py command2: error: the\

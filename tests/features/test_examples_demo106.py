@@ -8,20 +8,21 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-import clak.exception as exception
-from examples.demo106_inherit_mixed import AppMain
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo106_inherit_mixed as example
+
 
 
 @pytest.fixture
 def demo106_app():
     """Fixture that provides an instance of the Demo106 application."""
-    return AppMain(parse=False, proc_name="demo106-test")
+    return example.AppMain(parse=False, proc_name="demo106-test")
 
 
 @pytest.fixture
 def demo106_file():
     """Fixture that provides the path to the Demo106 script file."""
-    return "examples/demo106_inherit_mixed.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

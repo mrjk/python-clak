@@ -8,19 +8,20 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-from examples.demo102_basic_argparse import AppMain
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo102_basic_argparse as example
 
 
 @pytest.fixture
 def demo102_app():
     """Fixture that provides an instance of the Demo102 application."""
-    return AppMain(parse=False, proc_name="demo102-test")
+    return example.AppMain(parse=False, proc_name="demo102-test")
 
 
 @pytest.fixture
 def demo102_file():
     """Fixture that provides the path to the Demo102 script file."""
-    return "examples/demo102_basic_argparse.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

@@ -8,20 +8,20 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-import clak.exception as exception
-from examples.demo103_nested import AppMain
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo103_nested as example
 
 
 @pytest.fixture
 def demo103_app():
     """Fixture that provides an instance of the Demo103 application."""
-    return AppMain(parse=False, proc_name="demo103-test")
+    return example.AppMain(parse=False, proc_name="demo103-test")
 
 
 @pytest.fixture
 def demo103_file():
     """Fixture that provides the path to the Demo103 script file."""
-    return "examples/demo103_nested.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

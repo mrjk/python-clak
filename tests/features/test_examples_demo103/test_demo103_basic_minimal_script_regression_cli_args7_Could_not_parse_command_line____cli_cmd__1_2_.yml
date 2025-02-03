@@ -1,7 +1,7 @@
 cli_args:
 - invalid-command
 exit_code: 2
-output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo103_nested.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo103_nested.py\
   \ invalid-command\n\n  STDOUT:\nusage: demo103_nested.py [-h] [--debug] [--config\
   \ CONFIG]\n                         {command1,command2} ...\nCould not parse command\
   \ line: __cli_cmd__1 invalid choice: 'invalid-command' (choose from 'command1',\

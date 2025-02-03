@@ -2,6 +2,8 @@ import re
 
 REGEX_RULES = [
     (r"<([^>]+) at 0x[0-9a-fA-F]+>", r"<\1>"),  # matches "<object at 0xHEXPATTERN>"
+    (r"\S+/python-clak", r"/app/python-clak"),  # matches python-clak/ root project
+    (r"/home/[^/]+/", r"/home/user/"),  # matches /home/USER/
 ]
 
 

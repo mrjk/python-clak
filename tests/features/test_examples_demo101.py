@@ -6,22 +6,20 @@ import os.path
 
 import pytest
 import sh
-from common import replace_with_placeholders
-
-# from clak.parser import ClakParseError, ClakNotImplementedError
-from examples.demo101_basic_minimal import AppMain
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo101_basic_minimal as example
 
 
 @pytest.fixture
 def demo101_app():
     """Fixture that provides an instance of the Demo101 application."""
-    return AppMain(parse=False, proc_name="demo101-test")
+    return example.AppMain(parse=False, proc_name="demo101-test")
 
 
 @pytest.fixture
 def demo101_file():
     """Fixture that provides an instance of the Demo101 application."""
-    return "examples/demo101_basic_minimal.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

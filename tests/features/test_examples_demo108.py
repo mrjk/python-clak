@@ -8,20 +8,20 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-import clak.exception as exception
-from examples.demo108_exceptions import AppMain, CustomError
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo108_exceptions as example
 
 
 @pytest.fixture
 def demo108_app():
     """Fixture that provides an instance of the Demo108 application."""
-    return AppMain(parse=False, proc_name="demo108-test")
+    return example.AppMain(parse=False, proc_name="demo108-test")
 
 
 @pytest.fixture
 def demo108_file():
     """Fixture that provides the path to the Demo108 script file."""
-    return "examples/demo108_exceptions.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

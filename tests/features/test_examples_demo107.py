@@ -8,20 +8,21 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-import clak.exception as exception
-from examples.demo107_docstring_meta import AppMain
+from tests.common import replace_with_placeholders
+import tests.features.features_examples.demo107_docstring_meta as example
+
 
 
 @pytest.fixture
 def demo107_app():
     """Fixture that provides an instance of the Demo107 application."""
-    return AppMain(parse=False, proc_name="demo107-test")
+    return example.AppMain(parse=False, proc_name="demo107-test")
 
 
 @pytest.fixture
 def demo107_file():
     """Fixture that provides the path to the Demo107 script file."""
-    return "examples/demo107_docstring_meta.py"
+    return example.__file__
 
 
 TEST_PARAMETERS = [

@@ -4,7 +4,7 @@ cli_args:
 - sub2
 - sub2b
 exit_code: 31
-output: "\n\n  RAN: /home/jez/volumes/data/prj/mrjk/lab/python-clak/examples/demo104_nested_deep.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo104_nested_deep.py\
   \ command1 sub2 sub2 sub2b\n\n  STDOUT:\nNo 'cli_run' method found for <__main__.SubSubCommand2b\
   \ object>\nProgram exited with bug ClakNotImplementedError(31): No 'cli_run' method\
   \ found for <__main__.SubSubCommand2b object>\n\n\n  STDERR:\n"
