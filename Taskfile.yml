@@ -59,8 +59,8 @@ tasks:
       - task: test_lint
       - yamllint $( git ls-files | grep '\.yml$' )
       - pymarkdownlnt scan $( git ls-files | grep '\.md$' | grep -v 'docs/' )
-      - task: docs:test
       - shellcheck $( git ls-files | grep '\.sh$' )
+      - task: docs:test
 
   # Tests
   # =============

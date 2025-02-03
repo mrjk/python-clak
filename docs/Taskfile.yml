@@ -14,9 +14,21 @@ tasks:
       - task --list-all
 
   test:
+    desc: "Run tests on documentation"
+    cmds:
+      - task: prep_doc
+      - task: test_lint
+      - task: test_mkdocs
+
+  test_lint:
     desc: "Check markdown linting"
     cmds:
       - pymarkdownlnt scan $(git ls-files . | grep md$ )
+
+  test_mkdocs:
+    desc: "Check mkdocs linting"
+    cmds:
+      - mkdocs build --strict
 
   # Generate
   # =============

@@ -679,7 +679,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             self.add_argument(key, arg)
             # arg.attach_arg_to_parser(key, self)
 
-    def add_argument(self, key: str, arg: Optional[Argument] = None, **kwargs: Any) -> None:
+    def add_argument(
+        self, key: str, arg: Optional[Argument] = None, **kwargs: Any
+    ) -> None:
         """Add an argument to this parser.
 
         Args:
