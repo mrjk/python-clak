@@ -491,7 +491,7 @@ class FormatEnv(dict):
         return dict(self.get())
 
 
-class MetaSetting(Fn):
+class MetaSetting(Fn):  # pylint: disable=too-few-public-methods
     "A setting that is used to configure a node"
 
 
@@ -1066,9 +1066,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ret = None
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
-            has_children = (
-                node._subparsers is not None  # pylint: disable=protected-access
-            )
 
             logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
             # print(f"Node {idx}:{node}")

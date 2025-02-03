@@ -167,7 +167,7 @@ class Node:
             return ".".join(fname) or ""
         return ""
 
-    def query_cfg_parents(
+    def query_cfg_parents(  # pylint: disable=too-many-branches
         self,
         name: str,
         default: Any = UNSET_ARG,
@@ -238,7 +238,10 @@ class Node:
                 continue
 
         if not declared:
-            msg = f"Missing 'meta__config__{name}', this option has not been declared in any parents of'{repr(self)}'"
+            msg = (
+                f"Missing 'meta__config__{name}',"
+                + "this option has not been declared in any parents of'{repr(self)}'"
+            )
             raise MissingMetaError(msg)
 
         if out is NOT_SET:
@@ -255,7 +258,7 @@ class Node:
             return out, _report
         return out
 
-    def query_cfg_inst(
+    def query_cfg_inst(  # pylint: disable=too-many-positional-arguments,too-many-arguments
         self,
         name,
         override=None,
@@ -267,7 +270,10 @@ class Node:
 
         # if not hasattr(self, f"meta__config__{name}"):
         if raise_on_undeclared and getattr(self, f"meta__config__{name}", None) is None:
-            msg = f"Missing 'meta__config__{name}', this option has not been declared '{repr(self)}'"
+            msg = (
+                f"Missing 'meta__config__{name}',"
+                " this option has not been declared '{repr(self)}'"
+            )
             raise MissingMetaError(msg)
 
         def _query():
