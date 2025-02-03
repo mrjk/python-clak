@@ -1,6 +1,7 @@
 ---
 site_name: Clak
 site_description: A Python argparse library with classes
+site_url: https://mrjk.github.io/python-clak/
 repo_url: https://github.com/mrjk/python-clak
 repo_name: mrjk/python-clak
 
