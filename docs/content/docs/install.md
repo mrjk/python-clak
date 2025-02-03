@@ -14,7 +14,7 @@ Clak is a python library, and can be installed with any of the following methods
 Install clak using pip:
 
 ```bash
-pip install clak
+pip install mrjk.clak
 ```
 
 ### Install with package managers
@@ -25,9 +25,9 @@ pip install clak
 Install with your project manager:
 
 ```bash
-poetry add clak
-pdm add clak
-uv add clak
+poetry add mrjk.clak
+pdm add mrjk.clak
+uv add mrjk.clak
 ```
 
 ### Install from git
