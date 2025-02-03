@@ -94,7 +94,8 @@ plugins:
 
 nav:
   # - Home
-  - ... | home/*
+  # - index.md
+  - ... | quickstart/*
   # - Home:
   #     - Index: index.md
   #     - Install: install.md
@@ -113,12 +114,12 @@ nav:
           - Overview: architecture/list.md
           - ... | architecture/*
 
-  - Project:
+  - About:
       - Contributing: project/CONTRIBUTING.md
       - Code of Conduct: project/CODE_OF_CONDUCT.md
       - License: project/license.md
 
 
       # Remaining docs
-      - ...
+      # - ...
 
