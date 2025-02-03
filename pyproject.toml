@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "clak"
-version = "0.3.0a3"
+version = "0.3.0"
 description = "Command Line avec Klass"
 authors = ["mrjk <mrjk.78@gmail.com>"]
 license = "GPLv3"
