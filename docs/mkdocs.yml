@@ -113,13 +113,11 @@ nav:
           - ... | architecture/*
 
   - Project:
-      - Informations:
-          - Contributing: project/CONTRIBUTING.md
-          - Code of Conduct: project/CODE_OF_CONDUCT.md
-          - License: project/license.md
+      - Contributing: project/CONTRIBUTING.md
+      - Code of Conduct: project/CODE_OF_CONDUCT.md
+      - License: project/license.md
 
 
       # Remaining docs
-      - Misc:
-          - ...
+      - ...
 

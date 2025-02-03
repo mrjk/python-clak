@@ -87,7 +87,9 @@ def test_basic_subcommand():
     main_parser = ParserNode()
     # Create fresh parser without default arguments
     main_parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-    main_parser.meta__subcommands_dict = {"sub": Command(sub_parser.__class__, sub_parser)}
+    main_parser.meta__subcommands_dict = {
+        "sub": Command(sub_parser.__class__, sub_parser)
+    }
     main_parser.add_subcommands()
     # main_parser.__dict__["cli_run"] = run_cmd
     setattr(main_parser, "cli_run", run_cmd)
