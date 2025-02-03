@@ -127,7 +127,7 @@ class Node:
 
         # Initialize name
         self.name = (
-            name if name is not UNSET_ARG else f"{self.__class__.__name__}()"
+            name if name is not UNSET_ARG else f"{self.__class__.__name__}"
         )  # ({hex(id(self))})"
         assert isinstance(self.name, str)  # To unit test
 
@@ -152,9 +152,10 @@ class Node:
             return getattr(self, attr, default)
         return getattr(self, attr)
 
-    def get_fname(self, attr="key"):
+    def get_fname(self, attr="name"):
         "Return the full name of the parser"
         parents = self.get_hierarchy()
+
         if parents:
             fname = [x.get_name(attr=attr, default=None) or "" for x in parents]
             return ".".join(fname) or ""

@@ -593,6 +593,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     def __getitem__(self, key):
         return self.children[key]
 
+    def get_fname(self, attr="key"):
+        "Get full name of the parser, use key instead of name by default"
+        return super().get_fname(attr=attr)
+
     @property
     def subparsers(self):
         """Lazily create and return the subparsers object."""
