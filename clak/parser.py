@@ -224,7 +224,7 @@ class Argument(ArgParseItem):
     the appropriate type based on the argument format.
     """
 
-    def create_arg(self, key: str, config: "ParserNode") -> argparse.Action:
+    def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
         """Create and add an argument to the parser.
 
         Args:
@@ -240,7 +240,7 @@ class Argument(ArgParseItem):
             args, tuple
         ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
 
-        # Create parser
+        # Create argument
         logger.debug(
             "Create new argument %s.%s: %s",
             config.get_fname(attr="key"),
@@ -278,7 +278,7 @@ class SubParser(ArgParseItem):
         self.cls = cls
         self.use_subparsers = use_subparsers
 
-    def create_subcommand(self, key: str, config: "ParserNode") -> "ParserNode":
+    def attach_sub_to_parser(self, key: str, config: "ParserNode") -> "ParserNode":
         """Create a subcommand parser for this command.
 
         Creates a new subparser for the command and configures it with the appropriate
@@ -587,8 +587,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         self._subparsers = None
 
-        self.init_options()
-        self.init_subcommands()
+        arguments = getattr(self, "arguments_dict", {}) or {}
+        self.add_arguments(arguments)
+
+        subcommands = getattr(self, "children", {}) or {}
+        self.add_subcommands(subcommands)
 
     def __getitem__(self, key):
         return self.children[key]
@@ -610,7 +613,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             )
         return self._subparsers
 
-    def init_options(self):
+    # Argument management
+    # ========================
+
+    def add_arguments(self, arguments: dict):
         """Initialize all argument options defined for this parser.
 
         This method:
@@ -620,7 +626,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         4. Creates all argument parser entries
         """
         # Start with explicit dict and add class attributes
-        arguments = getattr(self, "arguments_dict", {}) or {}
+        assert isinstance(arguments, dict), f"Got {type(arguments)} instead of dict"
 
         # Add arguments from class attributes including inherited ones
         for cls in self.__class__.__mro__:
@@ -634,9 +640,30 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Create all options
         for key, arg in arguments.items():
-            arg.create_arg(key, self)
+            self.add_argument(key, arg)
+            # arg.attach_arg_to_parser(key, self)
 
-    def init_subcommands(self):
+    def add_argument(self, key: str, arg=None, **kwargs) -> None:
+        """Add an argument to this parser.
+
+        Args:
+            key (str): The key/name for the argument
+            arg (Argument): The argument object to add
+            **kwargs: Additional keyword arguments to pass to add_argument()
+
+        This method adds a new argument to the parser. The argument can be either a
+        positional argument or an optional flag, determined by the Argument object.
+        """
+
+        if arg is None:
+            arg = Argument(**kwargs)
+
+        arg.attach_arg_to_parser(key, self)
+
+    # Subcommand management
+    # ========================
+
+    def add_subcommands(self, subcommands: dict):
         """Initialize all subcommands defined for this parser.
 
         This method:
@@ -644,7 +671,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         2. Collects Command instances defined as class attributes
         3. Creates parser entries for all subcommands
         """
-        children_dict = self.children or {}
+        # children_dict = self.children or {}
+        assert isinstance(subcommands, dict), f"Got {type(subcommands)} instead of dict"
 
         # Add arguments from class attributes that are Command instances
         for cls in self.__class__.__mro__:
@@ -652,10 +680,21 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 if isinstance(attr_value, Command):
                     # Store the attribute name as the key in the Fn instance
                     attr_value.destination = attr_name
-                    children_dict[attr_name] = attr_value
+                    subcommands[attr_name] = attr_value
 
-        for key, arg in children_dict.items():
-            arg.create_subcommand(key, self)
+        for key, arg in subcommands.items():
+            # arg.attach_sub_to_parser(key, self)
+            self.add_subcommand(key, arg)
+
+    def add_subcommand(self, key: str, arg=None, **kwargs) -> None:
+        "Add a subcommand to this parser"
+        if arg is None:
+            arg = Command(**kwargs)
+
+        arg.attach_sub_to_parser(key, self)
+
+    # Help methods
+    # ========================
 
     def show_help(self):
         """Display the help message for this parser."""
@@ -668,6 +707,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     def show_epilog(self):
         """Display the epilog message for this parser."""
         self.parser.print_epilog()
+
+
+    # Execution helpers
+    # ========================
 
     def cli_exit(self, status=0, message=None):
         """Exit the CLI application with given status and message.
