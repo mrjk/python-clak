@@ -689,17 +689,16 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         The base implementation shows help for non-leaf nodes.
 
         Args:
-            ctx: Command context object
             **kwargs: Additional keyword arguments from command line
 
         Raises:
             ClakNotImplementedError: If leaf node has no implementation
         """
 
-        # pprint(ctx)
+        ctx = kwargs["ctx"]
 
         # Check if class is a leaf or not
-        if len(kwargs["ctx"].cli_children) > 0:
+        if len(ctx.cli_children) > 0:
             self.show_help()
         else:
             raise exception.ClakNotImplementedError(
@@ -1072,7 +1071,7 @@ class Parser(ParserNode):
         **kwargs: Keyword arguments passed to ParserNode
     """
 
-    def __init__(self, *args, parse=True, **kwargs):
+    def __init__(self, *args: list, parse: bool = True, **kwargs: dict):
         super().__init__(*args, **kwargs)
 
         if not self.parent and parse is True:
