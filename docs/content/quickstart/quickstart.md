@@ -42,8 +42,8 @@ if __name__ == "__main__":
 Make it executable (or call it with python interpreter) and try command flags:
 
 ``` raw
-python demo.py --help
-usage: demo.py [-h] [--debug] [--config CONFIG] {command1,command2} ...
+python hello.py --help
+usage: hello.py [-h] [--debug] [--config CONFIG] {command1,command2} ...
 
 Demo application with options and two subcommands.
 

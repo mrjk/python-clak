@@ -35,10 +35,10 @@ uv add clak
 !!! tip
     Recommended for development or testing specific versions.
 
-With pip:
+With pip, with `development` branch. Use `main` for stable version:
 
 ``` bash
-pip install git+https://github.com/clak-sh/clak.git
+pip install git+https://github.com/mrjk/python-clak.git@develop
 ```
 
 
