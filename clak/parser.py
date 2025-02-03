@@ -551,6 +551,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self.fkey = self.get_fname(attr="key")
         self.inject_as_subparser = inject_as_subparser
         self.proc_name = proc_name
+        self.add_help = add_help
 
         # Add children link
         self.children = {}
@@ -560,38 +561,45 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             self.registry = parent.registry
         self.registry[self.fkey] = self  # RegistryEntry(config=self)
 
+        # Create or reuse parent parser
         if parser is None:
-            usage = self.query_cfg_parents("help_usage", default=None)
-            desc = self.query_cfg_parents("help_description", default=self.__doc__)
-            epilog = self.query_cfg_parents("help_epilog", default=None)
-
-            fenv = FormatEnv({"self": self})
-            usage = prepare_docstring(usage, variables=fenv.get())
-            desc = prepare_docstring(desc, variables=fenv.get())
-            epilog = prepare_docstring(epilog, variables=fenv.get())
-            self.parser = argparse.ArgumentParser(
-                prog=self.proc_name,
-                usage=usage,
-                description=desc,
-                epilog=epilog,
-                formatter_class=RecursiveHelpFormatter,
-                add_help=add_help,
-                exit_on_error=False,
-            )
+            self.parser = self.create_parser()
             self.proc_name = self.parser.prog
         else:
             self.parser = parser
             self.proc_name = self.parent.proc_name
 
-        # pprint(self.parser.__dict__)
-
+        # Init _subparsers
         self._subparsers = None
 
+        # Add arguments and subcommands
+        # meta__arguments_dict = {}
+        # meta__subcommands_dict = {}
         arguments = getattr(self, "arguments_dict", {}) or {}
         self.add_arguments(arguments)
-
-        subcommands = getattr(self, "children", {}) or {}
+        subcommands = getattr(self, "subcommands_dict", {}) or {}
         self.add_subcommands(subcommands)
+
+    def create_parser(self):
+        "Create a new parser"
+        usage = self.query_cfg_parents("help_usage", default=None)
+        desc = self.query_cfg_parents("help_description", default=self.__doc__)
+        epilog = self.query_cfg_parents("help_epilog", default=None)
+
+        fenv = FormatEnv({"self": self})
+        usage = prepare_docstring(usage, variables=fenv.get())
+        desc = prepare_docstring(desc, variables=fenv.get())
+        epilog = prepare_docstring(epilog, variables=fenv.get())
+        parser = argparse.ArgumentParser(
+            prog=self.proc_name,
+            usage=usage,
+            description=desc,
+            epilog=epilog,
+            formatter_class=RecursiveHelpFormatter,
+            add_help=self.add_help,
+            exit_on_error=False,
+        )
+        return parser
 
     def __getitem__(self, key):
         return self.children[key]
