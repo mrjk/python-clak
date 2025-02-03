@@ -527,6 +527,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
     meta__name: str = NOT_SET
 
+    meta__subcommands_dict: dict[str, SubParser] = {}
+    meta__arguments_dict: dict[str, Argument] = {}
+
     # Meta settings
     meta__config__name = MetaSetting(
         help="Name of the parser",
@@ -602,10 +605,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # Add arguments and subcommands
         # meta__arguments_dict = {}
         # meta__subcommands_dict = {}
-        arguments = getattr(self, "arguments_dict", {}) or {}
-        self.add_arguments(arguments)
-        subcommands = getattr(self, "subcommands_dict", {}) or {}
-        self.add_subcommands(subcommands)
+        self.add_arguments()
+        self.add_subcommands()
 
     def create_parser(self):
         "Create a new parser"
@@ -651,7 +652,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     # Argument management
     # ========================
 
-    def add_arguments(self, arguments: dict):
+    def add_arguments(self, arguments: dict = None):
         """Initialize all argument options defined for this parser.
 
         This method:
@@ -660,7 +661,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         3. Adds internal arguments like __cli_self__
         4. Creates all argument parser entries
         """
-        # Start with explicit dict and add class attributes
+        arguments = arguments or getattr(self, "meta__arguments_dict", {}) or {}
         assert isinstance(arguments, dict), f"Got {type(arguments)} instead of dict"
 
         # Add arguments from class attributes including inherited ones
@@ -698,7 +699,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     # Subcommand management
     # ========================
 
-    def add_subcommands(self, subcommands: dict):
+    def add_subcommands(self, subcommands: dict = None):
         """Initialize all subcommands defined for this parser.
 
         This method:
@@ -706,7 +707,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         2. Collects Command instances defined as class attributes
         3. Creates parser entries for all subcommands
         """
-        # children_dict = self.children or {}
+
+        subcommands = subcommands or getattr(self, "meta__subcommands_dict", {}) or {}
         assert isinstance(subcommands, dict), f"Got {type(subcommands)} instead of dict"
 
         # Add arguments from class attributes that are Command instances
@@ -1016,7 +1018,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             for key, value in args.items()
             if not key.startswith("__cli_cmd__")
         }
-        cli_self = args.pop("__cli_self__")
+
+        cli_self = self
+        if "__cli_self__" in args:
+            cli_self = args.pop("__cli_self__")
 
         # Prepare data
         fn_group_name = "cli_group"
@@ -1058,6 +1063,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ctx["cli_methods"] = None
 
         # Execute all nodes in hierarchy
+        ret = None
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
             has_children = (
@@ -1117,24 +1123,13 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             if last_node is True:
                 run_fn = getattr(node, fn_exec_name, None)
 
-                if run_fn is None:
-                    if has_children is True:
-                        logger.info("Parent group default help: %d:%s", idx, node)
-                        # TOFIX: This behavior should be a parameter
-                        # print ("GROUP COMMAND NOT IMPLEMENTED")
-                        node.show_help()
-                        # TOFIX: Sys.exit(1)
-                        return
-                    # pprint(_ctx)
-                    raise NotImplementedError(
-                        f"No '{fn_exec_name}' function found for {node}"
-                    )
-
                 logger.info("Run function execute: %d:%s.%s", idx, node, fn_exec_name)
-                run_fn(ctx=_ctx, **_ctx.args.__dict__)
+                ret = run_fn(ctx=_ctx, **_ctx.args.__dict__)
 
             # Change status
             ctx["cli_first"] = False
+
+        return ret
 
 
 class Parser(ParserNode):

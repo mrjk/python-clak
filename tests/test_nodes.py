@@ -14,6 +14,7 @@ from clak.nodes import (
     Default,
     Failure,
     Fn,
+    MissingMetaError,
     Node,
     NotSet,
     NullType,
@@ -212,12 +213,15 @@ def test_node_query_cfg_inst():
 def test_node_query_cfg_parents_complex():
     """Test Node query_cfg_parents with complex hierarchy and different value locations."""
     root = Node(name="root")
+    root.meta__config__root_val = True
     root._root_val = "root_value"
 
     mid = Node(name="mid", parent=root)
+    mid.meta__config__mid_val = True
     mid._mid_val = "mid_value"
 
     leaf = Node(name="leaf", parent=mid)
+    leaf.meta__config__leaf_val = True
     leaf._leaf_val = "leaf_value"
 
     # Test value from immediate parent
@@ -228,9 +232,17 @@ def test_node_query_cfg_parents_complex():
     value = leaf.query_cfg_parents("root_val")
     assert value == "root_value"
 
+    # Test with include_self=True
+    value = leaf.query_cfg_parents("leaf_val", include_self=True, default="not_found")
+    assert value == "leaf_value"
+
     # Test with include_self=False
-    value = leaf.query_cfg_parents("leaf_val", include_self=False, default="not_found")
-    assert value == "not_found"
+    with pytest.raises(MissingMetaError):
+        leaf.query_cfg_parents("leaf_val", include_self=False, default="not_found")
+
+    # Test with include_self=False and no defaults
+    with pytest.raises(MissingMetaError):
+        leaf.query_cfg_parents("leaf_val", include_self=False)
 
     # Test detailed report
     value, report = leaf.query_cfg_parents("root_val", report=True)
@@ -259,6 +271,7 @@ def test_node_deep_copy_behavior():
 def test_node_query_cfg_parents():
     """Test Node query_cfg_parents method."""
     root = Node(name="root")
+    root.meta__config__test_value = True
     root._test_value = "root_value"
 
     child = Node(name="child", parent=root)
@@ -269,8 +282,11 @@ def test_node_query_cfg_parents():
     assert value == "root_value"
 
     # Test with default value
-    value = child.query_cfg_parents("nonexistent", default="default")
-    assert value == "default"
+    with pytest.raises(MissingMetaError):
+        child.query_cfg_parents("nonexistent")
+
+    # value = child.query_cfg_parents("nonexistent", default="default")
+    # assert value == "default"
 
     # Test without include_self
     value = child.query_cfg_parents("test_value", include_self=False)

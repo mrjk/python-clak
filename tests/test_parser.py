@@ -34,7 +34,7 @@ def test_parser_initialization():
     parser.name = "test"  # Set name after initialization
     assert parser.name == "test"
     assert parser.key is None
-    assert parser.children == {}
+    assert parser.meta__subcommands_dict == {}
     assert isinstance(parser.registry, dict)
 
 
@@ -43,11 +43,11 @@ def test_parser_with_arguments():
     parser = ParserNode()
     # Create a fresh parser without default arguments
     parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-    parser.arguments_dict = {
+    parser.meta__arguments_dict = {
         "name": Argument("--name", help="Name argument"),
         "age": Argument("--age", type=int, help="Age argument"),
     }
-    parser.init_options()
+    parser.add_arguments()
 
     args = parser.parse_args(["--name", "John", "--age", "25"])
     assert args.name == "John"
@@ -74,28 +74,30 @@ def test_help_display(capsys):
 
 
 # Subcommand Tests
-# def test_basic_subcommand():
-#     """Test basic subcommand structure."""
+def test_basic_subcommand():
+    """Test basic subcommand structure."""
 
-#     def run_cmd(self, ctx, **kwargs):
-#         return "subcmd_executed"
+    def run_cmd(ctx, **kwargs):
+        print("subcmd_executed")
+        return "subcmd_executed"
 
-#     sub_parser = ParserNode()
-#     sub_parser.cli_run = run_cmd
+    sub_parser = ParserNode()
+    sub_parser.cli_run = run_cmd
 
-#     main_parser = ParserNode()
-#     # Create fresh parser without default arguments
-#     main_parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     main_parser.children = {"sub": Command(sub_parser.__class__, sub_parser)}
-#     main_parser.init_subcommands()
-#     main_parser.__dict__["cli_run"] = run_cmd
+    main_parser = ParserNode()
+    # Create fresh parser without default arguments
+    main_parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    main_parser.meta__subcommands_dict = {"sub": Command(sub_parser.__class__, sub_parser)}
+    main_parser.add_subcommands()
+    # main_parser.__dict__["cli_run"] = run_cmd
+    setattr(main_parser, "cli_run", run_cmd)
 
-#     try:
-#         result = main_parser.dispatch([])
-#         # result = main_parser.dispatch(['sub'])
-#         assert result == "subcmd_executed"
-#     except SystemExit as e:
-#         pytest.fail(f"SystemExit was raised with code {e.code}")
+    try:
+        result = main_parser.dispatch([])
+        # result = main_parser.dispatch(['sub'])
+        assert result == "subcmd_executed"
+    except SystemExit as e:
+        pytest.fail(f"SystemExit was raised with code {e.code}")
 
 
 # def test_nested_subcommands():
@@ -107,13 +109,13 @@ def test_help_display(capsys):
 #     leaf_parser.cli_run = leaf_run
 
 #     mid_parser = ParserNode()
-#     mid_parser.children = {"leaf": Command(leaf_parser.__class__, leaf_parser)}
+#     mid_parser.meta__subcommands_dict = {"leaf": Command(leaf_parser.__class__, leaf_parser)}
 
 #     root_parser = ParserNode()
 #     # Create fresh parser without default arguments
 #     root_parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     root_parser.children = {"mid": Command(mid_parser.__class__, mid_parser)}
-#     root_parser.init_subcommands()
+#     root_parser.meta__subcommands_dict = {"mid": Command(mid_parser.__class__, mid_parser)}
+#     root_parser.add_subcommands()
 
 #     try:
 #         with patch('sys.argv', ['prog', 'mid', 'leaf']):
@@ -129,7 +131,7 @@ def test_help_display(capsys):
 #     parser = ParserNode()
 #     # Create fresh parser without default arguments
 #     parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     parser.arguments_dict = {
+#     parser.meta__arguments_dict = {
 #         "age": Argument("--age", type=int, required=True)
 #     }
 #     parser.init_options()
