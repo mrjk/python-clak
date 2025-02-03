@@ -27,7 +27,7 @@ import argparse
 import logging
 import sys
 
-from clak.parser import Argument
+from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 
 # PEP 366
@@ -114,6 +114,17 @@ class LoggingOptMixin(PluginHelpers):
     # def set_logger_level(self, log_level):
     #     "Set instance logger level"
     #     logging.basicConfig(level=get_logger_level(log_level))
+
+    # Meta settings
+    meta__config__log_prefix = MetaSetting(
+        help="Prefix of the logger name",
+    )
+    meta__config__log_suffix = MetaSetting(
+        help="Suffix of the logger name",
+    )
+    meta__config__log_level = MetaSetting(
+        help="Level of the logger",
+    )
 
     logger = None
     # _public_logger = False

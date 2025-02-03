@@ -491,6 +491,10 @@ class FormatEnv(dict):
         return dict(self.get())
 
 
+class MetaSetting(Fn):
+    "A setting that is used to configure a node"
+
+
 # Main parser object
 
 
@@ -522,6 +526,29 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     inject_as_subparser: bool = True
 
     meta__name: str = NOT_SET
+
+    # Meta settings
+    meta__config__name = MetaSetting(
+        help="Name of the parser",
+    )
+    meta__config__app_name = MetaSetting(
+        help="Name of the application",
+    )
+    meta__config__app_proc_name = MetaSetting(
+        help="Name of the application processus",
+    )
+    meta__config__help_usage = MetaSetting(
+        help="Message to display in help usage",
+    )
+    meta__config__help_description = MetaSetting(
+        help="Message to display in help description",
+    )
+    meta__config__help_epilog = MetaSetting(
+        help="Message to display in help epilog",
+    )
+    meta__config__known_exceptions = MetaSetting(
+        help="List of known exceptions to handle",
+    )
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
@@ -715,7 +742,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     def show_epilog(self):
         """Display the epilog message for this parser."""
         self.parser.print_epilog()
-
 
     # Execution helpers
     # ========================
@@ -1011,9 +1037,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ctx["app_proc_name"] = self.query_cfg_parents(
             "app_proc_name", default=self.proc_name
         )
-        ctx["app_env_prefix"] = self.query_cfg_parents(
-            "app_env_prefix", default=name.upper()
-        )
+        # ctx["app_env_prefix"] = self.query_cfg_parents(
+        #     "app_env_prefix", default=name.upper()
+        # )
 
         # Loop constant
         ctx["cli_self"] = cli_self
