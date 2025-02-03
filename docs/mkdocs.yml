@@ -14,6 +14,7 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.indexes
+    - navigation.footer
     - toc.follow
     - search.suggest
     - search.highlight
@@ -52,14 +53,17 @@ markdown_extensions:
       anchor_linenums: true
       pygments_lang_class: true
       auto_title: false
-      linenums: true
+      # linenums: true
 
   - pymdownx.inlinehilite
   - pymdownx.snippets:
       # auto_append: ["../LICENSE"]
-      base_path: [".."]
+      base_path:
+        - ".."
+        - "content"
       auto_append:
-        - includes/abbreviations.md
+        - docs/includes/abbreviations.md
+      check_paths: true
 
 
   - pymdownx.tabbed:
@@ -68,6 +72,7 @@ markdown_extensions:
   - footnotes
   - attr_list
   - sane_lists
+  - toc
 
   # Ensure we have easy list parsing
   - mdx_truly_sane_lists:
@@ -77,6 +82,7 @@ markdown_extensions:
 
 plugins:
   - search
+  - awesome-pages
   - mkdocstrings:
       handlers:
         python:
@@ -86,39 +92,33 @@ plugins:
             show_root_heading: true
 
 nav:
-  - Home:
-      - Index: index.md
-      - Install: install.md
-      - Quickstart: quickstart.md
-  - Guides:
-      - Basic application: guides/guide_101.md
-      - Nested application: guides/guide_102.md
-      - Best Practices: guides/best_practices.md
-  - Documentation:
-      - Features: docs/features.md
-      - Execution: docs/execution.md
-      # - Fields: docs/fields.md
-      # - Loaders: docs/loaders.md
-      # - Cast: docs/cast.md
+  # - Home
+  - ... | home/*
+  # - Home:
+  #     - Index: index.md
+  #     - Install: install.md
+  #     - Quickstart: quickstart.md
 
+  # - Guides:
+  - ... | guides/*
+
+  # - Documentation:
+  - ... | docs/*
+
+  # - Reference:
   - Reference:
-      - Overview:
-
-          - Module: reference/module.md
-
-          # - Diagram: reference/diagram.md
-          - Architecture: architecture/list.md
-
-      - Core:
-          - Parser: reference/parser.md
-          - Nodes: reference/nodes.md
-      - Plugins:
-          - Completion: reference/plugin_complete.md
-          - Logging: reference/plugin_logging.md
-          - Config: reference/plugin_config.md
-          # - Plugins:
+      - ... | api/*
+      - Architecture:
+          - Overview: architecture/list.md
+          - ... | architecture/*
 
   - Project:
-      - Contributing: project/CONTRIBUTING.md
-      - Code of Conduct: project/CODE_OF_CONDUCT.md
-      - License: project/license.md
+      - Informations:
+          - Contributing: project/CONTRIBUTING.md
+          - Code of Conduct: project/CODE_OF_CONDUCT.md
+          - License: project/license.md
+
+
+      # Remaining docs
+      - Misc:
+          - ...

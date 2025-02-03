@@ -127,7 +127,9 @@ Features:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+From reporting a bug to submitting a pull request: every contribution is appreciated
+and welcome. Report bugs, ask questions and request features using Github issues. If
+you want to contribute to the code of this project, please read the Contribution Guidelines.
 
 ## License
 

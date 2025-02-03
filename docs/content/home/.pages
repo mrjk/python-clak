@@ -1,0 +1,6 @@
+title: Home
+nav:
+  - Index: index.md
+  - Install: install.md
+  - Quickstart: quickstart.md
+  - ...
