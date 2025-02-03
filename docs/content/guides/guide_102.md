@@ -7,7 +7,7 @@ This guide explores advanced features of Clak, focusing on nested commands and c
 Nested commands (also known as subcommands) allow you to create hierarchical command-line interfaces. Let's start with a basic example:
 
 ``` python title="script3.py" linenums="1"
---8<-- "guides/examples/script3.py"
+--8<-- "examples/script3.py"
 ```
 
 1. Create a first sublevel `Parser` class.
@@ -125,7 +125,7 @@ app
 Here's how to implement deeper command hierarchies:
 
 ```python title="script4.py" linenums="1"
---8<-- "guides/examples/script4.py"
+--8<-- "examples/script4.py"
 ```
 
 The help message is now:

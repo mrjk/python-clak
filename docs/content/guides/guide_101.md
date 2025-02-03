@@ -16,7 +16,7 @@ Let's start with a minimal example called `script1.py`, that demonstrates the co
 
 
 ``` python title="script1.py" linenums="1"
---8<-- "guides/examples/script1.py"
+--8<-- "examples/script1.py"
 ```
 
 1. Import `Parser` and `Argument` classes from clak
@@ -34,7 +34,7 @@ Let's start with a minimal example called `script1.py`, that demonstrates the co
    - Also, method parameters fits to your the above defined arguments. You can directly use them in your code.
    - There are more arguments that can be passed, but since we don't need them here, we can ignore them with `**_`.
 6. Exit with error code 1 if no name is provided.
-   - This method is provided by clak. See other available methods [here](/api/parser/#clak.parser.ParserNode).
+   - This method is provided by clak. See other available methods [here](../api/parser.md#clak.parser.ParserNode).
 7. Create an application instance and process command line arguments with the `dispatch()` method.
 
 From, this example, we can either use `python` interpreter to run it. Clak automatically add the `-h` or `--help` argument to your application, so you can see the help message:
@@ -93,7 +93,7 @@ This example shows:
 Let's update our previous example with more fields:
 
 ```python title="script2.py" linenums="1"
---8<-- "guides/examples/script2.py"
+--8<-- "examples/script2.py"
 ```
 
 1. Import `Parser` and `Argument` classes from clak
