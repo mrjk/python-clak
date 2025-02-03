@@ -4,21 +4,21 @@ This module contains function-based tests for the core node classes and utilitie
 """
 
 import pytest
+
 from clak.nodes import (
-    NullType,
-    NotSet,
-    UnSetArg,
-    Failure,
-    Default,
+    DEFAULT,
+    FAILURE,
     NOT_SET,
     UNSET_ARG,
-    FAILURE,
-    DEFAULT,
+    ConfigurationError,
+    Default,
+    Failure,
     Fn,
     Node,
-    ConfigurationError,
+    NotSet,
+    NullType,
+    UnSetArg,
 )
-
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -76,13 +76,14 @@ def test_fn_initialization():
     args = (1, 2, 3)
     kwargs = {"a": 1, "b": 2}
     fn = Fn(*args, **kwargs)
-    
+
     assert fn.args == args
     assert fn.kwargs == kwargs
 
 
 # Test nodes
 # ==============================
+
 
 def test_node_initialization():
     """Test Node initialization with different parameters."""
@@ -134,6 +135,7 @@ def test_node_get_fname_basic():
     assert child1.get_fname() == "root.child1"
     assert child2.get_fname() == "root.child1.child2"
 
+
 def test_node_get_fname_with_empty_root():
     """Test Node get_fname method with empty root name."""
     root = Node(name="")
@@ -155,6 +157,7 @@ def test_node_get_fname_empty_string():
     assert child1.get_fname() == "."
     assert child2.get_fname() == ".."
 
+
 def test_node_get_fname_empty_unset():
     """Test Node get_fname method with unset names"""
     root = Node()
@@ -165,11 +168,14 @@ def test_node_get_fname_empty_unset():
     assert child1.get_fname() == "Node.Node"
     assert child2.get_fname() == "Node.Node.Node"
 
+
 def test_node_query_cfg_inst():
     """Test Node query_cfg_inst method."""
+
     class CustomNode(Node):
         class Meta:
             meta_value = "meta_test"
+
         meta__default_value = "default_test"
 
     node = CustomNode(name="test")
@@ -202,14 +208,15 @@ def test_node_query_cfg_inst():
     with pytest.raises(IndexError):
         node.query_cfg_inst("nonexistent")
 
+
 def test_node_query_cfg_parents_complex():
     """Test Node query_cfg_parents with complex hierarchy and different value locations."""
     root = Node(name="root")
     root._root_val = "root_value"
-    
+
     mid = Node(name="mid", parent=root)
     mid._mid_val = "mid_value"
-    
+
     leaf = Node(name="leaf", parent=mid)
     leaf._leaf_val = "leaf_value"
 
@@ -231,6 +238,7 @@ def test_node_query_cfg_parents_complex():
     assert isinstance(report, list)
     assert any("Found" in r for r in report)
 
+
 def test_node_deep_copy_behavior():
     """Test that query_cfg_inst returns deep copies of mutable objects."""
     node = Node(name="test")
@@ -247,11 +255,12 @@ def test_node_deep_copy_behavior():
     assert result == {"a": 1, "b": 2}
     assert result is not node._dict_value  # Should be a new object
 
+
 def test_node_query_cfg_parents():
     """Test Node query_cfg_parents method."""
     root = Node(name="root")
     root._test_value = "root_value"
-    
+
     child = Node(name="child", parent=root)
     child._child_value = "child_value"
 
@@ -274,4 +283,4 @@ def test_node_query_cfg_parents():
 
     # Test raising ConfigurationError
     with pytest.raises(ConfigurationError):
-        child.query_cfg_parents("nonexistent") 
+        child.query_cfg_parents("nonexistent")

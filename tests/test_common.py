@@ -1,7 +1,9 @@
 import pytest
+
 from clak.common import deindent_docstring
 
 pytestmark = pytest.mark.tags("unit-tests")
+
 
 def test_deindent_docstring_empty():
     """Test deindenting an empty string."""
@@ -83,4 +85,4 @@ def test_deindent_docstring_no_reindent():
     expected = """
 First line
 Second line"""
-    assert deindent_docstring(text, reindent=False) == expected 
+    assert deindent_docstring(text, reindent=False) == expected

@@ -8,22 +8,23 @@ This module contains test cases for the parser functionality including:
 - Command execution flow
 """
 
-import os
-import pytest
-from unittest.mock import MagicMock, patch
-from types import SimpleNamespace
 import argparse
+import os
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from clak.exception import ClakError, ClakParseError, ClakUserError
 from clak.parser import (
-    ParserNode,
     Argument,
-    SubParser,
     Command,
-    prepare_docstring,
-    first_doc_line,
     FormatEnv,
+    ParserNode,
+    SubParser,
+    first_doc_line,
+    prepare_docstring,
 )
-from clak.exception import ClakParseError, ClakUserError, ClakError
 
 
 # Basic Parser Tests
@@ -47,7 +48,7 @@ def test_parser_with_arguments():
         "age": Argument("--age", type=int, help="Age argument"),
     }
     parser.init_options()
-    
+
     args = parser.parse_args(["--name", "John", "--age", "25"])
     assert args.name == "John"
     assert args.age == 25
@@ -62,7 +63,7 @@ def test_argument_destination():
     assert arg._get_best_dest() == "test"
 
 
-@patch('sys.argv', ['prog', '--help'])
+@patch("sys.argv", ["prog", "--help"])
 def test_help_display(capsys):
     """Test help text display."""
     parser = ParserNode()
@@ -75,7 +76,7 @@ def test_help_display(capsys):
 # Subcommand Tests
 # def test_basic_subcommand():
 #     """Test basic subcommand structure."""
-    
+
 #     def run_cmd(self, ctx, **kwargs):
 #         return "subcmd_executed"
 
@@ -139,6 +140,7 @@ def test_help_display(capsys):
 
 def test_user_error():
     """Test handling of user errors."""
+
     def run_cmd(**kwargs):
         raise ClakUserError("User error")
 
@@ -207,4 +209,3 @@ def test_format_env():
 #         assert mock_run.called
 #     except SystemExit as e:
 #         pytest.fail(f"SystemExit was raised with code {e.code}")
-
