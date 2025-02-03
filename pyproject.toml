@@ -1,10 +1,15 @@
 [tool.poetry]
-name = "clak"
+name = "mrjk.clak"
 version = "0.3.0"
 description = "Command Line avec Klass"
 authors = ["mrjk <mrjk.78@gmail.com>"]
 license = "GPLv3"
 readme = "README.md"
+
+packages = [
+  { include = "clak/" }
+]
+
 
 [build-system]
 requires = ["poetry-core"]
