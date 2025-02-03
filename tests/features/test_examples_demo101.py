@@ -6,8 +6,9 @@ import os.path
 
 import pytest
 import sh
-from tests.common import replace_with_placeholders
+
 import tests.features.demo_features.demo101_basic_minimal as example
+from tests.common import replace_with_placeholders
 
 
 @pytest.fixture

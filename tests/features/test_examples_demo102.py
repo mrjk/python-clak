@@ -8,8 +8,8 @@ import pytest
 import sh
 from common import replace_with_placeholders
 
-from tests.common import replace_with_placeholders
 import tests.features.demo_features.demo102_basic_argparse as example
+from tests.common import replace_with_placeholders
 
 
 @pytest.fixture

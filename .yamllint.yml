@@ -8,7 +8,7 @@ ignore:
   - .direnv
   - .venv
   - .cache
-  - tests/test_examples_*
+  - tests/features/test_examples_*
 
 rules:
   empty-lines:
@@ -20,3 +20,4 @@ rules:
     max: 120
     allow-non-breakable-words: true
     allow-non-breakable-inline-mappings: true
+
