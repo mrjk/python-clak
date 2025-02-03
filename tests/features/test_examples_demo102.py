@@ -9,7 +9,7 @@ import sh
 from common import replace_with_placeholders
 
 from tests.common import replace_with_placeholders
-import tests.features.features_examples.demo102_basic_argparse as example
+import tests.features.demo_features.demo102_basic_argparse as example
 
 
 @pytest.fixture

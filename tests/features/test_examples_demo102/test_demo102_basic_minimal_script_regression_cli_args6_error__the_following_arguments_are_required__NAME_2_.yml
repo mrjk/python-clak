@@ -2,7 +2,7 @@ cli_args:
 - --config
 - new_conf.yml
 exit_code: 2
-output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo102_basic_argparse.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo102_basic_argparse.py\
   \ --config new_conf.yml\n\n  STDOUT:\nusage: demo102_basic_argparse.py [-h] [--force]\
   \ [--config CONFIG]\n                                 [--color {red,green,blue,unknown}]\n\
   \                                 [--items ITEMS]\n                            \

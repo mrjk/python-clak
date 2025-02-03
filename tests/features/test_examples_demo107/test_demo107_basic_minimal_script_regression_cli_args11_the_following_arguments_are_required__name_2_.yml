@@ -1,6 +1,6 @@
 cli_args:
 - command2
 exit_code: 2
-output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo107_docstring_meta.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo107_docstring_meta.py\
   \ command2\n\n  STDOUT:\nusage: command usage for command2 can be overriden\ndemo107_docstring_meta.py\
   \ command2: error: the following arguments are required: name\n\n\n  STDERR:\n"

@@ -9,7 +9,7 @@ import sh
 from common import replace_with_placeholders
 
 from tests.common import replace_with_placeholders
-import tests.features.features_examples.demo104_nested_deep as example
+import tests.features.demo_features.demo104_nested_deep as example
 
 
 @pytest.fixture

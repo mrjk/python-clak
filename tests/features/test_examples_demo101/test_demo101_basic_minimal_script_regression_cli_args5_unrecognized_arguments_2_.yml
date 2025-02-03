@@ -2,7 +2,7 @@ cli_args:
 - --invalid
 - John
 exit_code: 2
-output: "\n\n  RAN: /app/python-clak/tests/features/features_examples/demo101_basic_minimal.py\
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo101_basic_minimal.py\
   \ --invalid John\n\n  STDOUT:\nusage: demo101_basic_minimal.py [-h] [--config CONFIG]\
   \ [NAME]\ndemo101_basic_minimal.py: error: unrecognized arguments: --invalid\n\n\
   \n  STDERR:\n"
