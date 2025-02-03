@@ -62,6 +62,6 @@ options:
 
 ## What next ?
 
-You can either follow the [guides](guides/) or dive into the technical [documentation](docs).
+You can either follow the [guides](../guides/guide_101.md) or dive into the technical [documentation](../docs/features.md).
 
-Reference documentation is available in the [API reference](reference/).
+Reference documentation is available in the [API reference](../api/module.md).

@@ -18,4 +18,4 @@ pdm add clak
 uv add clak
 ```
 
-For more installation methods, please check [detailed installation](docs/install.md) documentation.
+For more installation methods, please check [detailed installation](install.md) documentation.
