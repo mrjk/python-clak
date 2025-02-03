@@ -1,5 +1,5 @@
 .envrc
 **/__pycache__/**
-.coverage
+.coverage*
 dist/*
 .vscode/*

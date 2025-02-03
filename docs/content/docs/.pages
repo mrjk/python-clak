@@ -1,0 +1,9 @@
+title: Documentation
+nav:
+    - Features: features.md
+    - Installation: install.md
+    - Advanced: advanced.md
+    - Execution: execution.md
+
+    - Other:
+      - ...

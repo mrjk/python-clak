@@ -1,0 +1,7 @@
+cli_args:
+- command1
+exit_code: 31
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo108_exceptions.py\
+  \ command1\n\n  STDOUT:\nNo 'cli_run' method found for <__main__.AppCommand1 object>\n\
+  Program exited with bug ClakNotImplementedError(31): No 'cli_run' method found for\
+  \ <__main__.AppCommand1 object>\n\n\n  STDERR:\n"

@@ -1,0 +1,7 @@
+cli_args:
+- --config
+exit_code: 2
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo101_basic_minimal.py\
+  \ --config\n\n  STDOUT:\nusage: demo101_basic_minimal.py [-h] [--config CONFIG]\
+  \ [NAME]\nCould not parse command line: --config/-c expected one argument\n\n\n\
+  \  STDERR:\n"

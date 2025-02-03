@@ -3,7 +3,7 @@
 # See: https://pymarkdown.readthedocs.io/en/latest/rules/
 extensions:
   pragmas:
-    enabled: True
+    enabled: true
 
 plugins:
   md012:

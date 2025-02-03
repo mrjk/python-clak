@@ -1,0 +1,17 @@
+cli_args:
+- --force
+- --config
+- custom.yml
+- --color
+- red
+- --items
+- item1
+- --items
+- item2
+- John
+- Smith
+- alias1
+- alias2
+exit_code: 0
+output: "Force mode update config file: custom.yml\nIdentity: John Smith\nFavorite\
+  \ color is: red\n  Alias: alias1\n  Alias: alias2\n  Item: item1\n  Item: item2\n"

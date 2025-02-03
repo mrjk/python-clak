@@ -1,0 +1,13 @@
+title: API
+nav:
+
+  - Clak Module: module.md
+  - ...
+  - Core:
+      - Parser: parser.md
+      - Nodes: nodes.md
+      - Plugins: plugins.md
+  - Components:
+      - Logging: plugin_logging.md
+      - Completion: plugin_complete.md
+      - Config: plugin_config.md

@@ -1,0 +1,11 @@
+cli_args: []
+exit_code: 0
+output: "usage: demo106_inherit_mixed.py [-h] [--debug] [--config CONFIG]\n      \
+  \                          {command1,command2} ...\n\nDemo application with options\
+  \ and two subcommands, and a common argument.\n\nThis is a two levels demo of an\
+  \ application with two subcommands:\n\n- A subcommand: command1\n- A subcommand:\
+  \ command2, inherited from command1\n\npositional arguments:\n\nsubcommands:\n \
+  \ command1                  Execute command 1\n  command2                  Execute\
+  \ command 2\n\noptions:\n  -h, --help                  show this help message and\
+  \ exit\n  --debug                     Enable debug mode (default: False)\n  --config\
+  \ CONFIG, -c CONFIG  Config file path (default: config.yaml)\n"

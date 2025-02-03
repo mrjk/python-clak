@@ -22,13 +22,13 @@ Key components:
 
 # Parsers imports
 # Argparse public helpers
-from clak.argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
+from clak.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 
 # Plugins import
 from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
-from clak.parser import Argument, Parser, SubParser
+from clak.parser import Argument, Parser, ParserNode, SubParser
 
 # Classic API
 ArgumentParser = Parser
@@ -44,3 +44,5 @@ Command = SubParser
 # Opt = Opt - TODO
 # Arg = Arg - TODO
 Cmd = SubParser
+
+__version__ = "0.3.0a0"

@@ -1,9 +1,10 @@
-"""Clak Parser Module
+"""Clak ParserNode Module
 
 This module provides an enhanced command-line argument parsing system built on top of argparse.
 It supports hierarchical command structures, subcommands, and argument injection.
 
 Key Features:
+
 - Hierarchical command structure support via subparsers
 - Argument injection capabilities
 - Enhanced help formatting
@@ -11,20 +12,27 @@ Key Features:
 - Exception handling for clean program termination
 
 The module provides several key classes:
-- Parser: Main parser class extending argparse functionality
+
+- ParserNode: Main parser class extending argparse functionality
 - SubParser: For creating nested command structures 
 - Command: Alias for SubParser for compatibility
 
 Usage can be in either argparse-style:
-    ArgumentParser()
-    Argument() 
-    SubParser()
+
+```python
+ArgumentParser()
+Argument() 
+SubParser()
+```
 
 Or Clak-style:
-    ClakParser()
-    Opt()
-    Arg() 
-    Cmd()
+
+```python
+ClakParser()
+Opt()
+Arg() 
+Cmd()
+```
 
 Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
 """
@@ -37,16 +45,19 @@ import traceback
 
 # from pprint import pprint
 from types import SimpleNamespace
-from typing import Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 # import argparse
 import argcomplete
 
 # import clak.exception as exception
 from clak import exception
-from clak.argparse import SUPPRESS, RecursiveHelpFormatter
-from clak.argparse import _argparse as argparse
-from clak.argparse import argparse_inject_as_subparser
+from clak.argparse_ import (
+    SUPPRESS,
+    RecursiveHelpFormatter,
+    argparse,
+    argparse_inject_as_subparser,
+)
 from clak.common import deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
 
@@ -87,6 +98,8 @@ USE_SUBPARSERS = True
 
 # Top objects
 
+T = TypeVar("T")  # For generic type hints
+
 
 class ArgParseItem(Fn):
     """Base class for argument parser items.
@@ -101,11 +114,12 @@ class ArgParseItem(Fn):
     _destination: str = None
 
     @property
-    def destination(self):
+    def destination(self) -> Optional[str]:
         """Get the destination name for this argument.
 
         Returns:
             str: The destination name, derived from the argument name if not explicitly set
+            None: If no destination can be determined
         """
         return self._get_best_dest()
 
@@ -113,7 +127,8 @@ class ArgParseItem(Fn):
     def destination(self, value):
         self._destination = value
 
-    def _get_best_dest(self):
+    def _get_best_dest(self) -> str:
+        "Get the best destination name for this argument"
         if self._destination is not None:
             return self._destination
 
@@ -138,7 +153,7 @@ class ArgParseItem(Fn):
 
         return key
 
-    def build_params(self, dest: str):
+    def build_params(self, dest: str) -> Tuple[tuple, dict]:
         """Build parameter dictionary for argument parser.
 
         Args:
@@ -209,12 +224,12 @@ class Argument(ArgParseItem):
     the appropriate type based on the argument format.
     """
 
-    def create_arg(self, key, config):
+    def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
         """Create and add an argument to the parser.
 
         Args:
             key (str): The argument key/name
-            config (Parser): The parser configuration object
+            config (ParserNode): The parser configuration object
 
         Returns:
             argparse.Action: The created argument parser action
@@ -225,7 +240,7 @@ class Argument(ArgParseItem):
             args, tuple
         ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
 
-        # Create parser
+        # Create argument
         logger.debug(
             "Create new argument %s.%s: %s",
             config.get_fname(attr="key"),
@@ -263,7 +278,7 @@ class SubParser(ArgParseItem):
         self.cls = cls
         self.use_subparsers = use_subparsers
 
-    def create_subcommand(self, key, config):
+    def attach_sub_to_parser(self, key: str, config: "ParserNode") -> "ParserNode":
         """Create a subcommand parser for this command.
 
         Creates a new subparser for the command and configures it with the appropriate
@@ -271,13 +286,13 @@ class SubParser(ArgParseItem):
 
         Args:
             key (str): Name of the subcommand
-            config (Parser): Parent parser configuration object
+            config (ParserNode): Parent parser configuration object
 
         Raises:
             ValueError: If command name contains spaces
 
         Returns:
-            None
+            ParserNode: The created child parser instance
         """
 
         if " " in key:
@@ -379,7 +394,7 @@ class RegistryEntry:
         self._config = config
         self._entries = {}
 
-    def add_entry(self, key, value):
+    def add_entry(self, key: str, value: Any) -> None:
         """Add a new entry to the registry.
 
         Args:
@@ -392,7 +407,7 @@ class RegistryEntry:
         return f"RegistryEntry({self._config})"
 
 
-def first_doc_line(text):
+def first_doc_line(text: str) -> str:
     """Get the first non-empty line from a text string.
 
     Args:
@@ -414,7 +429,9 @@ def first_doc_line(text):
     return ""
 
 
-def prepare_docstring(text, variables=None, reindent=""):
+def prepare_docstring(
+    text: Optional[str], variables: Optional[Dict[str, Any]] = None, reindent: str = ""
+) -> Optional[str]:
     """Prepare a docstring by deindenting and formatting with variables.
 
     Args:
@@ -474,10 +491,14 @@ class FormatEnv(dict):
         return dict(self.get())
 
 
+class MetaSetting(Fn):  # pylint: disable=too-few-public-methods
+    "A setting that is used to configure a node"
+
+
 # Main parser object
 
 
-class Parser(Node):  # pylint: disable=too-many-instance-attributes
+class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     """An extensible argument parser that can be inherited to create custom CLIs.
 
     This class provides a framework for building complex command-line interfaces with:
@@ -497,7 +518,7 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         arguments_dict (dict): Dictionary of argument name to ArgParseItem
         children (dict): Dictionary of subcommand name to subcommand class
         inject_as_subparser (bool): Whether to inject as subparser vs direct
-        meta__name (str): Parser name
+        meta__name (str): ParserNode name
     """
 
     arguments_dict: dict[str, ArgParseItem] = {}
@@ -506,10 +527,36 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
 
     meta__name: str = NOT_SET
 
+    meta__subcommands_dict: dict[str, SubParser] = {}
+    meta__arguments_dict: dict[str, Argument] = {}
+
+    # Meta settings
+    meta__config__name = MetaSetting(
+        help="Name of the parser",
+    )
+    meta__config__app_name = MetaSetting(
+        help="Name of the application",
+    )
+    meta__config__app_proc_name = MetaSetting(
+        help="Name of the application processus",
+    )
+    meta__config__help_usage = MetaSetting(
+        help="Message to display in help usage",
+    )
+    meta__config__help_description = MetaSetting(
+        help="Message to display in help description",
+    )
+    meta__config__help_epilog = MetaSetting(
+        help="Message to display in help epilog",
+    )
+    meta__config__known_exceptions = MetaSetting(
+        help="List of known exceptions to handle",
+    )
+
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         add_help: bool = True,
-        parent: "Parser" = None,
+        parent: "ParserNode" = None,
         name: str = None,
         key: str = None,
         parser: argparse.ArgumentParser = None,
@@ -520,9 +567,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
 
         Args:
             add_help (bool): Whether to add help flags
-            parent (Parser): Parent parser instance
-            name (str): Parser name
-            key (str): Parser key
+            parent (ParserNode): Parent parser instance
+            name (str): ParserNode name
+            key (str): ParserNode key
             parser (ArgumentParser): Existing parser to use
             inject_as_subparser (bool): Whether to inject as subparser
             proc_name (str): Process name
@@ -534,6 +581,7 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         self.fkey = self.get_fname(attr="key")
         self.inject_as_subparser = inject_as_subparser
         self.proc_name = proc_name
+        self.add_help = add_help
 
         # Add children link
         self.children = {}
@@ -543,38 +591,50 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             self.registry = parent.registry
         self.registry[self.fkey] = self  # RegistryEntry(config=self)
 
+        # Create or reuse parent parser
         if parser is None:
-            usage = self.query_cfg_parents("help_usage", default=None)
-            desc = self.query_cfg_parents("help_description", default=self.__doc__)
-            epilog = self.query_cfg_parents("help_epilog", default=None)
-
-            fenv = FormatEnv({"self": self})
-            usage = prepare_docstring(usage, variables=fenv.get())
-            desc = prepare_docstring(desc, variables=fenv.get())
-            epilog = prepare_docstring(epilog, variables=fenv.get())
-            self.parser = argparse.ArgumentParser(
-                prog=self.proc_name,
-                usage=usage,
-                description=desc,
-                epilog=epilog,
-                formatter_class=RecursiveHelpFormatter,
-                add_help=add_help,
-                exit_on_error=False,
-            )
+            self.parser = self.create_parser()
             self.proc_name = self.parser.prog
         else:
             self.parser = parser
             self.proc_name = self.parent.proc_name
 
-        # pprint(self.parser.__dict__)
-
+        # Init _subparsers
         self._subparsers = None
 
-        self.init_options()
-        self.init_subcommands()
+        # Add arguments and subcommands
+        # meta__arguments_dict = {}
+        # meta__subcommands_dict = {}
+        self.add_arguments()
+        self.add_subcommands()
+
+    def create_parser(self):
+        "Create a new parser"
+        usage = self.query_cfg_parents("help_usage", default=None)
+        desc = self.query_cfg_parents("help_description", default=self.__doc__)
+        epilog = self.query_cfg_parents("help_epilog", default=None)
+
+        fenv = FormatEnv({"self": self})
+        usage = prepare_docstring(usage, variables=fenv.get())
+        desc = prepare_docstring(desc, variables=fenv.get())
+        epilog = prepare_docstring(epilog, variables=fenv.get())
+        parser = argparse.ArgumentParser(
+            prog=self.proc_name,
+            usage=usage,
+            description=desc,
+            epilog=epilog,
+            formatter_class=RecursiveHelpFormatter,
+            add_help=self.add_help,
+            exit_on_error=False,
+        )
+        return parser
 
     def __getitem__(self, key):
         return self.children[key]
+
+    def get_fname(self, attr="key"):
+        "Get full name of the parser, use key instead of name by default"
+        return super().get_fname(attr=attr)
 
     @property
     def subparsers(self):
@@ -589,7 +649,10 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             )
         return self._subparsers
 
-    def init_options(self):
+    # Argument management
+    # ========================
+
+    def add_arguments(self, arguments: dict = None):
         """Initialize all argument options defined for this parser.
 
         This method:
@@ -598,8 +661,8 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         3. Adds internal arguments like __cli_self__
         4. Creates all argument parser entries
         """
-        # Start with explicit dict and add class attributes
-        arguments = getattr(self, "arguments_dict", {}) or {}
+        arguments = arguments or getattr(self, "meta__arguments_dict", {}) or {}
+        assert isinstance(arguments, dict), f"Got {type(arguments)} instead of dict"
 
         # Add arguments from class attributes including inherited ones
         for cls in self.__class__.__mro__:
@@ -613,9 +676,32 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
 
         # Create all options
         for key, arg in arguments.items():
-            arg.create_arg(key, self)
+            self.add_argument(key, arg)
+            # arg.attach_arg_to_parser(key, self)
 
-    def init_subcommands(self):
+    def add_argument(
+        self, key: str, arg: Optional[Argument] = None, **kwargs: Any
+    ) -> None:
+        """Add an argument to this parser.
+
+        Args:
+            key (str): The key/name for the argument
+            arg (Argument): The argument object to add
+            **kwargs (Any): Additional keyword arguments to pass to add_argument()
+
+        This method adds a new argument to the parser. The argument can be either a
+        positional argument or an optional flag, determined by the Argument object.
+        """
+
+        if arg is None:
+            arg = Argument(**kwargs)
+
+        arg.attach_arg_to_parser(key, self)
+
+    # Subcommand management
+    # ========================
+
+    def add_subcommands(self, subcommands: dict = None):
         """Initialize all subcommands defined for this parser.
 
         This method:
@@ -623,7 +709,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         2. Collects Command instances defined as class attributes
         3. Creates parser entries for all subcommands
         """
-        children_dict = self.children or {}
+
+        subcommands = subcommands or getattr(self, "meta__subcommands_dict", {}) or {}
+        assert isinstance(subcommands, dict), f"Got {type(subcommands)} instead of dict"
 
         # Add arguments from class attributes that are Command instances
         for cls in self.__class__.__mro__:
@@ -631,10 +719,21 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
                 if isinstance(attr_value, Command):
                     # Store the attribute name as the key in the Fn instance
                     attr_value.destination = attr_name
-                    children_dict[attr_name] = attr_value
+                    subcommands[attr_name] = attr_value
 
-        for key, arg in children_dict.items():
-            arg.create_subcommand(key, self)
+        for key, arg in subcommands.items():
+            # arg.attach_sub_to_parser(key, self)
+            self.add_subcommand(key, arg)
+
+    def add_subcommand(self, key: str, arg=None, **kwargs) -> None:
+        "Add a subcommand to this parser"
+        if arg is None:
+            arg = Command(**kwargs)
+
+        arg.attach_sub_to_parser(key, self)
+
+    # Help methods
+    # ========================
 
     def show_help(self):
         """Display the help message for this parser."""
@@ -647,6 +746,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
     def show_epilog(self):
         """Display the epilog message for this parser."""
         self.parser.print_epilog()
+
+    # Execution helpers
+    # ========================
 
     def cli_exit(self, status=0, message=None):
         """Exit the CLI application with given status and message.
@@ -665,21 +767,20 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         """
         self.parser.error(message)
 
-    def cli_run(self, ctx, **kwargs):  # pylint: disable=unused-argument
+    def cli_run(self, **kwargs: Any) -> None:  # pylint: disable=unused-argument
         """Execute the command implementation.
 
         This method should be overridden by subclasses to implement command behavior.
         The base implementation shows help for non-leaf nodes.
 
         Args:
-            ctx: Command context object
             **kwargs: Additional keyword arguments from command line
 
         Raises:
             ClakNotImplementedError: If leaf node has no implementation
         """
 
-        # pprint(ctx)
+        ctx = kwargs["ctx"]
 
         # Check if class is a leaf or not
         if len(ctx.cli_children) > 0:
@@ -689,7 +790,7 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
                 f"No 'cli_run' method found for {self}"
             )
 
-    def cli_group(self, ctx, **_):
+    def cli_group(self, ctx: SimpleNamespace, **_: Any) -> None:
         """Execute group-level command behavior.
 
         Args:
@@ -697,14 +798,14 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             **_: Unused keyword arguments
         """
 
-    def find_closest_subcommand(self, args=None):
+    def find_closest_subcommand(self, args: Optional[List[str]] = None) -> "ParserNode":
         """Find the deepest valid subcommand from given arguments.
 
         Args:
             args (list): Command line arguments, defaults to sys.argv[1:]
 
         Returns:
-            Parser: The deepest valid subcommand parser
+            ParserNode: The deepest valid subcommand parser
         """
 
         # Get the current command line from sys.argv
@@ -818,7 +919,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             logger.critical("Program exited with OS error: %s", err)
             sys.exit(err.errno)
 
-    def parse_args(self, args=None):
+    def parse_args(
+        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+    ) -> argparse.Namespace:
         """Parse command line arguments.
 
         Args:
@@ -852,7 +955,12 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
 
         return parser.parse_args(args)
 
-    def dispatch(self, args=None, debug=None, **_):
+    def dispatch(
+        self,
+        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
+        debug: Optional[bool] = None,
+        **_: Any,
+    ) -> Any:
         """Main dispatch function for command execution.
 
         Args:
@@ -880,9 +988,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             logger.critical("Exit 1 with bugs")
             sys.exit(1)
 
-    def cli_execute(
-        self, args=None
-    ):  # pylint: disable=too-many-statements,too-many-locals
+    def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
+        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+    ) -> Any:
         """Execute the command with given arguments.
 
         Args:
@@ -912,7 +1020,10 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             for key, value in args.items()
             if not key.startswith("__cli_cmd__")
         }
-        cli_self = args.pop("__cli_self__")
+
+        cli_self = self
+        if "__cli_self__" in args:
+            cli_self = args.pop("__cli_self__")
 
         # Prepare data
         fn_group_name = "cli_group"
@@ -933,9 +1044,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         ctx["app_proc_name"] = self.query_cfg_parents(
             "app_proc_name", default=self.proc_name
         )
-        ctx["app_env_prefix"] = self.query_cfg_parents(
-            "app_env_prefix", default=name.upper()
-        )
+        # ctx["app_env_prefix"] = self.query_cfg_parents(
+        #     "app_env_prefix", default=name.upper()
+        # )
 
         # Loop constant
         ctx["cli_self"] = cli_self
@@ -954,11 +1065,9 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
         ctx["cli_methods"] = None
 
         # Execute all nodes in hierarchy
+        ret = None
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
-            has_children = (
-                node._subparsers is not None  # pylint: disable=protected-access
-            )
 
             logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
             # print(f"Node {idx}:{node}")
@@ -1013,30 +1122,42 @@ class Parser(Node):  # pylint: disable=too-many-instance-attributes
             if last_node is True:
                 run_fn = getattr(node, fn_exec_name, None)
 
-                if run_fn is None:
-                    if has_children is True:
-                        logger.info("Parent group default help: %d:%s", idx, node)
-                        # TOFIX: This behavior should be a parameter
-                        # print ("GROUP COMMAND NOT IMPLEMENTED")
-                        node.show_help()
-                        # TOFIX: Sys.exit(1)
-                        return
-                    # pprint(_ctx)
-                    raise NotImplementedError(
-                        f"No '{fn_exec_name}' function found for {node}"
-                    )
-
                 logger.info("Run function execute: %d:%s.%s", idx, node, fn_exec_name)
-                run_fn(ctx=_ctx, **_ctx.args.__dict__)
+                ret = run_fn(ctx=_ctx, **_ctx.args.__dict__)
 
             # Change status
             ctx["cli_first"] = False
 
+        return ret
+
+
+class Parser(ParserNode):
+    """A simplified parser class that extends ParserNode.
+
+    This class provides a more streamlined interface to ParserNode by:
+    - Automatically parsing arguments on initialization
+    - Maintaining compatibility with legacy argument parser names
+    - Providing simpler command/argument creation methods
+
+    Args:
+        *args: Positional arguments passed to ParserNode
+        parse (bool): Whether to automatically parse arguments on init,
+            only on root nodes
+        **kwargs: Keyword arguments passed to ParserNode
+    """
+
+    def __init__(self, *args: list, parse: bool = True, **kwargs: dict):
+        super().__init__(*args, **kwargs)
+
+        if not self.parent and parse is True:
+            logger.debug("Starting automatig arg_parse")
+            self.dispatch(*args)
+
 
 # # # Compatibility
-# ArgumentParser = Parser
-# ArgumentParserPlus = Parser
-# ArgParser = Parser
+# ArgumentParser = ParserNode
+# ArgumentParserPlus = ParserNode
+# ArgParser = ParserNode
 Command = SubParser
 # SubCommand = SubParser
 

@@ -1,0 +1,114 @@
+---
+# https://taskfile.dev
+
+version: '3'
+
+
+includes:
+  docs:
+    taskfile: ./docs/Taskfile.yml
+    dir: ./docs
+
+tasks:
+
+  list:
+    desc: "Show available commands"
+    aliases:
+      - default
+    silent: true
+    cmds:
+      - task --list-all
+
+  # Publish and release
+  # =============
+
+  publish_pypi_test:
+    desc: Publish package on test.pypi.org
+    cmds:
+      - poetry build
+      - poetry publish -r testpypi
+
+
+  publish_pypi:
+    desc: Publish package on pypi.org
+    cmds:
+      - poetry build
+      - poetry publish
+
+
+  # Fix
+  # =============
+
+  fix_lint:
+    desc: fix all what can be fixed
+    cmds:
+      - isort --profile black --overwrite-in-place $(git ls-files | grep '\.py$')
+      - black $(git ls-files | grep '\.py$')
+      - pymarkdownlnt fix $( git ls-files | grep '\.md$' | grep -v 'docs/' )
+
+  test_lint:
+    desc: show what can be improved
+    cmds:
+      - isort --profile black $(git ls-files | grep '\.py$')
+      - black --check $(git ls-files | grep '\.py$')
+      - pylint $(git ls-files | grep '\.py$' | grep clak/)
+
+  test_lint_full:
+    desc: run all linting tests
+    cmds:
+      - task: test_lint
+      - yamllint $( git ls-files | grep '\.yml$' )
+      - pymarkdownlnt scan $( git ls-files | grep '\.md$' | grep -v 'docs/' )
+      - shellcheck $( git ls-files | grep '\.sh$' )
+      - task: docs:test
+
+  # Tests
+  # =============
+
+  test:
+    desc: Test everything
+    once: true
+    cmds:
+      - task: test_pytest
+      - task: test_regressions
+      - task: test_report
+      # - task: test_lab
+      # - task: test_examples
+      - task: test_lint_full
+
+
+  # test_lab:
+  #   dest: Test lab
+  #   cmds:
+  #     - bash ./scripts/run_python_scripts.sh lab 'test[0-9]*'
+
+  # test_examples:
+  #   dest: Test examples
+  #   cmds:
+  #     - bash ./scripts/run_python_scripts.sh examples 'example[0-9]*'
+
+  fix_regressions:
+    desc: Fix regressions
+    cmds:
+      - pytest tests/ --force-regen
+
+  test_pytest:
+    desc: Test with pytest
+    once: true
+    cmds:
+      - pytest tests/ -vv --tags unit-tests examples-unit examples-regressions
+
+  test_regressions:
+    desc: Test for regressions (slow)
+    once: true
+    cmds:
+      - pytest tests/ --tags examples-regressions
+      - pytest tests/ --tags examples-regressions-cli
+
+  test_report:
+    desc: Report tests
+    once: true
+    cmds:
+      # - pytest tests --tb no -vv -q
+      - pytest tests/ --tb no -q --cov=clak --cov-report term-missing --tags examples-unit unit-tests
+

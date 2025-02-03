@@ -15,7 +15,10 @@ Key components:
 
 import copy
 import logging
+
+# from pprint import pprint
 from types import SimpleNamespace
+from typing import Any, List, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +113,10 @@ class ConfigurationError(Exception):
     """Raised when a configuration setting cannot be found."""
 
 
+class MissingMetaError(ConfigurationError):
+    """Raised when a meta setting is not declared before being used."""
+
+
 class Node:
     "New version and simpler version of node"
 
@@ -126,7 +133,7 @@ class Node:
 
         # Initialize name
         self.name = (
-            name if name is not UNSET_ARG else f"{self.__class__.__name__}()"
+            name if name is not UNSET_ARG else f"{self.__class__.__name__}"
         )  # ({hex(id(self))})"
         assert isinstance(self.name, str)  # To unit test
 
@@ -151,22 +158,23 @@ class Node:
             return getattr(self, attr, default)
         return getattr(self, attr)
 
-    def get_fname(self, attr="key"):
+    def get_fname(self, attr="name"):
         "Return the full name of the parser"
         parents = self.get_hierarchy()
+
         if parents:
             fname = [x.get_name(attr=attr, default=None) or "" for x in parents]
             return ".".join(fname) or ""
         return ""
 
-    def query_cfg_parents(
+    def query_cfg_parents(  # pylint: disable=too-many-branches
         self,
-        name,
-        default=UNSET_ARG,
-        include_self=True,
-        report=False,
-    ):
-        """Query configuration from parent object.
+        name: str,
+        default: Any = UNSET_ARG,
+        include_self: bool = True,
+        report: bool = False,
+    ) -> Union[Any, Tuple[Any, Union[str, List[str]]]]:
+        """Query configuration from parent objects in the hierarchy.
 
         Args:
             name: Configuration setting name to query
@@ -175,10 +183,13 @@ class Node:
             report: Whether to return detailed report of the search
 
         Returns:
-            The configuration value from the parent
+            If report=False:
+                The configuration value found in the hierarchy or default
+            If report=True:
+                Tuple of (value, report_str) where report_str contains search details
 
         Raises:
-            ConfigurationError: If no parent exists and no default is provided
+            ConfigurationError: If no parent exists, include_self=False, and no default provided
         """
 
         # Fast exit or raise exception
@@ -201,28 +212,37 @@ class Node:
         out = NOT_SET
         last_checked_parent = None
 
+        declared = False
         for parent in parents:
             last_checked_parent = parent
             _report.append(f"Check '{name}' in parent {parent}")
 
-            # Check for _name attribute directly first
-            val = getattr(parent, f"_{name}", NOT_SET)
-            if val is not NOT_SET:
-                out = val
-                _report.append(f"Found '{name}' in parent {parent}= {out}")
-                break
-
             # If not found in direct attribute, try query_cfg_inst
             try:
                 out, _report2 = parent.query_cfg_inst(
-                    name, default=NOT_SET, report=True
+                    name,
+                    default=NOT_SET,
+                    report=True,
+                    raise_on_undeclared=True,
                 )
+                declared = declared or True
                 _report.append(_report2)
                 if out is not NOT_SET:
                     _report.append(f"Found '{name}' in parent {parent}= {out}")
                     break
-            except IndexError:
+            except MissingMetaError:
+                declared = declared or False
                 continue
+            except IndexError:
+                declared = declared or False
+                continue
+
+        if not declared:
+            msg = (
+                f"Missing 'meta__config__{name}',"
+                + "this option has not been declared in any parents of'{repr(self)}'"
+            )
+            raise MissingMetaError(msg)
 
         if out is NOT_SET:
             _report.append(f"NotFound '{name}' in parent: {last_checked_parent}")
@@ -238,8 +258,23 @@ class Node:
             return out, _report
         return out
 
-    def query_cfg_inst(self, name, override=None, default=UNSET_ARG, report=False):
+    def query_cfg_inst(  # pylint: disable=too-many-positional-arguments,too-many-arguments
+        self,
+        name,
+        override=None,
+        default=UNSET_ARG,
+        report=False,
+        raise_on_undeclared=False,
+    ):
         "Query configuration from instance"
+
+        # if not hasattr(self, f"meta__config__{name}"):
+        if raise_on_undeclared and getattr(self, f"meta__config__{name}", None) is None:
+            msg = (
+                f"Missing 'meta__config__{name}',"
+                " this option has not been declared '{repr(self)}'"
+            )
+            raise MissingMetaError(msg)
 
         def _query():
             "Helper to process query"

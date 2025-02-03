@@ -1,0 +1,10 @@
+cli_args:
+- command2
+- --help
+exit_code: 0
+output: "usage: command usage for command2 can be overriden\n\nCommand 2, wich also\
+  \ uses AppCommand1 arguments, and add more\n\npositional arguments:\n  name    \
+  \                    Name\n\noptions:\n  -h, --help                  show this help\
+  \ message and exit\n  --destination DESTINATION, -d DESTINATION\n              \
+  \                Destination path (default: None)\n  --source SOURCE, -s SOURCE\
+  \  Source path (default: None)\n  --force, -f                 Force (default: False)\n"

@@ -1,0 +1,125 @@
+---
+site_name: Clak
+site_description: A Python argparse library with classes
+site_url: https://mrjk.github.io/python-clak/
+repo_url: https://github.com/mrjk/python-clak
+repo_name: mrjk/python-clak
+
+docs_dir: content/
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - navigation.tabs
+    - content.code.annotate
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: red
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: red
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  # - literate-nav:
+  #     nav_file: SUMMARY.md
+
+  - abbr
+  - attr_list
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+      auto_title: false
+      # linenums: true
+
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      # auto_append: ["../LICENSE"]
+      base_path:
+        - ".."
+        - "content"
+      auto_append:
+        - docs/includes/abbreviations.md
+      check_paths: true
+
+
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - attr_list
+  - sane_lists
+  - toc
+
+  # Ensure we have easy list parsing
+  - mdx_truly_sane_lists:
+      nested_indent: 2
+      truly_sane: true
+
+
+plugins:
+  - search
+  - awesome-pages
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [..]
+          options:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  # - Home
+  # - index.md
+  - ... | quickstart/*
+  # - Home:
+  #     - Index: index.md
+  #     - Install: install.md
+  #     - Quickstart: quickstart.md
+
+  # - Guides:
+  - ... | guides/*
+
+  # - Documentation:
+  - ... | docs/*
+
+  # - Reference:
+  - Reference:
+      - ... | api/*
+      - Architecture:
+          - Overview: architecture/list.md
+          - ... | architecture/*
+
+  - About:
+      - Contributing: project/CONTRIBUTING.md
+      - Code of Conduct: project/CODE_OF_CONDUCT.md
+      - License: project/license.md
+
+
+      # Remaining docs
+      # - ...
+
