@@ -44,7 +44,7 @@ tasks:
     cmds:
       - isort --profile black --overwrite-in-place $(git ls-files | grep '\.py$')
       - black $(git ls-files | grep '\.py$')
-      - pymarkdownlnt fix $( git ls-files | grep '\.md$' )
+      - pymarkdownlnt fix $( git ls-files | grep '\.md$' | grep -v 'docs/' )
 
   test_lint:
     desc: show what can be improved
@@ -58,7 +58,8 @@ tasks:
     cmds:
       - task: test_lint
       - yamllint $( git ls-files | grep '\.yml$' )
-      - pymarkdownlnt scan $( git ls-files | grep '\.md$' )
+      - pymarkdownlnt scan $( git ls-files | grep '\.md$' | grep -v 'docs/' )
+      - task: docs:test
       - shellcheck $( git ls-files | grep '\.sh$' )
 
   # Tests

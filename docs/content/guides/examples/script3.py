@@ -2,6 +2,7 @@
 
 from clak import Argument, Command, Parser
 
+
 class AppCommand1(Parser):  # (1)!
     "Command 1, which says hello"
     force = Argument("--force", "-f", action="store_true", help="Force")  # (2)!

@@ -1,4 +1,4 @@
-# 5. comparison-with-cliff
+# 5. Comparison with Cliff
 
 Date: 2025-01-27
 

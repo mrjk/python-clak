@@ -1,4 +1,4 @@
-# 7. comparison-with-typer
+# 7. Comparison with Typer
 
 Date: 2025-01-27
 

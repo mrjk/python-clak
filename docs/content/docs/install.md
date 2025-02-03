@@ -1,7 +1,7 @@
 # Installation
 
 
-## Installation
+## Package Installation
 
 Clak is a python library, and can be installed with any of the following methods.
 

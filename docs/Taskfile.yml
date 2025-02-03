@@ -13,6 +13,11 @@ tasks:
     cmds:
       - task --list-all
 
+  test:
+    desc: "Check markdown linting"
+    cmds:
+      - pymarkdownlnt scan $(git ls-files . | grep md$ )
+
   # Generate
   # =============
 

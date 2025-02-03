@@ -1,4 +1,4 @@
-# 6. comparison-with-click
+# 6. Comparison with Click
 
 Date: 2025-01-27
 

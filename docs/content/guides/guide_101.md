@@ -21,20 +21,20 @@ Let's start with a minimal example called `script1.py`, that demonstrates the co
 
 1. Import `Parser` and `Argument` classes from clak
 2. Define the main parser class.
-   * It must inherit from `Parser`.
+   - It must inherit from `Parser`.
 2. Class docstring.
-   * This will be reused in application help message.
-3. Define an optional argument with a short and long form. 
-   * An optional argument always starts with `--` or `-`.
-   * We can use `Argument` class to define the argument, like it is possible with python standard `argparse` module, with the same syntax as `add_argument()` method.
-4. Define a positional argument. 
-   * A positional argument always starts with a name, without `-` or `--`.
-5. Define `cli_run()` method, this method will be executed when the command is run. 
-   * Drop here the code you want to execute when the command is run. 
-   * Also, method parameters fits to your the above defined arguments. You can directly use them in your code. 
-   * There are more arguments that can be passed, but since we don't need them here, we can ignore them with `**_`.
-6. Exit with error code 1 if no name is provided. 
-   * This method is provided by clak. See other available methods [here]().
+   - This will be reused in application help message.
+3. Define an optional argument with a short and long form.
+   - An optional argument always starts with `--` or `-`.
+   - We can use `Argument` class to define the argument, like it is possible with python standard `argparse` module, with the same syntax as `add_argument()` method.
+4. Define a positional argument.
+   - A positional argument always starts with a name, without `-` or `--`.
+5. Define `cli_run()` method, this method will be executed when the command is run.
+   - Drop here the code you want to execute when the command is run.
+   - Also, method parameters fits to your the above defined arguments. You can directly use them in your code.
+   - There are more arguments that can be passed, but since we don't need them here, we can ignore them with `**_`.
+6. Exit with error code 1 if no name is provided.
+   - This method is provided by clak. See other available methods [here](/api/parser/#clak.parser.ParserNode).
 7. Create an application instance and process command line arguments with the `dispatch()` method.
 
 From, this example, we can either use `python` interpreter to run it. Clak automatically add the `-h` or `--help` argument to your application, so you can see the help message:
@@ -132,7 +132,7 @@ Let's update our previous example with more fields:
    - It receives the parsed arguments as keyword arguments.
    - You can directly use them in your code.
 
-10. **Instanciate App** (`AppMain`)
+0. **Instanciate App** (`AppMain`):
    - This actually start the app and parse arguments
 
 When executed with `-h` or `--help`:
@@ -185,10 +185,6 @@ python script2.py --force --config custom.yaml --color blue \
 
 ## Next Steps
 
-In this guide, we learned how to create basic command-line interfaces using Clak's class-based approach, from simple flags to more complex argument types. 
+In this guide, we learned how to create basic command-line interfaces using Clak's class-based approach, from simple flags to more complex argument types.
 
 Now let's explore how Clak handles nested command structures to build more sophisticated CLI applications with subcommands and hierarchical options.
-
-
-
-

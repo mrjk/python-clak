@@ -1,7 +1,5 @@
 # Kitchen dump
 
-
-
 ## Next Steps
 
 After mastering these basics, you can explore more advanced features of Clak:
@@ -12,10 +10,7 @@ After mastering these basics, you can explore more advanced features of Clak:
 - Configuration file integration
 - And more!
 
-Remember that Clak is built on top of Python's `argparse`, so you can leverage all its features while enjoying a more elegant, class-based interface. 
-
-
-
+Remember that Clak is built on top of Python's `argparse`, so you can leverage all its features while enjoying a more elegant, class-based interface.
 
 ## Best Practices
 

@@ -252,7 +252,7 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         bullet: str = "  "
 
         help_position = min(self._action_max_length + 2, self._max_help_position)
-        help_width = max(self._width - help_position, 11)
+        # help_width = max(self._width - help_position, 11)
         action_width = help_position - self._current_indent - 2
 
         def add_subparser_to_parts(

@@ -2,7 +2,7 @@
 This guide explains different ways to make your Python scripts executable and runnable from the command line. Whether you're developing a simple script or a full CLI application, you'll learn how to:
 
 - Run scripts directly with Python
-- Make scripts executable on Unix-like systems 
+- Make scripts executable on Unix-like systems
 - Package scripts as command-line tools
 - Use package managers like pip, Poetry, PDM and UV
 
@@ -11,19 +11,19 @@ We'll cover best practices and common patterns for each approach.
 
 There are different ways:
 
-* Direct call:
-   * `python script.py --help`
-   * `python script.py ...`
-* Direct executable:
-   * `chmod +x script.py`
-   * `./script.py --help`
-   * `./script.py ...`
-* Module call, when packaged:
-   * `python -m pkg --help`
-   * `python -m pkg ...`
+- Direct call:
+  - `python script.py --help`
+  - `python script.py ...`
+- Direct executable:
+  - `chmod +x script.py`
+  - `./script.py --help`
+  - `./script.py ...`
+- Module call, when packaged:
+  - `python -m pkg --help`
+  - `python -m pkg ...`
 
 
-## Without package managers:
+## Without package managers
 
 
 ### With python interpreter
@@ -31,6 +31,7 @@ There are different ways:
 The simplest way is to call Python directly with your script:
 
 1. Create your Python script:
+
    ```python
    import sys
 
@@ -43,7 +44,8 @@ The simplest way is to call Python directly with your script:
    ```
 
 2. Run the script:
-   ```bash
+  
+```bash
    python script.py --help
    python script.py ...
    ```
@@ -55,6 +57,7 @@ This method requires no additional setup or modifications to the script file.
 To make a Python script executable without using package managers, follow these steps:
 
 1. Add a shebang line at the beginning of your script:
+
    ```python
    #!/usr/bin/env python3
    
@@ -68,24 +71,28 @@ To make a Python script executable without using package managers, follow these 
    ```
 
 2. Make the script executable:
+  
    ```bash
    chmod +x script.py
    ```
 
 3. Run the script:
+  
    ```bash
    ./script.py --help
    # or from anywhere if the script is in $PATH
    script.py --help
+
    ```
 
-## With package managers:
+## With package managers
 
 Here's how to make your Python scripts executable using different package managers:
 
 ### Setuptools
 
 1. Create a `setup.py`:
+
    ```python
    from setuptools import setup
 
@@ -102,11 +109,13 @@ Here's how to make your Python scripts executable using different package manage
    ```
 
 2. Install in development mode:
+  
    ```bash
    pip install -e .
    ```
 
 3. Run your command:
+  
    ```bash
    your-command
    ```
@@ -114,6 +123,7 @@ Here's how to make your Python scripts executable using different package manage
 ### Poetry
 
 1. Configure `pyproject.toml`:
+
    ```toml
    [tool.poetry]
    name = "your-package"
@@ -129,18 +139,22 @@ Here's how to make your Python scripts executable using different package manage
    ```
 
 2. Install using Poetry:
+
    ```bash
    poetry install
    ```
 
 3. Run your command:
+  
    ```bash
    poetry run your-command
+
    ```
 
 ### PDM
 
 1. Configure `pyproject.toml`:
+
    ```toml
    [project]
    name = "your-package"
@@ -152,18 +166,22 @@ Here's how to make your Python scripts executable using different package manage
    ```
 
 2. Install using PDM:
+  
    ```bash
    pdm install
    ```
 
 3. Run your command:
+  
    ```bash
    pdm run your-command
+
    ```
 
 ### UV
 
 1. Configure `pyproject.toml` (similar to Poetry or PDM format):
+
    ```toml
    [project]
    name = "your-package"
@@ -175,13 +193,16 @@ Here's how to make your Python scripts executable using different package manage
    ```
 
 2. Install using UV:
+  
    ```bash
    uv pip install -e .
    ```
 
 3. Run your command:
+  
    ```bash
    your-command
+
    ```
 
 ### Best Practices

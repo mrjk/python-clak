@@ -36,8 +36,7 @@ This example demonstrates:
 2. Two subcommands (`command1` and `command2`)
 3. Each subcommand with its own arguments and behavior
 
-### Usage
-
+Usage:
 
 === "Main help message"
 
@@ -52,8 +51,8 @@ This example demonstrates:
     positional arguments:
 
     subcommands:
-      command1                  Execute command 1                                                                    
-      command2                  Execute command 2                                                                    
+      command1                  Execute command 1
+      command2                  Execute command 2
 
     options:
       -h, --help                  show this help message and exit
@@ -111,7 +110,7 @@ python script3.py command2 --alias nickname1 --alias nickname2 John
 
 ## Deep Nested Commands
 
-For more complex applications, you might need multiple levels of commands. 
+For more complex applications, you might need multiple levels of commands.
 Let's say we want to create a command structure like:
 
 ``` raw linenums="0"
@@ -128,8 +127,6 @@ Here's how to implement deeper command hierarchies:
 ```python title="script4.py" linenums="1"
 --8<-- "guides/examples/script4.py"
 ```
-
-### Usage
 
 The help message is now:
 

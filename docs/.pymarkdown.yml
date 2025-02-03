@@ -1,0 +1,24 @@
+---
+
+# See: https://pymarkdown.readthedocs.io/en/latest/rules/
+extensions:
+  pragmas:
+    enabled: true
+
+plugins:
+  md012:
+    maximum: 2
+  md013:
+    enabled: false
+    line_length: 120
+  md022:
+    enabled: false
+  md029:
+    enabled: false
+  md033:
+    enabled: false
+
+  # Collide with with tabs
+  # See: https://squidfunk.github.io/mkdocs-material/reference/content-tabs/#anchor-links
+  md046:
+    enabled: false
