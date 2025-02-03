@@ -67,9 +67,10 @@ tasks:
 
   test:
     desc: Test everything
+    once: true
     cmds:
       - task: test_pytest
-      # - task: test_regressions
+      - task: test_regressions
       - task: test_report
       # - task: test_lab
       # - task: test_examples
@@ -86,20 +87,27 @@ tasks:
   #   cmds:
   #     - bash ./scripts/run_python_scripts.sh examples 'example[0-9]*'
 
+  fix_regressions:
+    desc: Fix regressions
+    cmds:
+      - pytest tests/ --force-regen
 
   test_pytest:
     desc: Test with pytest
+    once: true
     cmds:
-      - pytest tests/ -vv
+      - pytest tests/ -vv --tags unit-tests examples-unit examples-regressions
 
   test_regressions:
     desc: Test for regressions (slow)
+    once: true
     cmds:
-      - pytest tests/ --tags regression-lib
-      - pytest tests/ --tags regression-cli
+      - pytest tests/ --tags examples-regressions
+      - pytest tests/ --tags examples-regressions-cli
 
   test_report:
     desc: Report tests
+    once: true
     cmds:
       # - pytest tests --tb no -vv -q
       - pytest tests/ --tb no -q --cov=clak --cov-report term-missing --tags examples-unit unit-tests
