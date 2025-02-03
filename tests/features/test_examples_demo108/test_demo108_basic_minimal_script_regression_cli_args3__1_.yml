@@ -3,9 +3,8 @@ cli_args:
 exit_code: 1
 output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo108_exceptions.py\
   \ command3\n\n  STDOUT:\nTraceback (most recent call last):\n  File /app/python-clak/clak/parser.py\"\
-  , line 890, in dispatch\n    return self.cli_execute(args=args)\n  File /app/python-clak/clak/parser.py\"\
-  , line 1057, in cli_execute\n    run_fn(ctx=_ctx, **_ctx.args.__dict__)\n  File\
-  \ /app/python-clak/tests/features/demo_features/demo108_exceptions.py\", line 51,\
-  \ in cli_run\n    raise RuntimeError(\"Custom exception\")\nRuntimeError: Custom\
-  \ exception\n\nUncaught error <class 'RuntimeError'>; this may be a bug!\nExit 1\
-  \ with bugs\n\n\n  STDERR:\n"
+  , line XXX, in dispatch\n    return self.cli_execute(args=args)\n  File /app/python-clak/clak/parser.py\"\
+  , line XXX, in cli_execute\n    run_fn(ctx=_ctx, **_ctx.args.__dict__)\n  File /app/python-clak/tests/features/demo_features/demo108_exceptions.py\"\
+  , line XXX, in cli_run\n    raise RuntimeError(\"Custom exception\")\nRuntimeError:\
+  \ Custom exception\n\nUncaught error <class 'RuntimeError'>; this may be a bug!\n\
+  Exit 1 with bugs\n\n\n  STDERR:\n"
