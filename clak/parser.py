@@ -458,11 +458,11 @@ def prepare_docstring(
     text = deindent_docstring(text, reindent=reindent)
     try:
         text = text.format(**variables)
-    except KeyError as e:
-        print(f"Error formatting docstring: {e}")
+    except KeyError as err:
+        print(f"Error formatting docstring: {err}")
         print(f"Variables: {variables}")
         print(f"Text: {text}")
-        raise e
+        raise err
 
     return text
 
