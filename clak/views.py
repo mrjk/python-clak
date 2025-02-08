@@ -12,10 +12,10 @@ Functions:
 # pylint: disable=too-few-public-methods
 
 import os
-from pprint import pformat
 import textwrap
-from clak.table_formatter import TableListFormatter, TableShowFormatter
+from pprint import pformat
 
+from clak.table_formatter import TableListFormatter, TableShowFormatter
 
 # MAX_WIDTH = 120
 MAX_WIDTH = 80

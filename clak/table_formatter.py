@@ -13,11 +13,12 @@ Classes:
 """
 
 
+from abc import ABC, abstractmethod
+
 # from pprint import pprint  # , pformat
 from collections.abc import Mapping, Sequence
-from abc import ABC, abstractmethod
-from prettytable import PrettyTable
 
+from prettytable import PrettyTable
 
 ################## Parent class
 
@@ -43,7 +44,9 @@ class _TableFormatter(ABC):
         "Render data, return or print"
 
         if not isinstance(data, (list, dict)):
-            raise ValueError(f"Data must be a list or dict, got {type(data).__name__}: {data}")
+            raise ValueError(
+                f"Data must be a list or dict, got {type(data).__name__}: {data}"
+            )
 
         out = self.table_render_show(data, **kwargs)
         if stdout:
@@ -108,7 +111,6 @@ class TableShowFormatter(_TableFormatter):
     def process_table(self, data, columns=None, add_index=True):
         "Restructure data to fit to item view"
 
-
         choices = None
         index_name = "Item"
         if isinstance(data, Mapping):
@@ -120,7 +122,6 @@ class TableShowFormatter(_TableFormatter):
 
         if columns is None:
             columns = choices
-
 
         assert isinstance(add_index, bool), f"Got: {add_index}"
         ret = []
@@ -144,6 +145,7 @@ class TableShowFormatter(_TableFormatter):
             columns = [index_name, "Value"]
 
         return ret, columns
+
 
 class TableListFormatter(_TableFormatter):
     "Table list items"
@@ -195,10 +197,12 @@ class TableListFormatter(_TableFormatter):
                 else:
 
                     # Grab columns from 1st item
-                    if isinstance(value, Mapping):  
+                    if isinstance(value, Mapping):
                         columns = list(value.keys()) if columns is None else columns
                     else:
-                        columns = list(range(0, len(value))) if columns is None else columns
+                        columns = (
+                            list(range(0, len(value))) if columns is None else columns
+                        )
                     _process_expanded_item(idx, value, columns)
 
             if expand_keys and add_index:
