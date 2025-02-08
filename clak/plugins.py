@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # MixinSupport Helpers
 # ============================
-def is_bound(m):
+def is_bound(method):
     """Check if a method is bound to an instance.
 
     Args:
@@ -22,7 +22,7 @@ def is_bound(m):
     Returns:
         bool: True if the method is bound to an instance, False otherwise
     """
-    return hasattr(m, "__self__")
+    return hasattr(method, "__self__")
 
 
 class PluginHelpers:
