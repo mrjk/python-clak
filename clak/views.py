@@ -8,6 +8,47 @@ Classes:
 Functions:
     pformat_truncated: Format data with width constraints
         Pretty prints data structures while respecting terminal width limits.
+
+Examples:
+
+    # Tests1 - ShowView
+    data_item_dict1 = {
+        "name": "World",
+        "age": 42,
+        "city": "Paris",
+    }
+    data_item_list1 = [
+        "World",
+        42,
+        "Paris",
+    ]
+
+    view = ShowView(data_item_dict1)
+    view.render()
+    view = ShowView(data_item_list1)
+    view.render()
+
+    # Tests2 - DictView
+    data_item_dict2 = {
+        "name": "World2",
+        "age": 43,
+        "city": "Berlin",
+    }
+    data_items_dict_of_dicts = {
+        "item1": data_item_dict1,
+        "item2": data_item_dict2,
+    }
+    view = ListView(data_items_dict_of_dicts)
+    view.render()
+
+    # Tests3 - ListView
+    data_items_list_of_dicts = [
+        data_item_dict1,
+        data_item_dict2,
+    ]
+    view = ListView(data_items_list_of_dicts)
+    view.render()
+
 """
 # pylint: disable=too-few-public-methods
 
