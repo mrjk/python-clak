@@ -60,6 +60,7 @@ from clak.argparse_ import (
 )
 from clak.common import deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
+from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
@@ -530,6 +531,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__subcommands_dict: dict[str, SubParser] = {}
     meta__arguments_dict: dict[str, Argument] = {}
 
+    meta__cli_view: ClakView = None
+
     # Meta settings
     meta__config__name = MetaSetting(
         help="Name of the parser",
@@ -551,6 +554,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
+    )
+
+    # Views support
+    meta__config__cli_view = MetaSetting(
+        help="class of the view to use",
     )
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -968,7 +976,23 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             **_: Unused keyword arguments
         """
         try:
-            return self.cli_execute(args=args)
+            # Process commands
+            data = self.cli_execute(args=args)
+
+            # Prepare viewer output
+            viewer = None
+            if isinstance(data, ClakView):
+                viewer = data
+            else:
+                viewer = self.query_cfg_parents("cli_view", default=None)
+                if viewer:
+                    viewer.payload = data
+
+            # Render output or return data
+            if viewer:
+                viewer.render()
+            return data
+
         except Exception as err:  # pylint: disable=broad-exception-caught
             error = err
             debug = debug if isinstance(debug, bool) else CLAK_DEBUG
