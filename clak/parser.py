@@ -1097,6 +1097,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Execute all nodes in hierarchy
         ret = None
+        # pylint: disable=attribute-defined-outside-init
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
 
