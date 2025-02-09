@@ -583,6 +583,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             inject_as_subparser (bool): Whether to inject as subparser
             proc_name (str): Process name
         """
+
+        self.logger = logger
+
         super().__init__(parent=parent)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
