@@ -125,8 +125,7 @@ class FeatureFullViewier(ClakView):
     "Render command line output"
 
     settings_default = {
-        "headers": None,
-        "fields": None,
+        "columns": None,
     }
 
 
@@ -137,7 +136,7 @@ class ShowView(FeatureFullViewier):
         "Render data"
 
         payload, _settings = self._render(*args, **kwargs)
-        return TableShowFormatter(payload)
+        return TableShowFormatter(payload, **_settings)
 
 
 class ListView(FeatureFullViewier):
