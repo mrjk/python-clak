@@ -47,9 +47,6 @@ import traceback
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
-# import argparse
-import argcomplete
-
 # import clak.exception as exception
 from clak import exception
 from clak.argparse_ import (
@@ -61,6 +58,10 @@ from clak.argparse_ import (
 from clak.common import deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
 from clak.views import ClakView
+
+# import argparse
+# import argcomplete
+
 
 logger = logging.getLogger(__name__)
 
@@ -946,7 +947,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ValueError: If args is invalid type
         """
         parser = self.parser
-        argcomplete.autocomplete(parser)
+        # argcomplete.autocomplete(parser)
 
         # args = args[0] if len(args) > 0 else sys.argv[1:]
 
