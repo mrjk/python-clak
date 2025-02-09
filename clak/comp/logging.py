@@ -1,32 +1,70 @@
-#!/usr/bin/env python3
-# PYTHON_ARGCOMPLETE_OK
-
-# Copyright 2012-2023, Andrey Kislyuk and argcomplete contributors.
-# Licensed under the Apache License. See https://github.com/kislyuk/argcomplete for more info.
-
 """
-Register a Python executable for use with the argcomplete module.
+Provides logging functionality and configuration for CLI applications.
 
-To perform the registration, source the output of this script in your bash shell
-(quote the output to avoid interpolation).
+This module implements a flexible logging system with the following key features:
+- Configurable log levels and verbosity through CLI arguments
+- Support for colored output (when coloredlogs is installed)
+- Multiple log formatters (default, extended, audit, debug)
+- Hierarchical logger naming with prefix/suffix support
+- Mixin class for easy integration with CLI parsers
 
-To support colored logs, just be sure to install the `coloredlogs` package. Once done,
-the user will have a new `--log-colors` to manage this option.
+The logging system can be configured through Meta settings in parser classes:
+- log_prefix: Sets the base name for loggers (typically __name__)
+- log_suffix: Controls the right part of logger names
+- log_default_level: Sets the default logging level
+
+Notes:
+- `log_prefix` must be enabled to allow CLI logging.
+
 
 
 Example:
 
-    $ eval "$(register-python-argcomplete my-favorite-script.py)"
+    class AppMain(LoggingOptMixin,Parser):
 
-For Tcsh
 
-    $ eval `register-python-argcomplete --shell tcsh my-favorite-script.py`
+        class Meta:
 
-For Fish
+            log_prefix = f"{__name__}"    # AKA myapp
+            # log_prefix = f"other_prefix.{__name__}"
+            # log_prefix = f"{__name__}.other_prefix"
+            # log_suffix = "suffix"
 
-    $ register-python-argcomplete --shell fish \
-        my-favourite-script.py > ~/.config/fish/my-favourite-script.py.fish
+        def cli_group(self, ctx, **_):
+            "Main group"
+
+            # Usual logger, usually from logger = logging.getLogger(__name__)
+            logger.debug("Hello World - App")
+            logger.info("Hello World - App")
+            logger.warning("Hello World - App")
+            logger.error("Hello World - App")
+
+            # Only useful when `log_prefix` is set
+            self.logger.debug("Hello World - Self")
+            self.logger.info("Hello World - Self")
+            self.logger.warning("Hello World - Self")
+            self.logger.error("Hello World - Self")
+
+            
+Without log_prefix set (by default):
+```
+ WARNING myapp.cli                 Hello World - App
+   ERROR myapp.cli                 Hello World - App
+ WARNING clak.parser               Hello World - Self
+   ERROR clak.parser               Hello World - Self
+```
+
+
+With log_prefix set:
+```
+ WARNING myapp.cli                 Hello World - App
+   ERROR myapp.cli                 Hello World - App
+ WARNING myapp.cli.AppMain         Hello World - Self
+   ERROR myapp.cli.AppMain         Hello World - Self
+```
+
 """
+
 import argparse
 import logging
 import logging.config
@@ -38,7 +76,7 @@ from types import SimpleNamespace
 
 
 try:
-    import coloredlogs
+    import coloredlogs  # type: ignore
 except ImportError:
     coloredlogs = None
 # coloredlogs = None
@@ -187,8 +225,8 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
         },
         "debug": {
             "()": fclass,
-            "format": "%(msecs)03d [%(levelname)8s] %(name)30s: %(message)s"
-            "  [%(filename)s/%(funcName)s:%(lineno)d]",
+            "format": "%(msecs)03d %(levelname)8s %(name)-30s %(message)s"
+            "\t[%(filename)s/%(funcName)s:%(lineno)d]",
             "datefmt": "%H:%M:%S",
         },
     }
@@ -437,6 +475,7 @@ class LoggingOptMixin(PluginHelpers):
         # enabled_instance_logging = False
         # if log_enabled and getattr(instance, "logger", None) is None:
         # if log_enabled:
+
         if log_prefix is not None:
 
             # Retrieve prog_name from ctx
@@ -450,14 +489,13 @@ class LoggingOptMixin(PluginHelpers):
             # else:
             #     instance.logger = instance.parent.logger
 
-            # logger.debug("Enable logging for %s:%s", instance, log_name)
-            instance.logger.debug("Enable logging for %s", instance)
-            instance.logger.error("Enable logging for %s", instance)
+            logger.debug("Enable logging for '%s': %s", instance, log_name)
+            # instance.logger.debug("Enable logging for %s", instance)
 
         # Register plugin methods
         self.hook_register("test_logger", instance)
 
-        self.logger.debug("Logging hook loaded for %s", instance)
+        logger.debug("Logging hook loaded for %s", instance)
 
         ctx.plugins.update(
             {
