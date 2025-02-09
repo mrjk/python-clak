@@ -55,7 +55,7 @@ from clak.argparse_ import (
     argparse,
     argparse_inject_as_subparser,
 )
-from clak.common import deindent_docstring
+from clak.common import ObjectNamespace, deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
 from clak.views import ClakView
 
@@ -1078,7 +1078,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ctx["cli_root"] = self
         ctx["cli_depth"] = node_count
         ctx["cli_commands"] = cli_command_hier
-        ctx["args"] = SimpleNamespace(**args)
+        ctx["args"] = ObjectNamespace(**args)
 
         # Shared data
         ctx["data"] = {}
@@ -1118,7 +1118,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
             # Sort ctx dict by keys before creating namespace
             sorted_ctx = dict(sorted(ctx.items()))
-            _ctx = SimpleNamespace(**sorted_ctx)
+            _ctx = ObjectNamespace(**sorted_ctx)
             _ctx.cli_state = "run_hooks"
 
             # Process hooks
