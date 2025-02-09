@@ -50,8 +50,6 @@ class PluginHelpers:
         Example:
             >>> cls.hook_register("test_log", self)
         """
-        # setattr(self, name, cls_method)
-
         # Ensure methods_dict is initialized
         methods_dict = getattr(instance, "cli_methods", None)
         if methods_dict is None:
@@ -83,4 +81,4 @@ class PluginHelpers:
         # Register saved commands
         methods_dict[name] = fn_new
         setattr(instance, name, fn_new)
-        logger.debug("Registered plugin method %s.%s = %s", instance, name, fn_new)
+        logger.debug("Registered plugin method %s.%s = %s", instance, name, fn_new.__qualname__)
