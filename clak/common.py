@@ -37,3 +37,37 @@ def deindent_docstring(text, reindent=False):
         )
 
     return out
+
+
+class ObjectNamespace:
+    """A simple attribute-based namespace."""
+
+    # see also: https://dev.to/taqkarim/extending-simplenamespace-for-nested-dictionaries-58e8
+
+    def __init__(self, **kwargs):
+        self.__dict__ = {}
+        self.__dict__.update(kwargs)  # or self.__dict__ = kwargs
+
+    def __repr__(self):
+        keys = sorted(k for k in self.__dict__ if not k.startswith("_"))
+        return f"{type(self).__name__}[{', '.join(keys)}]"
+
+    def get(self, key, default=None):
+        "Return the value for key if key is in the dictionary, else default."
+        return self.__dict__.get(key, default)
+
+    def update(self, **kwargs):
+        "Update the dictionary with the key-value pairs from kwargs."
+        self.__dict__.update(kwargs)
+
+    def __getattr__(self, key):
+        return self.__dict__.get(key, None)
+
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def __len__(self):
+        return len(self.__dict__)
