@@ -50,6 +50,7 @@ Examples:
     view.render()
 
 """
+
 # pylint: disable=too-few-public-methods
 
 import os

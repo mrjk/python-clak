@@ -81,4 +81,6 @@ class PluginHelpers:
         # Register saved commands
         methods_dict[name] = fn_new
         setattr(instance, name, fn_new)
-        logger.debug("Registered plugin method %s.%s = %s", instance, name, fn_new.__qualname__)
+        logger.debug(
+            "Registered plugin method %s.%s = %s", instance, name, fn_new.__qualname__
+        )

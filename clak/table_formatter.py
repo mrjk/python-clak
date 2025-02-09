@@ -12,7 +12,6 @@ Classes:
         Renders collections of dictionaries or sequences as tables.
 """
 
-
 from abc import ABC, abstractmethod
 
 # from pprint import pprint, pformat

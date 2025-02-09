@@ -1,6 +1,7 @@
 """
 Test functions for table formatter classes.
 """
+
 from pprint import pprint
 
 import pytest
