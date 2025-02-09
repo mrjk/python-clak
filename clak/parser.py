@@ -617,6 +617,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self.add_arguments()
         self.add_subcommands()
 
+    def __repr__(self):
+        return f"<{self.__class__.__module__}.{self.__class__.__name__} object>"
+
     def create_parser(self):
         "Create a new parser"
         usage = self.query_cfg_parents("help_usage", default=None)
