@@ -15,7 +15,7 @@ Classes:
 
 from abc import ABC, abstractmethod
 
-# from pprint import pprint  # , pformat
+# from pprint import pprint, pformat
 from collections.abc import Mapping, Sequence
 
 from prettytable import PrettyTable
@@ -58,8 +58,14 @@ class _TableFormatter(ABC):
 
         _view_options = dict(self.view_options)
         _view_options.update(view_options)
-        data_table, headers = self.process_table(data, **_view_options)
-        self.validate_table_data(data_table)
+
+        try:
+            data_table, headers = self.process_table(data, **_view_options)
+            self.validate_table_data(data_table)
+        except TypeError as err:
+            choices = ", ".join(self.view_options.keys())
+            msg = f"{err}, please choose one of: {choices}"
+            raise TypeError(msg) from None
 
         # Prepare table
         table = PrettyTable()
@@ -156,6 +162,7 @@ class TableListFormatter(_TableFormatter):
         "expand_keys": True,
     }
 
+    # pylint: disable=too-many-branches
     def process_table(self, data, columns=None, add_index=None, expand_keys=False):
         "Restructure data to fit to item view"
 
