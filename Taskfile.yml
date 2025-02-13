@@ -101,6 +101,10 @@ tasks:
   test_regressions:
     desc: Test for regressions (slow)
     once: true
+    env:
+      # Note: we need to disable colors in regression tests to prevent
+      # colorama to patch python stdout/err and break the tests.
+      CLAK_COLORS: false
     cmds:
       - pytest tests/ --tags examples-regressions
       - pytest tests/ --tags examples-regressions-cli
