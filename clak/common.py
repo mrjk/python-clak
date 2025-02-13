@@ -5,6 +5,22 @@ around handling docstring indentation and formatting.
 """
 
 
+def replace_tabs(text, value=None):
+    """Replace all tabs with spaces in a text string.
+
+    Args:
+        text (str): The text to process
+        spaces (int): Number of spaces to replace each tab with. Defaults to 2.
+
+    Returns:
+        str: The text with tabs replaced by spaces
+    """
+    if not isinstance(text, str):
+        return text
+    value = value if isinstance(value, str) else "  "
+    return text.replace("\t", value)
+
+
 def deindent_docstring(text, reindent=False):
     """
     Remove indentation from a docstring.
@@ -37,6 +53,35 @@ def deindent_docstring(text, reindent=False):
         )
 
     return out
+
+
+def to_boolean(value):
+    "Convert anything to boolean value"
+
+    if isinstance(value, bool):
+        return value
+
+    value = str(value).lower()
+
+    default_values = {
+        "1": True,
+        "true": True,
+        "yes": True,
+        "y": True,
+        "on": True,
+        "t": True,
+        "0": False,
+        "false": False,
+        "no": False,
+        "n": False,
+        "off": False,
+        "f": False,
+    }
+
+    try:
+        return default_values[value]
+    except KeyError:
+        raise ValueError(f"Invalid boolean value: {value}") from None
 
 
 class ObjectNamespace:
