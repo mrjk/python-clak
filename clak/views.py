@@ -136,7 +136,10 @@ class ShowView(FeatureFullViewier):
     def render(self, *args, **kwargs):
         "Render data"
 
-        payload, _settings = self._render(*args, **kwargs)
+        _settings = dict(self.settings)
+        _settings.update(kwargs)
+
+        payload, _settings = self._render(*args, **_settings)
         return TableShowFormatter(payload, **_settings)
 
 
@@ -146,5 +149,8 @@ class ListView(FeatureFullViewier):
     def render(self, *args, **kwargs):
         "Render data"
 
-        payload_sequence, _settings = self._render(*args, **kwargs)
+        _settings = dict(self.settings)
+        _settings.update(kwargs)
+
+        payload_sequence, _settings = self._render(*args, **_settings)
         return TableListFormatter(payload_sequence)
