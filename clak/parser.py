@@ -39,7 +39,6 @@ Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
 
 # pylint: disable=too-many-lines
 import logging
-import os
 import sys
 import traceback
 

@@ -201,7 +201,7 @@ class TableListFormatter(_TableFormatter):
         "remove_tabs": True,
     }
 
-    # pylint: disable=too-many-branches,too-many-arguments
+    # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments
     def process_table(
         self, data, columns=None, add_index=None, expand_keys=False, remove_tabs=True
     ):
