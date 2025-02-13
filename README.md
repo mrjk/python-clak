@@ -1,11 +1,11 @@
 # Clak
 
 <p align='center'>
-<img src="logo.svg" alt="Clak Logo" width="128">
+<img src="logo/logo.svg" alt="Clak Logo" width="128">
 </p>
 
 <p align='center'>
-<img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python Version">
+<img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
 <img src="https://img.shields.io/badge/license-GPL%20v3-blue" alt="License">
 </p>
 
