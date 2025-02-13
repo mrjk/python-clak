@@ -72,47 +72,30 @@ import logging.config
 # import sys
 from types import SimpleNamespace
 
+from clak.parser import Argument, MetaSetting
+from clak.plugins import PluginHelpers
+from clak.settings import CLAK_COLORS, LOG_FORMAT, LOG_STYLES
+
 # from pprint import pprint
 
 
-try:
-    import coloredlogs  # type: ignore
-except ImportError:
-    coloredlogs = None
-# coloredlogs = None
+# pylint: disable=invalid-name
+coloredlogs = None
+if CLAK_COLORS:
+    try:
+        import coloredlogs  # type: ignore
+    except ImportError:
+        pass
 
-from clak.parser import Argument, MetaSetting
-from clak.plugins import PluginHelpers
 
 if coloredlogs:
-    coloredlogs.DEFAULT_LEVEL_STYLES = {
-        "spam": {"color": "grey", "faint": True},
-        "debug": {"color": "magenta"},
-        "verbose": {"color": "cyan"},
-        "info": {"color": "blue"},
-        "notice": {"color": "green"},
-        "warning": {"color": "yellow"},
-        "success": {"color": "green", "bold": True},
-        "error": {"color": "red"},
-        "critical": {"color": "red", "bold": True},
-    }
-
+    coloredlogs.DEFAULT_LEVEL_STYLES = LOG_STYLES
+    coloredlogs.DEFAULT_LOG_FORMAT = LOG_FORMAT
 
 # PEP 366
 # __package__ = "argcomplete.scripts"
 
 logger = logging.getLogger(__name__)
-
-
-# TODO:
-# 0: INFO - __name__.cli: Always displayed
-# 1: DEBUG - __name__.cli: Show debug cli
-# 2: DEBUG - __name__
-# 3: TRACE1 - __name__
-# 4: TRACE2 - __name__
-# 5: TRACE3 - __name__
-# 6: DEBUG - root
-# --trace: Show python exception at any time, for debugging
 
 
 # See:
@@ -210,7 +193,8 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
     formatters = {
         "default": {
             "()": fclass,
-            "format": "[%(levelname)8s] %(message)s",
+            "format": LOG_FORMAT,
+            # "format": "[%(levelname)8s] %(message)s",
             # 'datefmt': '%Y-%m-%d %H:%M:%S',
         },
         "extended": {
