@@ -33,7 +33,7 @@ TEST_PARAMETERS = [
     (["command2"], "", 1),
     # TODO: Exception error message is too different from the one in the script
     # Test command3 raises uncaught RuntimeError
-    # (["command3"], "", 1),
+    (["command3"], "", 1),
 ]
 
 
