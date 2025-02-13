@@ -48,7 +48,7 @@ class AppCommand3(Parser):
     "Command 3, raise custom exceptions, uncaught"
 
     def cli_run(self, destination=None, name=None, **_):
-        raise RuntimeError("Custom exception")
+        raise RuntimeError("Runtime exception")
 
 
 class AppMain(Parser):
@@ -61,8 +61,8 @@ class AppMain(Parser):
         "Store Main app settings"
 
         known_exceptions = [
-            (CustomError, handle_custom_error),
-            (AppException, lambda self, e: print(f"Manipulated error: {e}")),
+            CustomError,
+            AppException,
         ]
 
     # Define two subcommands
