@@ -39,16 +39,12 @@ Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
 
 # pylint: disable=too-many-lines
 import logging
-import os
 import sys
 import traceback
 
 # from pprint import pprint
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
-
-# import argparse
-import argcomplete
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 # import clak.exception as exception
 from clak import exception
@@ -58,20 +54,16 @@ from clak.argparse_ import (
     argparse,
     argparse_inject_as_subparser,
 )
-from clak.common import deindent_docstring
+from clak.common import ObjectNamespace, deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
+from clak.settings import CLAK_DEBUG
+from clak.views import ClakView
+
+# import argparse
+# import argcomplete
+
 
 logger = logging.getLogger(__name__)
-
-# Enable debug logging if CLAK_DEBUG environment variable is set to 1
-CLAK_DEBUG = False
-if os.environ.get("CLAK_DEBUG") == "1":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="[%(levelname)8s] %(name)s - %(message)s",
-    )
-    logger.debug("Debug logging enabled via CLAK_DEBUG environment variable")
-    CLAK_DEBUG = True
 
 
 # Version: v6
@@ -458,11 +450,11 @@ def prepare_docstring(
     text = deindent_docstring(text, reindent=reindent)
     try:
         text = text.format(**variables)
-    except KeyError as e:
-        print(f"Error formatting docstring: {e}")
+    except KeyError as err:
+        print(f"Error formatting docstring: {err}")
         print(f"Variables: {variables}")
         print(f"Text: {text}")
-        raise e
+        raise err
 
     return text
 
@@ -530,6 +522,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__subcommands_dict: dict[str, SubParser] = {}
     meta__arguments_dict: dict[str, Argument] = {}
 
+    meta__cli_view: ClakView = None
+
     # Meta settings
     meta__config__name = MetaSetting(
         help="Name of the parser",
@@ -553,6 +547,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         help="List of known exceptions to handle",
     )
 
+    # Views support
+    meta__config__cli_view = MetaSetting(
+        help="class of the view to use",
+    )
+
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         add_help: bool = True,
@@ -574,6 +573,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             inject_as_subparser (bool): Whether to inject as subparser
             proc_name (str): Process name
         """
+
+        self.logger = logger
+
         super().__init__(parent=parent)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
@@ -607,6 +609,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # meta__subcommands_dict = {}
         self.add_arguments()
         self.add_subcommands()
+
+    def __repr__(self):
+        return f"<{self.__class__.__module__}.{self.__class__.__name__}>"
 
     def create_parser(self):
         "Create a new parser"
@@ -834,36 +839,43 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             known_exceptions (list): List of exception types to handle specially
         """
 
-        def default_exception_handler(node, exc):
-            print(f"Default exception handler: {exc} on {node}")
-            sys.exit(1)
+        # def default_exception_handler(node, exc):
+        #     print(f"Default exception handler: {exc} on {node}")
+        #     sys.exit(1)
 
-        # Prepare known exceptions list
-        known_exceptions = known_exceptions or []
-        known_exceptions_conf = {}
-        for _exception in known_exceptions:
-            exception_fn = default_exception_handler
-            if isinstance(_exception, Sequence):
-                exception_cls = _exception[0]
-                if len(_exception) > 1:
-                    exception_fn = _exception[1]
-            else:
-                exception_cls = _exception
+        # # Prepare known exceptions list
+        # known_exceptions = known_exceptions or []
+        # known_exceptions_conf = {}
+        # for _exception in known_exceptions:
+        #     exception_fn = default_exception_handler
+        #     if isinstance(_exception, Sequence):
+        #         exception_cls = _exception[0]
+        #         if len(_exception) > 1:
+        #             exception_fn = _exception[1]
+        #     else:
+        #         exception_cls = _exception
 
-            exception_name = str(exception_cls)
-            known_exceptions_conf[exception_name] = {
-                "fn": exception_fn,
-                "exception": exception_cls,
-            }
-        known_exceptions_list = tuple(
-            val["exception"] for val in known_exceptions_conf.values()
-        )
+        #     exception_name = str(exception_cls)
+        #     known_exceptions_conf[exception_name] = {
+        #         "fn": exception_fn,
+        #         "exception": exception_cls,
+        #     }
+        # known_exceptions_list = tuple(
+        #     val["exception"] for val in known_exceptions_conf.values()
+        # )
+        # # Check user overrides
+        # if known_exceptions_list and isinstance(err, known_exceptions_list):
+        #     print("DEBUG", type(err), str(type(err)), err)
+        #     pprint(known_exceptions_conf)
+        #     get_handler = known_exceptions_conf[str(type(err))]["fn"]
+        #     get_handler(self, err)
+        #     # If handler did not exited, ensure we do
+        #     sys.exit(1)
 
         # Check user overrides
-        if known_exceptions_list and isinstance(err, known_exceptions_list):
-            get_handler = known_exceptions_conf[str(type(err))]["fn"]
-            get_handler(self, err)
-            # If handler did not exited, ensure we do
+        known_exceptions = tuple(known_exceptions)
+        if known_exceptions and isinstance(err, known_exceptions):
+            logger.fatal(err)
             sys.exit(1)
 
         # If user made an error on command line, show usage before leaving
@@ -938,7 +950,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ValueError: If args is invalid type
         """
         parser = self.parser
-        argcomplete.autocomplete(parser)
+        # argcomplete.autocomplete(parser)
 
         # args = args[0] if len(args) > 0 else sys.argv[1:]
 
@@ -957,8 +969,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
     def dispatch(
         self,
-        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
-        debug: Optional[bool] = None,
+        args: Optional[Dict[str, Any]] = None,
+        trace: Optional[bool] = False,
         **_: Any,
     ) -> Any:
         """Main dispatch function for command execution.
@@ -967,29 +979,73 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             args: Arguments to parse
             **_: Unused keyword arguments
         """
+
+        # Process or reuse args
+        # if args is None:
+        error = None
         try:
-            return self.cli_execute(args=args)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            error = err
-            debug = debug if isinstance(debug, bool) else CLAK_DEBUG
+            args = self.parse_args(args)
+            args = args.__dict__
+        except argparse.ArgumentError as err:
+            msg = f"Could not parse command line: {err.argument_name} {err.message}"
+            error = exception.ClakParseError(msg)
+            # raise exception.ClakParseError(msg) from err
 
-            # Always show traceback if debug mode is enabled
-            if debug is True:
-                logger.error(traceback.format_exc())
+        if not error:
+            assert isinstance(args, dict)
 
-            known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
+            # Check for trace mode
+            if "app_trace_mode" in args:
+                trace = args["app_trace_mode"]
+            if CLAK_DEBUG:
+                trace = True
 
-            self.clean_terminate(error, known_exceptions)
+            # Run app command
+            try:
+                # Process commands
+                data = self.cli_execute(args=args)
 
-            # Developer catchall
-            if debug is False:
-                logger.error(traceback.format_exc())
-            logger.critical("Uncaught error %s; this may be a bug!", err.__class__)
-            logger.critical("Exit 1 with bugs")
-            sys.exit(1)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                error = err
+
+        if not error:
+            # Prepare viewer output
+            viewer = None
+            if isinstance(data, ClakView):
+                viewer = data
+            else:
+                viewer = self.query_cfg_parents("cli_view", default=None)
+                if viewer:
+                    viewer.payload = data
+
+            # Render output or return data
+            if viewer:
+                viewer.render()
+            return data
+
+        if trace is True:
+            # print("TRACE")
+            # Show traceback if debug mode is enabled
+            logger.error("".join(traceback.format_exception(error)))
+            # print("TRACE")
+
+        # Process exception handling
+        known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
+        self.clean_terminate(error, known_exceptions)
+
+        # Developer catchall, when an exception is not handled
+        if trace is False:
+            # print("TRACE")
+            # Show traceback if not already shown
+            logger.error("".join(traceback.format_exception(error)))
+        logger.critical(
+            "Uncaught error %s, this may be a bug! Error: %s", error.__class__, error
+        )
+        # logger.critical("Exit 1 with bugs")
+        sys.exit(1)
 
     def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
-        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+        self, args: Optional[Dict[str, Any]] = None
     ) -> Any:
         """Execute the command with given arguments.
 
@@ -1000,16 +1056,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ClakParseError: If argument parsing fails
             NotImplementedError: If command has no implementation
         """
-        try:
-            args = self.parse_args(args)
-        except argparse.ArgumentError as err:
-            msg = f"Could not parse command line: {err.argument_name} {err.message}"
-            raise exception.ClakParseError(msg) from err
+        assert isinstance(args, dict)
 
         # Prepare args and context
         hook_list = {}
 
-        args = args.__dict__
+        # args = args.__dict__
         cli_command_hier = [
             value
             for key, value in sorted(args.items())
@@ -1053,7 +1105,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ctx["cli_root"] = self
         ctx["cli_depth"] = node_count
         ctx["cli_commands"] = cli_command_hier
-        ctx["args"] = SimpleNamespace(**args)
+        ctx["args"] = ObjectNamespace(**args)
 
         # Shared data
         ctx["data"] = {}
@@ -1066,6 +1118,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Execute all nodes in hierarchy
         ret = None
+        # pylint: disable=attribute-defined-outside-init
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
 
@@ -1093,7 +1146,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
             # Sort ctx dict by keys before creating namespace
             sorted_ctx = dict(sorted(ctx.items()))
-            _ctx = SimpleNamespace(**sorted_ctx)
+            _ctx = ObjectNamespace(**sorted_ctx)
             _ctx.cli_state = "run_hooks"
 
             # Process hooks

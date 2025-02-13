@@ -1,9 +1,0 @@
-cli_args:
-- --color
-- yellow
-- John
-err: '2'
-output: "usage: demo102-test [-h] [--force] [--config CONFIG]\n                  \
-  \  [--color {red,green,blue,unknown}] [--items ITEMS]\n                    NAME\
-  \ [SURNAME] [ALIAS ...]\nCould not parse command line: --color/-r invalid choice:\
-  \ 'yellow' (choose from 'red', 'green', 'blue', 'unknown')\n"
