@@ -13,13 +13,45 @@ Classes:
 """
 
 from abc import ABC, abstractmethod
-
-# from pprint import pprint, pformat
 from collections.abc import Mapping, Sequence
 
-from prettytable import PrettyTable
+from clak.common import replace_tabs
+from clak.settings import CLAK_COLORS
+
+# assert False
+
+
+# pylint: disable=invalid-name
+table_kwargs = {}
+if not CLAK_COLORS:
+    from prettytable import PrettyTable
+
+    table_cls = PrettyTable
+else:
+    try:
+        # Colortable use colorama to colorize text, but the latest patches
+        # the stderr/out python commands, and thus add a reset shell code
+        # after each line, and thus break regression tests on CLI output.
+        from prettytable.colortable import ColorTable, Themes
+
+        table_cls = ColorTable
+        table_kwargs = {"theme": Themes.GLARE_REDUCTION}
+    except ImportError:
+        from prettytable import PrettyTable
+
+        table_cls = PrettyTable
+
+
+# from pprint import pformat, pprint
+
 
 ################## Parent class
+
+
+# To create hrule
+def create_separator(table):
+    "Create a separator line for the table"
+    return ["-" * len(str(col)) for col in table.field_names]
 
 
 class _TableFormatter(ABC):
@@ -67,7 +99,10 @@ class _TableFormatter(ABC):
             raise TypeError(msg) from None
 
         # Prepare table
-        table = PrettyTable()
+        # table = ColorTable(theme=Themes.GLARE_REDUCTION)
+        # table = ColorTable(theme=Themes.PASTEL)
+        # table = PrettyTable()
+        table = table_cls(**table_kwargs)
         table.field_names = headers
         table.align = "l"
         for line in data_table:
@@ -111,9 +146,10 @@ class TableShowFormatter(_TableFormatter):
     view_options = {
         "add_index": True,
         "columns": None,
+        "remove_tabs": True,
     }
 
-    def process_table(self, data, columns=None, add_index=True):
+    def process_table(self, data, columns=None, add_index=True, remove_tabs=True):
         "Restructure data to fit to item view"
 
         choices = None
@@ -140,6 +176,9 @@ class TableShowFormatter(_TableFormatter):
                     f"Key {key} not found in data, choices: {choices}"
                 ) from None
 
+            if remove_tabs is not False:
+                value = replace_tabs(value, remove_tabs)
+
             if add_index:
                 ret.append([key, value])
             else:
@@ -159,10 +198,13 @@ class TableListFormatter(_TableFormatter):
         "add_index": None,
         "columns": None,
         "expand_keys": True,
+        "remove_tabs": True,
     }
 
-    # pylint: disable=too-many-branches
-    def process_table(self, data, columns=None, add_index=None, expand_keys=False):
+    # pylint: disable=too-many-branches,too-many-arguments
+    def process_table(
+        self, data, columns=None, add_index=None, expand_keys=False, remove_tabs=True
+    ):
         "Restructure data to fit to item view"
 
         add_index = add_index if isinstance(add_index, bool) else not expand_keys
@@ -189,6 +231,16 @@ class TableListFormatter(_TableFormatter):
                 if not expand_keys:
                     ret.append([idx, value])
                 else:
+                    if not isinstance(value, Mapping):
+                        if hasattr(value, "__dict__"):
+                            # Automatically explode object with __dict__ method
+                            value = value.__dict__
+                        else:
+                            value = {
+                                "Key": idx,
+                                "Value": value,
+                            }
+
                     # Grab columns from 1st item
                     columns = list(value.keys()) if columns is None else columns
                     _process_expanded_item(idx, value, columns)
@@ -198,6 +250,8 @@ class TableListFormatter(_TableFormatter):
 
         elif isinstance(data, Sequence):
             for idx, value in enumerate(data):
+                if remove_tabs is not False:
+                    value = replace_tabs(value, remove_tabs)
                 if not expand_keys:
                     ret.append([idx, value])
                 else:
