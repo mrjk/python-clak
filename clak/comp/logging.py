@@ -339,6 +339,13 @@ class LoggingOptMixin(PluginHelpers):
         default="default",
     )
 
+    app_trace_mode = Argument(
+        "--trace",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Enable trace logging on errors",
+    )
+
     if coloredlogs:
         log_colors = Argument(
             "--log-colors",
