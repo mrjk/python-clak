@@ -69,12 +69,14 @@ import argparse
 import logging
 import logging.config
 
-# import sys
-from types import SimpleNamespace
-
+from clak.exception import ClakAppError
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.settings import CLAK_COLORS, LOG_FORMAT, LOG_STYLES
+
+# import sys
+# from types import SimpleNamespace
+
 
 # from pprint import pprint
 
@@ -105,38 +107,39 @@ logger = logging.getLogger(__name__)
 
 
 # Note: The cli should be configrable as well
-VERBOSITY_PARSER_LEVELS = ["{__name__}.cli", "{__name__}", "clak", ""]  # Root parser
-VERBOSITY_LEVELS2 = [
-    ("{__name__}.cli", logging.INFO),
-    ("{__name__}.cli", logging.DEBUG),
-    ("{__name__}", logging.DEBUG),
-    # Future
-    # [
-    #     ("{__name__}", logging.DEBUG),
-    #     ("clak", logging.INFO),
-    # ],
-    # [
-    #     ("{__name__}", logging.DEBUG),
-    #     ("clak", logging.DEBUG),
-    # ],
-    # [
-    #     ("{__name__}", logging.DEBUG),
-    #     ("", logging.INFO),
-    # ],
-    ("", logging.DEBUG),
-]
+# VERBOSITY_PARSER_LEVELS = ["{__name__}.cli", "{__name__}", "clak", ""]  # Root parser
+# VERBOSITY_LEVELS2 = [
+#     ("{__name__}.cli", logging.INFO),
+#     ("{__name__}.cli", logging.DEBUG),
+#     ("{__name__}", logging.DEBUG),
+#     # Future
+#     # [
+#     #     ("{__name__}", logging.DEBUG),
+#     #     ("clak", logging.INFO),
+#     # ],
+#     # [
+#     #     ("{__name__}", logging.DEBUG),
+#     #     ("clak", logging.DEBUG),
+#     # ],
+#     # [
+#     #     ("{__name__}", logging.DEBUG),
+#     #     ("", logging.INFO),
+#     # ],
+#     ("", logging.DEBUG),
+# ]
+
 
 # Logging support
 # ============================
 
-VERBOSITY_LEVELS = {
-    0: logging.ERROR,  # Default
-    1: logging.WARNING,  # Default
-    2: logging.INFO,  # -v
-    3: logging.DEBUG,  # -vv
-    4: logging.DEBUG,  # -vvv (more detailed)
-    5: logging.DEBUG,  # -vvvv (most detailed)
-}
+# VERBOSITY_LEVELS = {
+#     0: logging.ERROR,  # Default
+#     1: logging.WARNING,  # Default
+#     2: logging.INFO,  # -v
+#     3: logging.DEBUG,  # -vv
+#     4: logging.DEBUG,  # -vvv (more detailed)
+#     5: logging.DEBUG,  # -vvvv (most detailed)
+# }
 
 # LOGGING_LEVELS, a var containing the mapping between log levels and names
 LOGGING_LEVELS = dict(
@@ -150,29 +153,29 @@ LOGGING_LEVELS = dict(
 # ================
 
 
-# pylint: disable=redefined-builtin
-def get_app_verbosity(verbosity, vars=None):
-    "Get app verbosity level"
-    error = None
-    vars = vars or {}
-    max_ = len(VERBOSITY_LEVELS2)
-    if verbosity >= max_:
-        error = f"Verbosity already set to max: {verbosity}/{max_-1}"
-        verbosity = max_ - 1
-    elif verbosity < 0:
-        error = f"Verbosity too low, setting to min: {verbosity}/{max_-1}"
-        verbosity = 0
+# # pylint: disable=redefined-builtin
+# def get_app_verbosity(verbosity, vars=None):
+#     "Get app verbosity level"
+#     error = None
+#     vars = vars or {}
+#     max_ = len(VERBOSITY_LEVELS2)
+#     if verbosity >= max_:
+#         error = f"Verbosity already set to max: {verbosity}/{max_-1}"
+#         verbosity = max_ - 1
+#     elif verbosity < 0:
+#         error = f"Verbosity too low, setting to min: {verbosity}/{max_-1}"
+#         verbosity = 0
 
-    logger_name = VERBOSITY_LEVELS2[verbosity][0]
-    logger_name = logger_name.format(**vars)
+#     logger_name = VERBOSITY_LEVELS2[verbosity][0]
+#     logger_name = logger_name.format(**vars)
 
-    out = SimpleNamespace(
-        verbosity=verbosity,
-        logger_name=logger_name,
-        logger_level=VERBOSITY_LEVELS2[verbosity][1],
-        error=error,
-    )
-    return out
+#     out = SimpleNamespace(
+#         verbosity=verbosity,
+#         logger_name=logger_name,
+#         logger_level=VERBOSITY_LEVELS2[verbosity][1],
+#         error=error,
+#     )
+#     return out
 
 
 # Imported from python-iam
@@ -289,35 +292,7 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
     # print("EFFECTIVE LEVEL", logging.getLogger().getEffectiveLevel())
 
 
-# Deprecated
-# def get_logger_level(log_default_level=None, verbosity=None, level=None):
-#     "Resolve log level from string"
-#     out = None
-
-#     if verbosity is not None:
-#         out = VERBOSITY_LEVELS.get(verbosity, None)
-#         if not out:
-#             raise ValueError(f"Invalid verbosity level: {verbosity}")
-
-#     elif log_default_level is not None:
-
-#         if isinstance(log_default_level, str):
-#             log_default_level = log_default_level.upper()
-#             log_default_level = log_default_level.replace("WARN", "WARNING")
-#             out = getattr(logging, log_default_level, None)
-#         elif isinstance(log_default_level, int):
-#             out = log_default_level
-
-#         if out is None:
-#             raise ValueError(f"Invalid log level: {log_default_level}")
-
-#     elif level is not None:
-#         # transform logging level to verbosity level string name
-#         #  where level in an logging level, like logging.DEBUG.
-
-#         assert False, "Invalid function call"
-
-#     return out
+#########################################################
 
 
 class LoggingOptMixin(PluginHelpers):
@@ -362,14 +337,6 @@ class LoggingOptMixin(PluginHelpers):
         default=logging.WARNING,
     )
 
-    # prog_name = Argument('--prog-name',
-    #                      help=argparse.SUPPRESS,
-    #                      default="My_app")
-
-    # def set_logger_level(self, log_default_level):
-    #     "Set instance logger level"
-    #     logging.basicConfig(level=get_logger_level(log_default_level))
-
     # Meta settings
     meta__config__log_prefix = MetaSetting(
         help="Prefix of the logger name, usually set to __name__. Required to enable logging.",
@@ -380,77 +347,160 @@ class LoggingOptMixin(PluginHelpers):
     meta__config__log_default_level = MetaSetting(
         help="Default log level of the logger, usually WARNING, INFO or DEBUG",
     )
-    # meta__config__log_enabled = MetaSetting(
-    #     help="Enable logging for the instance",
-    # )
+
+    meta__config__log_levels = MetaSetting(
+        help="List of log levels to use, usually INFO and DEBUG",
+    )
+
+    meta__config__log_silent = MetaSetting(
+        help="List of loggers to silent, usually too verbose loggers",
+    )
 
     logger = None
-    # _public_logger = False
+
+    def wip(self, config, req=None, stacked=True):
+        "WIP"
+
+        config = config or []
+
+        assert isinstance(config, list), f"config must be a list, got {type(config)}"
+
+        # Process levels xonfig
+        errors = []
+        levels = [logging.INFO, logging.DEBUG]
+        ret = []
+        for logger_names in config:
+            for level in levels:
+                assert isinstance(
+                    logger_names, list
+                ), f"logger_names must be a list, got {type(logger_names)}"
+                assert all(
+                    isinstance(x, str) for x in logger_names
+                ), f"logger_names must be a list of strings, got {logger_names}"
+                ret.append((level, logger_names))
+
+        max_ = len(ret)
+        # Return specific level
+        if req is not None:
+
+            if req >= max_:
+                errors += [f"Verbosity already set to max: {req}/{max_-1}"]
+                req = max_ - 1
+            elif req < 0:
+                errors += [f"Verbosity too low, setting to min: {req}/{max_-1}"]
+                req = 0
+            # if errors:
+            #     logger.warning(",".join(errors))
+
+            level = ret[req][0]
+            if stacked:
+                names = []
+                for _logger in ret[0 : req + 1]:
+                    names.extend(_logger[1])
+                names = list(set(names))
+            else:
+                names = ret[req][1]
+
+            return level, names, max_, errors
+
+        return ret
 
     def cli_hook__logging(self, instance, ctx, **_):
         "Inject or create logger into instance"
 
-        # log_enabled = self.query_cfg_parents(
-        #     "log_enabled", default=False, include_self=True
-        # )
+        logger.debug("Load Logging hook for %s", instance)
+
         log_prefix = self.query_cfg_parents(
             "log_prefix", default=None, include_self=True
         )
-        # app_proc_module = self.query_cfg_parents(
-        #     "app_proc_module", default=None, include_self=True
-        # )
         log_suffix = self.query_cfg_parents(
             "log_suffix", default=None, include_self=True
         )
-        log_default_level = self.query_cfg_parents(
-            "log_default_level", default=logging.INFO, include_self=True
-        )
-        # print("log_prefix", log_prefix)
-        # print("app_proc_module", app_proc_module)
-        # log_prefix = log_prefix if isinstance(log_prefix, str) else app_proc_module
-        # log_prefix = log_prefix if isinstance(log_prefix, str) else "clak.cli"
-        # pprint(ctx.__dict__)
 
-        # print("LoggingOptMixin.cli_hook__logging", instance, ctx, kwargs)
-
-        # print ("PLUGINS", ctx.plugins.get("_public_logger", False) is False)
-        # if ctx.plugins.get("_public_logger", False) is False:
         if ctx.cli_first:
 
-            # pprint(ctx.__dict__)
-
-            cfg = get_app_verbosity(
-                ctx.args.verbosity, vars={"__name__": ctx.log_prefix}
+            log_levels = self.query_cfg_parents(
+                "log_levels", default=None, include_self=True
+            )
+            log_silent = self.query_cfg_parents(
+                "log_silent", default=None, include_self=True
             )
 
+            log_verbosity = ctx.args.verbosity
             log_colors = ctx.args.get("log_colors", False)
-            log_config = {
+
+            log_default_config = {
                 "": {  # root logger
                     "handlers": ["default"],
                     "level": "WARNING",
                     "propagate": False,
                 },
-                f"{cfg.logger_name}": {  # app logger
-                    "handlers": ["default"],
-                    "level": cfg.logger_level,
-                    "propagate": False,
-                },
             }
 
+            log_silent = log_silent or []
+            DEFAULT_CONFIG = [
+                ["clak"],
+                [""],
+            ]
+            log_levels = log_levels or DEFAULT_CONFIG
+
+            log_lvl, logger_names, max_level, errors = self.wip(
+                log_levels, req=log_verbosity
+            )
+
+            new_conf = dict(log_default_config)
+            conf2 = {}
+            for logger_name in logger_names:
+                conf2[logger_name] = {
+                    "handlers": ["default"],
+                    "level": log_lvl,
+                    "propagate": False,
+                }
+            if max_level > log_verbosity:
+                print("SILENTED", max_level, log_verbosity)
+                # print("All logs are shown")
+                # Only when not super extra verbose requested
+                for logger_name in log_silent:
+                    conf2[logger_name] = {
+                        "handlers": ["default"],
+                        "level": "WARNING",
+                        "propagate": False,
+                    }
+            if max_level < log_verbosity:
+                raise ClakAppError(
+                    f"Verbosity too high, max is {max_level}, got {log_verbosity}"
+                )
+
+            log_level_name = LOGGING_LEVELS.get(log_lvl, log_lvl)
+            new_conf.update(conf2)
+            # from pprint import pprint
+            # print("-" * 80)
+            # pprint(new_conf)
+            # pprint(LOGGING_LEVELS)
+            # print("-" * 80)
+
             get_app_logger(
-                loggers=log_config,
-                level=cfg.logger_level,
+                loggers=new_conf,
+                # loggers=log_config,
+                # level=cfg.logger_level,
+                level=log_lvl,
                 formatter=ctx.args.log_format,
                 colors=log_colors,
             )
 
-            logger.debug("Requested logging configuration: %s", cfg)
-            logger.debug("Root logger configuration: %s", log_config)
-            if cfg.error:
-                logger.info(cfg.error)
+            # Report to user
+            logger.info(
+                "Logging set to %s/%s %s: %s",
+                ctx.args.verbosity,
+                max_level,
+                log_level_name,
+                ", ".join([x for x in logger_names if x]),
+            )
+            logger.info("Logging to WARNING: %s", ", ".join(log_silent))
+            if errors:
+                logger.warning(", ".join(errors))
 
         # Create internal logger instance if not already created
-
         suffix = log_suffix
         if log_suffix is None:
             log_suffix = "==FLAT=="
@@ -494,7 +544,7 @@ class LoggingOptMixin(PluginHelpers):
                 "log_prefix": log_prefix,
                 "log_suffix_req": log_suffix,
                 "log_suffix": suffix,
-                "log_default_level": log_default_level,
+                # "log_default_level": log_default_level,
             }
         )
 
