@@ -457,7 +457,7 @@ class LoggingOptMixin(PluginHelpers):
                     "propagate": False,
                 }
             if max_level > log_verbosity:
-                print("SILENTED", max_level, log_verbosity)
+                # print("SILENTED", max_level, log_verbosity)
                 # print("All logs are shown")
                 # Only when not super extra verbose requested
                 for logger_name in log_silent:
