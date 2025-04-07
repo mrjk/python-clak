@@ -1,4 +1,5 @@
-[tool.poetry]
+#[tool.poetry]
+[project]
 name = "mrjk.clak"
 version = "0.4.0a2"
 description = "Command Line avec Klass"
@@ -9,11 +10,6 @@ readme = "README.md"
 packages = [
   { include = "clak/" }
 ]
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -28,6 +24,11 @@ classifiers = [
   "Topic :: Software Development :: Build Tools",
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 
 # Dependencies groups
 # ========================
