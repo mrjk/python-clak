@@ -37,6 +37,10 @@
     - Configure and enable Basic Logger
     - Provide per Node logger
     - Provide `--verbose` and `-v,-vv,-vvv` flags
+  - Views:
+    - Return `ShowView`, `ListView`, or `PprintView` from `cli_run`.
+    - Set `Meta.cli_view` to a view instance or class to render raw return values.
+    - Select table columns and control row indexes without changing command data.
   - Config:
     - Use XDG Base Directory Specification to provide config files and directory paths.
     - Load yaml, json, toml, ini files easily

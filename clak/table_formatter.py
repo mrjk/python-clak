@@ -90,13 +90,8 @@ class _TableFormatter(ABC):
         _view_options = dict(self.view_options)
         _view_options.update(view_options)
 
-        try:
-            data_table, headers = self.process_table(data, **_view_options)
-            self.validate_table_data(data_table)
-        except TypeError as err:
-            choices = ", ".join(self.view_options.keys())
-            msg = f"{err}, please choose one of: {choices}"
-            raise TypeError(msg) from None
+        data_table, headers = self.process_table(data, **_view_options)
+        self.validate_table_data(data_table)
 
         # Prepare table
         # table = ColorTable(theme=Themes.GLARE_REDUCTION)
@@ -170,8 +165,8 @@ class TableShowFormatter(_TableFormatter):
             try:
                 # ret.append([key, data[key]])
                 value = data[key]
-            except KeyError:
-                choices = ",".join(choices)
+            except (IndexError, KeyError, TypeError):
+                choices = ", ".join(str(choice) for choice in choices)
                 raise KeyError(
                     f"Key {key} not found in data, choices: {choices}"
                 ) from None
@@ -205,7 +200,7 @@ class TableListFormatter(_TableFormatter):
     def process_table(
         self, data, columns=None, add_index=None, expand_keys=False, remove_tabs=True
     ):
-        "Restructure data to fit to item view"
+        "Restructure data to fit to list view"
 
         add_index = add_index if isinstance(add_index, bool) else not expand_keys
 
@@ -217,13 +212,20 @@ class TableListFormatter(_TableFormatter):
         ret = []
 
         def _process_expanded_item(idx, item, columns):
-            _out = []
-            if add_index:
-                _out = [idx]
+            row = [idx] if add_index else []
 
             for field in columns:
-                _out.append(item[field])
-            ret.append(_out)
+                if isinstance(item, Mapping):
+                    value = item.get(field, "-")
+                else:
+                    try:
+                        value = item[field]
+                    except (IndexError, KeyError, TypeError):
+                        value = "-"
+                if remove_tabs is not False:
+                    value = replace_tabs(value, remove_tabs)
+                row.append(value)
+            ret.append(row)
 
         _default_columns = ["Key", "Value"]
         if isinstance(data, Mapping):

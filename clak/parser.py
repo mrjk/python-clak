@@ -41,8 +41,7 @@ Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
 import logging
 import sys
 import traceback
-
-# from pprint import pprint
+from pprint import pprint
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
@@ -311,6 +310,10 @@ class SubParser(ArgParseItem):
                 "help_flags",
                 self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
             )
+            # parser_aliases = self.kwargs.get(
+            #     "aliases",
+            #     [],
+            # )
 
             ctx_vars = {"key": key, "self": config}
 
@@ -318,12 +321,16 @@ class SubParser(ArgParseItem):
             parser_help = prepare_docstring(
                 first_doc_line(parser_help), variables=ctx_vars
             )
-            parser_kwargs = {
-                "formatter_class": RecursiveHelpFormatter,
-                "add_help": parser_help_enabled,  # Add support for --help
-                "exit_on_error": False,
-                "help": parser_help,
-            }
+            parser_kwargs = self.kwargs
+            parser_kwargs.update(
+                {
+                    "formatter_class": RecursiveHelpFormatter,
+                    "add_help": parser_help_enabled,  # Add support for --help
+                    "exit_on_error": False,
+                    "help": parser_help,
+                    # "aliases": parser_aliases,
+                }
+            )
             # if parser_help is not None:
             #     parser_kwargs["help"] = parser_help
 
@@ -1010,17 +1017,19 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         if not error:
             # Prepare viewer output
-            viewer = None
             if isinstance(data, ClakView):
-                viewer = data
+                data.render()
             else:
                 viewer = self.query_cfg_parents("cli_view", default=None)
-                if viewer:
-                    viewer.payload = data
+                if isinstance(viewer, type) and issubclass(viewer, ClakView):
+                    viewer = viewer()
+                if viewer is not None:
+                    if not isinstance(viewer, ClakView):
+                        raise TypeError(
+                            "Meta.cli_view must be a ClakView instance or subclass"
+                        )
+                    viewer.render(data)
 
-            # Render output or return data
-            if viewer:
-                viewer.render()
             return data
 
         if trace is True:

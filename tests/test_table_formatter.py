@@ -243,3 +243,25 @@ def test_list_expand_index_behavior(add_index):
     ).render(data_items_list)
 
     assert ("Index" in output_list) == add_index
+
+
+def test_list_expand_heterogeneous_dicts_uses_placeholder():
+    data = [{"name": "World"}, {"age": 42}]
+
+    output = TableListFormatter().render(
+        data,
+        columns=["name", "age"],
+        expand_keys=True,
+        add_index=True,
+    )
+
+    assert "World" in output
+    assert "42" in output
+    assert "-" in output
+
+
+def test_render_stdout_still_returns_output(capsys):
+    output = TableShowFormatter().render(data_item_dict1, stdout=True)
+
+    assert isinstance(output, str)
+    assert output in capsys.readouterr().out

@@ -94,6 +94,13 @@ class ClakView:
 
         return payload, _settings
 
+    @staticmethod
+    def _output(rendered, stdout=True):
+        "Optionally print rendered output and always return it."
+        if stdout:
+            print(rendered)
+        return rendered
+
 
 def pformat_truncated(data, width=MAX_WIDTH):
     "Truncate a text to max lenght and replace by txt"
@@ -111,11 +118,12 @@ def pformat_truncated(data, width=MAX_WIDTH):
 class PprintView(ClakView):
     "Render list data"
 
-    def render(self, *args, **kwargs):
+    def render(self, *args, stdout=True, **kwargs):
         "Render data"
 
-        payload, _ = self._render(*args, **kwargs)
-        return pformat_truncated(payload)
+        payload, settings = self._render(*args, **kwargs)
+        rendered = pformat_truncated(payload, **settings)
+        return self._output(rendered, stdout=stdout)
 
 
 # Generic views
@@ -133,24 +141,20 @@ class FeatureFullViewier(ClakView):
 class ShowView(FeatureFullViewier):
     "Render show data"
 
-    def render(self, *args, **kwargs):
+    def render(self, *args, stdout=True, **kwargs):
         "Render data"
 
-        _settings = dict(self.settings)
-        _settings.update(kwargs)
-
-        payload, _settings = self._render(*args, **_settings)
-        return TableShowFormatter(payload, **_settings)
+        payload, settings = self._render(*args, **kwargs)
+        rendered = TableShowFormatter().render(payload, **settings)
+        return self._output(rendered, stdout=stdout)
 
 
 class ListView(FeatureFullViewier):
     "Render list data"
 
-    def render(self, *args, **kwargs):
+    def render(self, *args, stdout=True, **kwargs):
         "Render data"
 
-        _settings = dict(self.settings)
-        _settings.update(kwargs)
-
-        payload_sequence, _settings = self._render(*args, **_settings)
-        return TableListFormatter(payload_sequence)
+        payload, settings = self._render(*args, **kwargs)
+        rendered = TableListFormatter().render(payload, **settings)
+        return self._output(rendered, stdout=stdout)

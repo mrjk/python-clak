@@ -68,6 +68,7 @@ With log_prefix set:
 import argparse
 import logging
 import logging.config
+from types import SimpleNamespace
 
 from clak.exception import ClakAppError
 from clak.parser import Argument, MetaSetting
@@ -149,6 +150,14 @@ LOGGING_LEVELS = dict(
     )
 )
 
+DEFAULT_LOG_LEVEL = logging.WARNING
+DEFAULT_LOG_LEVELS = [
+    ["INFO|clak"],
+    ["DEBUG|clak"],
+    ["INFO|"],
+    ["DEBUG|"],
+]
+
 # Logging helpers
 # ================
 
@@ -187,7 +196,7 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
     # Settings
     fclass = "logging.Formatter"
     # msconds = ""
-    if colors:
+    if colors and coloredlogs:
         # Require coloredlogs
         fclass = "coloredlogs.ColoredFormatter"
         # msconds = "%(msecs)03d"
@@ -212,7 +221,7 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
         },
         "debug": {
             "()": fclass,
-            "format": "%(msecs)03d %(levelname)8s %(name)-30s %(message)s"
+            "format": "%(msecs)03d %(levelname)8s %(name)-30s %(message)-80s"
             "\t[%(filename)s/%(funcName)s:%(lineno)d]",
             "datefmt": "%H:%M:%S",
         },
@@ -235,12 +244,6 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
         "handlers": {
             "default": {
                 "level": level,
-                "formatter": formatter,
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stderr",  # Default is stderr
-            },
-            "info": {
-                "level": "INFO",
                 "formatter": formatter,
                 "class": "logging.StreamHandler",
                 "stream": "ext://sys.stderr",  # Default is stderr
@@ -329,14 +332,6 @@ class LoggingOptMixin(PluginHelpers):
             help="Enable colored logs",
         )
 
-    logger_level_default = Argument(
-        "--logger-level",
-        choices=["debug", "info", "warning", "error", "critical"],
-        # help='Set log level'
-        help=argparse.SUPPRESS,
-        default=logging.WARNING,
-    )
-
     # Meta settings
     meta__config__log_prefix = MetaSetting(
         help="Prefix of the logger name, usually set to __name__. Required to enable logging.",
@@ -358,52 +353,91 @@ class LoggingOptMixin(PluginHelpers):
 
     logger = None
 
-    def wip(self, config, req=None, stacked=True):
-        "WIP"
+    @staticmethod
+    def _log_level(value):
+        "Return a validated numeric logging level."
+        if isinstance(value, int):
+            return value
+        if not isinstance(value, str):
+            raise TypeError(f"Log level must be a string or integer, got {type(value)}")
+        level = logging._nameToLevel.get(
+            value.upper()
+        )  # pylint: disable=protected-access
+        if level is None:
+            choices = ", ".join(
+                sorted(logging._nameToLevel)
+            )  # pylint: disable=protected-access
+            raise ValueError(f"Unknown log level '{value}', choose one of: {choices}")
+        return level
 
-        config = config or []
+    def assemble_user_config(self, configs):
+        """Build cumulative verbosity tiers from ``Meta.log_levels``.
 
-        assert isinstance(config, list), f"config must be a list, got {type(config)}"
+        Explicit entries use ``LEVEL|logger``. Legacy configurations containing
+        only logger names are expanded to INFO and DEBUG tiers for each group.
+        """
+        if not isinstance(configs, list) or not configs:
+            raise ValueError("log_levels must be a non-empty list of lists")
+        if not all(isinstance(tier, list) for tier in configs):
+            raise TypeError("Each log_levels tier must be a list")
 
-        # Process levels xonfig
-        errors = []
-        levels = [logging.INFO, logging.DEBUG]
-        ret = []
-        for logger_names in config:
-            for level in levels:
-                assert isinstance(
-                    logger_names, list
-                ), f"logger_names must be a list, got {type(logger_names)}"
-                assert all(
-                    isinstance(x, str) for x in logger_names
-                ), f"logger_names must be a list of strings, got {logger_names}"
-                ret.append((level, logger_names))
+        entries = [entry for tier in configs for entry in tier]
+        if not all(isinstance(entry, str) for entry in entries):
+            raise TypeError("Each log_levels entry must be a string")
 
-        max_ = len(ret)
-        # Return specific level
-        if req is not None:
+        legacy = all("|" not in entry for entry in entries)
+        if legacy:
+            configs = [
+                [f"{logging.getLevelName(level)}|{logger_name}" for logger_name in tier]
+                for tier in configs
+                for level in (logging.INFO, logging.DEBUG)
+            ]
 
-            if req >= max_:
-                errors += [f"Verbosity already set to max: {req}/{max_-1}"]
-                req = max_ - 1
-            elif req < 0:
-                errors += [f"Verbosity too low, setting to min: {req}/{max_-1}"]
-                req = 0
-            # if errors:
-            #     logger.warning(",".join(errors))
+        user_config = []
+        for idx, lvl_config in enumerate(configs):
+            final = []
+            for entry in lvl_config:
+                if "|" in entry:
+                    level_name, logger_name = entry.split("|", maxsplit=1)
+                    level = self._log_level(level_name)
+                else:
+                    logger_name = entry
+                    level = (logging.INFO, logging.DEBUG)[idx % 2]
+                final.append(
+                    SimpleNamespace(
+                        logger_name=logger_name,
+                        level=level,
+                    )
+                )
+            user_config.append(final)
+        return user_config
 
-            level = ret[req][0]
-            if stacked:
-                names = []
-                for _logger in ret[0 : req + 1]:
-                    names.extend(_logger[1])
-                names = list(set(names))
-            else:
-                names = ret[req][1]
+    def select_user_config(self, user_config, req=0):
+        "Select user config from requested level"
+        max_level = len(user_config) - 1
+        if not isinstance(req, int) or req < 0 or req > max_level:
+            raise ClakAppError(
+                f"Verbosity must be between 0 and {max_level}, got {req}"
+            )
 
-            return level, names, max_, errors
+        req_config = {}
+        for idx, logger_config in enumerate(user_config):
+            if idx > req:
+                break
 
-        return ret
+            for logger_ns in logger_config:
+                logger_name = logger_ns.logger_name
+                req_config[logger_name] = {
+                    "handlers": ["default"],
+                    "level": logger_ns.level,
+                    "propagate": False,
+                }
+
+        return SimpleNamespace(
+            config=req_config,
+            max_level=max_level,
+            level=req,
+        )
 
     def cli_hook__logging(self, instance, ctx, **_):
         "Inject or create logger into instance"
@@ -418,120 +452,89 @@ class LoggingOptMixin(PluginHelpers):
         )
 
         if ctx.cli_first:
-
             log_levels = self.query_cfg_parents(
                 "log_levels", default=None, include_self=True
             )
             log_silent = self.query_cfg_parents(
                 "log_silent", default=None, include_self=True
             )
-
+            log_default_level = self.query_cfg_parents(
+                "log_default_level", default=DEFAULT_LOG_LEVEL, include_self=True
+            )
+            if log_default_level is None:
+                log_default_level = DEFAULT_LOG_LEVEL
             log_verbosity = ctx.args.verbosity
             log_colors = ctx.args.get("log_colors", False)
 
-            log_default_config = {
+            log_silent = log_silent or []
+            if not isinstance(log_silent, list) or not all(
+                isinstance(name, str) for name in log_silent
+            ):
+                raise TypeError("log_silent must be a list of logger names")
+
+            user_config = self.assemble_user_config(log_levels or DEFAULT_LOG_LEVELS)
+            log_config = self.select_user_config(user_config, req=log_verbosity)
+
+            logger_config = {
                 "": {  # root logger
                     "handlers": ["default"],
-                    "level": "WARNING",
+                    "level": self._log_level(log_default_level),
                     "propagate": False,
                 },
             }
+            logger_config.update(log_config.config)
 
-            log_silent = log_silent or []
-            DEFAULT_CONFIG = [
-                ["clak"],
-                [""],
-            ]
-            log_levels = log_levels or DEFAULT_CONFIG
-
-            log_lvl, logger_names, max_level, errors = self.wip(
-                log_levels, req=log_verbosity
-            )
-
-            new_conf = dict(log_default_config)
-            conf2 = {}
-            for logger_name in logger_names:
-                conf2[logger_name] = {
-                    "handlers": ["default"],
-                    "level": log_lvl,
-                    "propagate": False,
-                }
-            if max_level > log_verbosity:
-                # print("SILENTED", max_level, log_verbosity)
-                # print("All logs are shown")
-                # Only when not super extra verbose requested
+            logs_silenced = log_verbosity < log_config.max_level
+            if logs_silenced:
                 for logger_name in log_silent:
-                    conf2[logger_name] = {
+                    logger_config[logger_name] = {
                         "handlers": ["default"],
-                        "level": "WARNING",
+                        "level": logging.WARNING,
                         "propagate": False,
                     }
-            if max_level < log_verbosity:
-                raise ClakAppError(
-                    f"Verbosity too high, max is {max_level}, got {log_verbosity}"
-                )
-
-            log_level_name = LOGGING_LEVELS.get(log_lvl, log_lvl)
-            new_conf.update(conf2)
-            # from pprint import pprint
-            # print("-" * 80)
-            # pprint(new_conf)
-            # pprint(LOGGING_LEVELS)
-            # print("-" * 80)
 
             get_app_logger(
-                loggers=new_conf,
-                # loggers=log_config,
-                # level=cfg.logger_level,
-                level=log_lvl,
+                loggers=logger_config,
+                level=logging.NOTSET,
                 formatter=ctx.args.log_format,
                 colors=log_colors,
             )
 
-            # Report to user
             logger.info(
-                "Logging set to %s/%s %s: %s",
-                ctx.args.verbosity,
-                max_level,
-                log_level_name,
-                ", ".join([x for x in logger_names if x]),
+                "Logging set to %s/%s",
+                log_verbosity,
+                log_config.max_level,
             )
-            logger.info("Logging to WARNING: %s", ", ".join(log_silent))
-            if errors:
-                logger.warning(", ".join(errors))
+            for name, conf in logger_config.items():
+                logger.info("  %s: %s", logging.getLevelName(conf["level"]), name)
+            if log_silent:
+                if logs_silenced:
+                    logger.info("Logging to WARNING: %s", ", ".join(log_silent))
+                else:
+                    logger.info("All configured logs are shown")
 
         # Create internal logger instance if not already created
-        suffix = log_suffix
         if log_suffix is None:
             log_suffix = "==FLAT=="
 
         if log_suffix == argparse.SUPPRESS:
             suffix = ""
         elif log_suffix == "==FLAT==":
-            name = instance.__class__.__name__
-            suffix = f".{name}"
+            suffix = f".{instance.__class__.__name__}"
         elif log_suffix == "==NESTED==":
-            suffix = f"{instance.get_fname(attr='key')}"
+            suffix = str(instance.get_fname(attr="key"))
+            if suffix and not suffix.startswith("."):
+                suffix = f".{suffix}"
+        else:
+            suffix = str(log_suffix)
+            if suffix and not suffix.startswith("."):
+                suffix = f".{suffix}"
 
-        # enabled_instance_logging = False
-        # if log_enabled and getattr(instance, "logger", None) is None:
-        # if log_enabled:
-
+        log_name = instance.__class__.__module__
         if log_prefix is not None:
-
-            # Retrieve prog_name from ctx
-
             log_name = f"{log_prefix}{suffix}"
-            # print("YOOOOOO", log_name)
-            if instance.parent is None:
-                instance.logger = logging.getLogger(log_name)
-            else:
-                instance.logger = logging.getLogger(log_name)
-            # else:
-            #     instance.logger = instance.parent.logger
-
-            logger.debug("Enable logging for '%s': %s", instance, log_name)
-            # instance.logger.debug("Enable logging for %s", instance)
+        instance.logger = logging.getLogger(log_name)
+        logger.debug("Enable logging for '%s': %s", instance, log_name)
 
         # Register plugin methods
         self.hook_register("test_logger", instance)
@@ -544,7 +547,6 @@ class LoggingOptMixin(PluginHelpers):
                 "log_prefix": log_prefix,
                 "log_suffix_req": log_suffix,
                 "log_suffix": suffix,
-                # "log_default_level": log_default_level,
             }
         )
 
@@ -555,10 +557,6 @@ class LoggingOptMixin(PluginHelpers):
             instance: The instance to test logging for. If None, uses self.
         """
         instance = instance if instance else self
-
-        # print("Test log self=", self, "instance=", instance)
-        # print("\n\n")
-        # return
         instance.logger.debug("Test logger with DEBUG")
         instance.logger.info("Test logger with INFO")
         instance.logger.warning("Test logger with WARNING")
