@@ -152,6 +152,11 @@ Please check [related documentation](https://mrjk.github.io/python-clak/develop/
 
 Please contact main maintener.
 
+## Releasing
+
+Maintainers: see the [Release](https://mrjk.github.io/python-clak/project/release/) guide
+(source: `docs/content/project/release.md`) for bump, tag, PyPI auth, and publish steps.
+
 <!-- omit in toc -->
 
 ## Attribution

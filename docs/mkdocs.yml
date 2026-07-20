@@ -120,6 +120,7 @@ nav:
 
   - About:
       - Contributing: project/CONTRIBUTING.md
+      - Release: project/release.md
       - Code of Conduct: project/CODE_OF_CONDUCT.md
       - License: project/license.md
 
