@@ -1,6 +1,7 @@
 title: Documentation
 nav:
     - Features: features.md
+    - Views: views.md
     - Installation: install.md
     - Advanced: advanced.md
     - Execution: execution.md

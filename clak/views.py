@@ -53,11 +53,14 @@ Examples:
 
 # pylint: disable=too-few-public-methods
 
+import logging
 import os
 import textwrap
 from pprint import pformat
 
 from clak.table_formatter import TableListFormatter, TableShowFormatter
+
+logger = logging.getLogger(__name__)
 
 # MAX_WIDTH = 120
 MAX_WIDTH = 80
@@ -100,6 +103,45 @@ class ClakView:
         if stdout:
             print(rendered)
         return rendered
+
+
+def merge_view_settings(existing=None, cli_settings=None):
+    """Merge CLI view settings over existing view settings.
+
+    CLI values win. When CLI overrides a non-None existing value, log a warning.
+    """
+    existing = dict(existing or {})
+    cli_settings = dict(cli_settings or {})
+    merged = dict(existing)
+    for key, cli_val in cli_settings.items():
+        old_val = existing.get(key, None)
+        if old_val is not None and old_val != cli_val:
+            logger.warning(
+                "CLI option %s=%r overrides view setting %r",
+                key,
+                cli_val,
+                old_val,
+            )
+        merged[key] = cli_val
+    return merged
+
+
+def parse_columns(value):
+    """Parse a comma-separated --columns value into a list of keys/indexes."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise TypeError(f"columns must be a string, got {type(value).__name__}")
+    cols = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            cols.append(int(part))
+        except ValueError:
+            cols.append(part)
+    return cols
 
 
 def pformat_truncated(data, width=MAX_WIDTH):

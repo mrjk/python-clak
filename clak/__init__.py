@@ -18,6 +18,7 @@ Key components:
 - CompRenderCmdMixin: For command completion
 - XDGConfigMixin: For config file handling
 - LoggingOptMixin: For logging setup
+- ShowViewMixin / ListViewMixin / PprintViewMixin: For CLI view rendering
 """
 
 # Parsers imports
@@ -28,6 +29,7 @@ from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOp
 # Plugins import
 from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
+from clak.comp.views import ListViewMixin, PprintViewMixin, ShowViewMixin
 from clak.parser import Argument, Parser, ParserNode, SubParser
 
 # Classic API

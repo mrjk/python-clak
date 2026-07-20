@@ -56,7 +56,7 @@ from clak.argparse_ import (
 from clak.common import ObjectNamespace, deindent_docstring
 from clak.nodes import NOT_SET, Fn, Node
 from clak.settings import CLAK_DEBUG
-from clak.views import ClakView
+from clak.views import ClakView, merge_view_settings
 
 # import argparse
 # import argcomplete
@@ -1016,9 +1016,13 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 error = err
 
         if not error:
-            # Prepare viewer output
+            # Prepare viewer output (CLI view mixins may stash settings on root)
+            view_settings = getattr(self, "_clak_view_settings", None) or {}
             if isinstance(data, ClakView):
-                data.render()
+                render_kwargs = merge_view_settings(
+                    getattr(data, "settings", None), view_settings
+                )
+                data.render(**render_kwargs)
             else:
                 viewer = self.query_cfg_parents("cli_view", default=None)
                 if isinstance(viewer, type) and issubclass(viewer, ClakView):
@@ -1028,7 +1032,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                         raise TypeError(
                             "Meta.cli_view must be a ClakView instance or subclass"
                         )
-                    viewer.render(data)
+                    viewer.render(data, **view_settings)
 
             return data
 
