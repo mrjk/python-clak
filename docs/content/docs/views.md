@@ -10,8 +10,8 @@ matching CLI flags:
 
 | Mixin | View | Typical data | CLI options |
 | --- | --- | --- | --- |
-| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index` |
-| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys` |
+| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode` |
+| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode` |
 | `PprintViewMixin` | `PprintView` | any payload | `--width` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
@@ -45,6 +45,73 @@ $ python script_views.py --columns name,role
 
 `--columns` is a **comma-separated** list (`name,role` or indexes like `0,2`).
 
+## Output format and sorting (Cliff-style)
+
+`ShowViewMixin` and `ListViewMixin` also expose Cliff-like output controls:
+
+| Flag | Values | Default | Effect |
+| --- | --- | --- | --- |
+| `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
+| `--sort-columns` | `COL1,COL2,...` | — | Sort rows by one or more column names (or indexes) |
+| `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
+
+``` raw linenums="0"
+$ python script_views.py --format json --columns name,role
+[
+  {
+    "name": "ada",
+    "role": "admin"
+  },
+  {
+    "name": "linus",
+    "role": "dev"
+  },
+  {
+    "name": "grace",
+    "role": "dev"
+  }
+]
+
+$ python script_views.py --format csv --columns name,role
+name,role
+ada,admin
+linus,dev
+grace,dev
+
+$ python script_views.py --sort-columns name --sort-mode desc --columns name,role
++-------+-------+
+| name  | role  |
++-------+-------+
+| linus | dev   |
+| grace | dev   |
+| ada   | admin |
++-------+-------+
+```
+
+- **`view`** — PrettyTable output (default).
+- **`json`** / **`csv`** — stdlib only.
+- **`yaml`** — requires [PyYAML](https://pypi.org/project/PyYAML/) (`pip install pyyaml`).
+
+Sorting applies before rendering, so it works for every format (including multi-column sort).
+
+## Nested subcommands
+
+View mixins on a **subcommand** parser register and apply flags on that command
+(e.g. `app vars --columns name`). Hooks run for each node in the command
+hierarchy, so `--format`, `--sort-columns`, and `--columns` work on nested
+commands the same way as on a root parser.
+
+```python
+from clak import Command, ListViewMixin, Parser
+
+class VarsCmd(ListViewMixin, Parser):
+    def cli_run(self, **_):
+        return [{"name": "ada", "role": "admin"}]
+
+class Root(Parser):
+    vars = Command(VarsCmd)
+```
+
 ## Control which flags appear
 
 Use `Meta.view_cli_options`:
@@ -55,7 +122,8 @@ Use `Meta.view_cli_options`:
 | `False` | Auto-render only — no extra flags |
 | `("columns", "add_index")` | Expose a subset (`list` / `tuple` / `set` also work) |
 
-Option names are destinations: `columns`, `add_index`, `expand_keys`, `width`.
+Option names are destinations: `columns`, `add_index`, `expand_keys`, `width`,
+`format`, `sort_columns`, `sort_mode`.
 Unknown names raise `ValueError`.
 
 ```python

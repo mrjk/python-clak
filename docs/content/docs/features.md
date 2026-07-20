@@ -36,6 +36,7 @@
   - Views:
     - Turn command return values into tables or pretty-prints.
     - Mix in `ShowViewMixin`, `ListViewMixin`, or `PprintViewMixin` for auto-render + CLI flags.
+    - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`, `--sort-mode`.
     - Or return `ShowView` / `ListView` / `PprintView` from `cli_run`, or set `Meta.cli_view`.
     - Guide: [Views](views.md).
   - Logging:

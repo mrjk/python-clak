@@ -1,8 +1,8 @@
 """View mixins for automatic CLI rendering and view options.
 
 Mix in one of:
-- ShowViewMixin  → ShowView + --columns / --add-index
-- ListViewMixin  → ListView + --columns / --add-index / --expand-keys
+- ShowViewMixin  → ShowView + --columns / --add-index / --format / --sort-columns
+- ListViewMixin  → ListView + --columns / --add-index / --expand-keys / --format / --sort-columns
 - PprintViewMixin → PprintView + --width
 
 Example:
@@ -25,7 +25,7 @@ from typing import Any, Mapping, Set
 
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
-from clak.views import ListView, PprintView, ShowView, parse_columns
+from clak.views import ListView, PprintView, ShowView, parse_columns, parse_sort_columns
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,9 @@ _VIEW_CLI_OPTION_DESTS = frozenset(
         "add_index",
         "expand_keys",
         "width",
+        "format",
+        "sort_columns",
+        "sort_mode",
     }
 )
 
@@ -128,6 +131,21 @@ class _ViewMixinBase(PluginHelpers):
             if value is not None:
                 settings["width"] = value
 
+        if "format" in enabled:
+            value = self._args_get(args, "format", None)
+            if value is not None:
+                settings["format"] = value
+
+        if "sort_columns" in enabled:
+            raw = self._args_get(args, "sort_columns", None)
+            if raw is not None:
+                settings["sort_columns"] = parse_sort_columns(raw)
+
+        if "sort_mode" in enabled:
+            value = self._args_get(args, "sort_mode", None)
+            if value is not None:
+                settings["sort_mode"] = value
+
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
@@ -141,11 +159,14 @@ class _ViewMixinBase(PluginHelpers):
 class ShowViewMixin(_ViewMixinBase):
     """Auto-render command results with :class:`~clak.views.ShowView`.
 
-    Adds ``--columns`` and ``--add-index`` / ``--no-add-index``.
+    Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
+    ``--format``, ``--sort-columns``, and ``--sort-mode``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = frozenset({"columns", "add_index"})
+    _view_cli_option_names = frozenset(
+        {"columns", "add_index", "format", "sort_columns", "sort_mode"}
+    )
     meta__cli_view = ShowView
 
     columns = Argument(
@@ -159,17 +180,44 @@ class ShowViewMixin(_ViewMixinBase):
         default=None,
         help="Include key/index column in the show table",
     )
+    format = Argument(
+        "--format",
+        choices=["view", "yaml", "json", "csv"],
+        default=None,
+        help="Output format (default: view table)",
+    )
+    sort_columns = Argument(
+        "--sort-columns",
+        default=None,
+        help="Comma-separated columns to sort by",
+    )
+    sort_mode = Argument(
+        "--sort-mode",
+        choices=["asc", "desc"],
+        default=None,
+        help="Sort direction (default: asc)",
+    )
 
 
 class ListViewMixin(_ViewMixinBase):
     """Auto-render command results with :class:`~clak.views.ListView`.
 
-    Adds ``--columns``, ``--add-index`` / ``--no-add-index``, and
-    ``--expand-keys`` / ``--no-expand-keys``.
+    Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
+    ``--expand-keys`` / ``--no-expand-keys``, ``--format``,
+    ``--sort-columns``, and ``--sort-mode``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = frozenset({"columns", "add_index", "expand_keys"})
+    _view_cli_option_names = frozenset(
+        {
+            "columns",
+            "add_index",
+            "expand_keys",
+            "format",
+            "sort_columns",
+            "sort_mode",
+        }
+    )
     meta__cli_view = ListView
 
     columns = Argument(
@@ -188,6 +236,23 @@ class ListViewMixin(_ViewMixinBase):
         action=argparse.BooleanOptionalAction,
         default=None,
         help="Expand nested dict items into table columns",
+    )
+    format = Argument(
+        "--format",
+        choices=["view", "yaml", "json", "csv"],
+        default=None,
+        help="Output format (default: view table)",
+    )
+    sort_columns = Argument(
+        "--sort-columns",
+        default=None,
+        help="Comma-separated columns to sort by",
+    )
+    sort_mode = Argument(
+        "--sort-mode",
+        choices=["asc", "desc"],
+        default=None,
+        help="Sort direction (default: asc)",
     )
 
 

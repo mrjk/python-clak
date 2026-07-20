@@ -1,17 +1,19 @@
 """Tests for public CLI views, mixins, and parser integration."""
 
+import json
 import logging
 
 import pytest
 
 from clak.comp.views import ListViewMixin, PprintViewMixin, ShowViewMixin
-from clak.parser import Parser, ParserNode
+from clak.parser import Command, Parser, ParserNode
 from clak.views import (
     ListView,
     PprintView,
     ShowView,
     merge_view_settings,
     parse_columns,
+    parse_sort_columns,
 )
 
 
@@ -40,6 +42,10 @@ def test_parse_columns_comma_separated_and_ints():
 def test_parse_columns_rejects_non_string():
     with pytest.raises(TypeError, match="columns must be a string"):
         parse_columns(["name", "age"])
+
+
+def test_parse_sort_columns_alias():
+    assert parse_sort_columns("name,role") == ["name", "role"]
 
 
 def test_merge_view_settings_warns_on_override(caplog):
@@ -237,6 +243,182 @@ def test_list_view_mixin_help_lists_view_flags():
     assert "--columns" in help_text
     assert "--add-index" in help_text
     assert "--expand-keys" in help_text
+    assert "--format" in help_text
+    assert "--sort-columns" in help_text
+    assert "--sort-mode" in help_text
+
+
+# ---------------------------------------------------------------------------
+# Mixins — output format (Cliff-style)
+# ---------------------------------------------------------------------------
+
+
+def test_list_view_mixin_format_json(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(["--format", "json", "--columns", "name,role"])
+
+    out = capsys.readouterr().out
+    records = json.loads(out)
+    assert records == [
+        {"name": "ada", "role": "admin"},
+        {"name": "linus", "role": "dev"},
+    ]
+
+
+def test_list_view_mixin_format_csv(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(
+        ["--format", "csv", "--columns", "name,role"]
+    )
+
+    out = capsys.readouterr().out
+    lines = out.strip().splitlines()
+    assert lines[0] == "name,role"
+    assert "ada,admin" in lines
+    assert "linus,dev" in lines
+
+
+def test_list_view_mixin_format_yaml(capsys):
+    pytest.importorskip("yaml")
+
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(
+        ["--format", "yaml", "--columns", "name"]
+    )
+
+    out = capsys.readouterr().out
+    assert "name: ada" in out
+    assert "name: linus" in out
+
+
+def test_show_view_mixin_format_json(capsys):
+    class App(ShowViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS[0]
+
+    App(parse=False, add_help=False).dispatch(["--format", "json"])
+
+    out = capsys.readouterr().out
+    record = json.loads(out)
+    assert record["name"] == "ada"
+    assert record["role"] == "admin"
+
+
+def test_list_view_mixin_sort_columns_asc(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(
+        ["--sort-columns", "name", "--columns", "name,role"]
+    )
+
+    out = capsys.readouterr().out
+    assert out.index("ada") < out.index("linus")
+
+
+def test_list_view_mixin_sort_columns_desc(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(
+        [
+            "--sort-columns",
+            "name",
+            "--sort-mode",
+            "desc",
+            "--columns",
+            "name,role",
+        ]
+    )
+
+    out = capsys.readouterr().out
+    assert out.index("linus") < out.index("ada")
+
+
+def test_subcommand_list_view_mixin_format_json(capsys):
+    class VarsCmd(ListViewMixin, Parser):
+        "List users."
+
+        def cli_run(self, **_):
+            return USERS
+
+    class Root(Parser):
+        "Root."
+
+        vars = Command(VarsCmd)
+
+    app = Root(parse=False, add_help=False)
+    app.dispatch(["vars", "--format", "json", "--columns", "name,role"])
+
+    assert getattr(app, "_clak_view_settings", None) == {
+        "format": "json",
+        "columns": ["name", "role"],
+    }
+    records = json.loads(capsys.readouterr().out)
+    assert len(records) == 2
+    assert set(records[0]) == {"name", "role"}
+
+
+# ---------------------------------------------------------------------------
+# Mixins — nested subcommand (hooks must fire on child nodes)
+# ---------------------------------------------------------------------------
+
+
+def test_subcommand_list_view_mixin_columns(capsys):
+    class VarsCmd(ListViewMixin, Parser):
+        "List users."
+
+        def cli_run(self, **_):
+            return USERS
+
+    class Root(Parser):
+        "Root."
+
+        vars = Command(VarsCmd)
+
+    app = Root(parse=False, add_help=False)
+    app.dispatch(["vars", "--columns", "name,role"])
+
+    assert getattr(app, "_clak_view_settings", None) == {
+        "columns": ["name", "role"]
+    }
+    out = capsys.readouterr().out
+    assert "ada" in out
+    assert "admin" in out
+    assert "London" not in out
+
+
+def test_subcommand_list_view_mixin_add_index(capsys):
+    class VarsCmd(ListViewMixin, Parser):
+        "List users."
+
+        def cli_run(self, **_):
+            return USERS
+
+    class Root(Parser):
+        "Root."
+
+        vars = Command(VarsCmd)
+
+    Root(parse=False, add_help=False).dispatch(
+        ["vars", "--add-index", "--columns", "name"]
+    )
+
+    out = capsys.readouterr().out
+    assert "Index" in out
+    assert "ada" in out
+    assert "admin" not in out
 
 
 # ---------------------------------------------------------------------------

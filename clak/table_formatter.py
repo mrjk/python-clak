@@ -14,9 +14,15 @@ Classes:
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
+import csv
+import io
+import json
 
 from clak.common import replace_tabs
 from clak.settings import CLAK_COLORS
+
+OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
+SORT_MODES = frozenset({"asc", "desc"})
 
 # assert False
 
@@ -54,11 +60,87 @@ def create_separator(table):
     return ["-" * len(str(col)) for col in table.field_names]
 
 
+def normalize_sort_mode(mode, default="asc"):
+    """Return True when sort order is descending."""
+    if mode is None:
+        mode = default
+    if not isinstance(mode, str):
+        raise TypeError(f"sort_mode must be a string, got {type(mode).__name__}")
+    mode = mode.lower()
+    if mode not in SORT_MODES:
+        raise ValueError(f"sort_mode must be one of {sorted(SORT_MODES)}, got {mode!r}")
+    return mode == "desc"
+
+
+def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
+    """Sort tabular rows by one or more header names or indexes."""
+    if not sort_columns or not rows:
+        return rows
+
+    reverse = normalize_sort_mode(sort_mode)
+    indexes = []
+    for col in sort_columns:
+        if isinstance(col, int):
+            if col < 0 or col >= len(headers):
+                choices = ", ".join(str(header) for header in headers)
+                raise KeyError(
+                    f"Column index {col} out of range, choices: {choices}"
+                )
+            indexes.append(col)
+            continue
+        try:
+            indexes.append(headers.index(col))
+        except ValueError as err:
+            choices = ", ".join(str(header) for header in headers)
+            raise KeyError(
+                f"Column {col!r} not found in headers, choices: {choices}"
+            ) from err
+
+    def key_fn(row):
+        return [row[idx] if idx < len(row) else "" for idx in indexes]
+
+    return sorted(rows, key=key_fn, reverse=reverse)
+
+
+def format_structured(rows, headers, fmt):
+    """Render tabular rows as yaml, json, or csv."""
+    if fmt not in OUTPUT_FORMATS - {"view"}:
+        raise ValueError(
+            f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
+        )
+
+    if fmt == "json":
+        records = [dict(zip(headers, row)) for row in rows]
+        return json.dumps(records, indent=2, default=str) + "\n"
+
+    if fmt == "yaml":
+        try:
+            import yaml
+        except ImportError as err:
+            raise ImportError(
+                "PyYAML is required for --format yaml. Install with: pip install pyyaml"
+            ) from err
+        records = [dict(zip(headers, row)) for row in rows]
+        return yaml.safe_dump(records, sort_keys=False, default_flow_style=False)
+
+    if fmt == "csv":
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(headers)
+        writer.writerows(rows)
+        return buf.getvalue()
+
+    raise ValueError(f"Unsupported format {fmt!r}")
+
+
 class _TableFormatter(ABC):
     "Table view"
 
     view_options = {
         "columns": None,
+        "format": "view",
+        "sort_columns": None,
+        "sort_mode": "asc",
     }
 
     def __init__(self, data=None, columns=None, **view_options):
@@ -90,8 +172,20 @@ class _TableFormatter(ABC):
         _view_options = dict(self.view_options)
         _view_options.update(view_options)
 
+        fmt = _view_options.pop("format", "view") or "view"
+        sort_columns = _view_options.pop("sort_columns", None)
+        sort_mode = _view_options.pop("sort_mode", "asc") or "asc"
+
         data_table, headers = self.process_table(data, **_view_options)
         self.validate_table_data(data_table)
+
+        if sort_columns:
+            data_table = sort_table_rows(
+                data_table, headers, sort_columns, sort_mode=sort_mode
+            )
+
+        if fmt != "view":
+            return format_structured(data_table, headers, fmt)
 
         # Prepare table
         # table = ColorTable(theme=Themes.GLARE_REDUCTION)
@@ -142,6 +236,9 @@ class TableShowFormatter(_TableFormatter):
         "add_index": True,
         "columns": None,
         "remove_tabs": True,
+        "format": "view",
+        "sort_columns": None,
+        "sort_mode": "asc",
     }
 
     def process_table(self, data, columns=None, add_index=True, remove_tabs=True):
@@ -194,6 +291,9 @@ class TableListFormatter(_TableFormatter):
         "columns": None,
         "expand_keys": True,
         "remove_tabs": True,
+        "format": "view",
+        "sort_columns": None,
+        "sort_mode": "asc",
     }
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments

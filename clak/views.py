@@ -53,14 +53,22 @@ Examples:
 
 # pylint: disable=too-few-public-methods
 
+import json
 import logging
 import os
 import textwrap
+from collections.abc import Mapping, Sequence
 from pprint import pformat
 
-from clak.table_formatter import TableListFormatter, TableShowFormatter
+from clak.table_formatter import (
+    TableListFormatter,
+    TableShowFormatter,
+    format_structured,
+)
 
 logger = logging.getLogger(__name__)
+
+OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
 
 # MAX_WIDTH = 120
 MAX_WIDTH = 80
@@ -144,6 +152,45 @@ def parse_columns(value):
     return cols
 
 
+parse_sort_columns = parse_columns
+
+
+def format_show_payload(payload, fmt, columns=None):
+    """Render a single show payload as yaml, json, or csv."""
+    if fmt not in OUTPUT_FORMATS - {"view"}:
+        raise ValueError(
+            f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
+        )
+
+    if columns is not None:
+        if isinstance(payload, Mapping):
+            payload = {key: payload[key] for key in columns if key in payload}
+        elif isinstance(payload, Sequence) and not isinstance(payload, (str, bytes)):
+            payload = [
+                payload[key]
+                for key in columns
+                if isinstance(key, int) and key < len(payload)
+            ]
+
+    if fmt == "json":
+        return json.dumps(payload, indent=2, default=str) + "\n"
+
+    if fmt == "yaml":
+        try:
+            import yaml
+        except ImportError as err:
+            raise ImportError(
+                "PyYAML is required for --format yaml. Install with: pip install pyyaml"
+            ) from err
+        return yaml.safe_dump(payload, sort_keys=False, default_flow_style=False)
+
+    if fmt == "csv":
+        rows, headers = TableShowFormatter().process_table(payload, columns=columns)
+        return format_structured(rows, headers, "csv")
+
+    raise ValueError(f"Unsupported format {fmt!r}")
+
+
 def pformat_truncated(data, width=MAX_WIDTH):
     "Truncate a text to max lenght and replace by txt"
     data = pformat(data, width=width)
@@ -187,6 +234,15 @@ class ShowView(FeatureFullViewier):
         "Render data"
 
         payload, settings = self._render(*args, **kwargs)
+        fmt = settings.pop("format", None) or "view"
+        if fmt != "view":
+            rendered = format_show_payload(
+                payload,
+                fmt,
+                columns=settings.get("columns"),
+            )
+            return self._output(rendered, stdout=stdout)
+
         rendered = TableShowFormatter().render(payload, **settings)
         return self._output(rendered, stdout=stdout)
 

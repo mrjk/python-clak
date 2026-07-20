@@ -12,6 +12,8 @@ class AppMain(ListViewMixin, Parser):
       ./script_views.py --columns name,role
       ./script_views.py --add-index
       ./script_views.py --columns name --no-expand-keys
+      ./script_views.py --format json --columns name,role
+      ./script_views.py --sort-columns name --sort-mode desc
     """
 
     class Meta:

@@ -1007,6 +1007,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             if CLAK_DEBUG:
                 trace = True
 
+            # Leaf command (may carry Meta.cli_view / view mixins on nested cmds)
+            cli_leaf = args.get("__cli_self__", self)
+
             # Run app command
             try:
                 # Process commands
@@ -1024,7 +1027,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 )
                 data.render(**render_kwargs)
             else:
-                viewer = self.query_cfg_parents("cli_view", default=None)
+                viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
                 if isinstance(viewer, type) and issubclass(viewer, ClakView):
                     viewer = viewer()
                 if viewer is not None:
@@ -1138,13 +1141,13 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
             # print(f"Node {idx}:{node}")
 
-            # Prepare hooks list
+            # Prepare hooks list (per hierarchy node — mixins on subcommands)
             cls_hooks = [
-                method for method in dir(self) if method.startswith(fn_hook_prefix)
+                method for method in dir(node) if method.startswith(fn_hook_prefix)
             ]
             for hook_name in cls_hooks:
                 if not hook_name in hook_list:
-                    hook_fn = getattr(self, hook_name, None)
+                    hook_fn = getattr(node, hook_name, None)
                     if hook_fn is not None:
                         # Hooks order should be preserved with dict
                         hook_list[hook_name] = hook_fn
