@@ -39,6 +39,12 @@
     - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`, `--sort-mode`.
     - Or return `ShowView` / `ListView` / `PprintView` from `cli_run`, or set `Meta.cli_view`.
     - Guide: [Views](views.md).
+  - Error handling:
+    - `dispatch()` try/except + `clean_terminate()` handler chain (Paasify-style).
+    - `Meta.known_exceptions` for app errors with custom `rc`.
+    - `Meta.exception_handlers` for third-party libs (YAML, shell, …).
+    - Uncaught bugs: traceback + report to developer.
+    - Guide: [Error handling](exceptions.md).
   - Logging:
     - Configure and enable Basic Logger
     - Provide per Node logger

@@ -2,6 +2,7 @@ title: Documentation
 nav:
     - Features: features.md
     - Views: views.md
+    - Error handling: exceptions.md
     - Installation: install.md
     - Advanced: advanced.md
     - Execution: execution.md

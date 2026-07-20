@@ -553,6 +553,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
+    meta__config__exception_handlers = MetaSetting(
+        help=(
+            "Extra (exception_type, handler) pairs or handler callables "
+            "for clean_terminate (third-party libs, etc.)"
+        ),
+    )
 
     # Views support
     meta__config__cli_view = MetaSetting(
@@ -838,78 +844,91 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         return last_child
 
+    @staticmethod
+    def _exception_exit_code(err, default=1):
+        rc = getattr(err, "rc", default)
+        return rc if isinstance(rc, int) else default
+
+    @staticmethod
+    def _exception_advice(err):
+        advice = getattr(err, "advice", None)
+        if isinstance(advice, str):
+            logger.warning(advice)
+
+    def _terminate_app_exception(self, err):
+        """Default handler for app exceptions (Paasify-style: rc + message)."""
+        self._exception_advice(err)
+        print(err)
+        rc = self._exception_exit_code(err)
+        logger.critical(
+            "Program exited with: error %s: %s",
+            rc,
+            err.__class__.__name__,
+        )
+        sys.exit(rc)
+
+    @staticmethod
+    def _iter_exception_entries(entries):
+        for entry in entries or []:
+            if isinstance(entry, (tuple, list)) and entry:
+                exc_type = entry[0]
+                handler = entry[1] if len(entry) > 1 else None
+                yield exc_type, handler
+            else:
+                yield entry, None
+
+    def _run_exception_handler(self, handler, err):
+        if handler is None:
+            self._terminate_app_exception(err)
+            return
+        handler(self, err)
+        sys.exit(self._exception_exit_code(err))
+
     def clean_terminate(self, err, known_exceptions=None):
         """Handle program termination based on exception type.
+
+        Processing order (Paasify-style chain):
+
+        1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
+        2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, …)
+        3. Built-in Clak exceptions
+        4. Common OS errors
+
+        If nothing matches, return and let ``dispatch()`` report an unexpected bug.
 
         Args:
             err (Exception): The exception that triggered termination
             known_exceptions (list): List of exception types to handle specially
         """
 
-        # def default_exception_handler(node, exc):
-        #     print(f"Default exception handler: {exc} on {node}")
-        #     sys.exit(1)
+        # 1. App-known exceptions (e.g. PaasifyError hierarchy)
+        for exc_type, handler in self._iter_exception_entries(known_exceptions):
+            if isinstance(err, exc_type):
+                self._run_exception_handler(handler, err)
 
-        # # Prepare known exceptions list
-        # known_exceptions = known_exceptions or []
-        # known_exceptions_conf = {}
-        # for _exception in known_exceptions:
-        #     exception_fn = default_exception_handler
-        #     if isinstance(_exception, Sequence):
-        #         exception_cls = _exception[0]
-        #         if len(_exception) > 1:
-        #             exception_fn = _exception[1]
-        #     else:
-        #         exception_cls = _exception
+        # 2. Registered third-party / library handlers
+        extra_handlers = self.query_cfg_parents("exception_handlers", default=[])
+        for exc_type, handler in self._iter_exception_entries(extra_handlers):
+            if isinstance(err, exc_type):
+                self._run_exception_handler(handler, err)
 
-        #     exception_name = str(exception_cls)
-        #     known_exceptions_conf[exception_name] = {
-        #         "fn": exception_fn,
-        #         "exception": exception_cls,
-        #     }
-        # known_exceptions_list = tuple(
-        #     val["exception"] for val in known_exceptions_conf.values()
-        # )
-        # # Check user overrides
-        # if known_exceptions_list and isinstance(err, known_exceptions_list):
-        #     print("DEBUG", type(err), str(type(err)), err)
-        #     pprint(known_exceptions_conf)
-        #     get_handler = known_exceptions_conf[str(type(err))]["fn"]
-        #     get_handler(self, err)
-        #     # If handler did not exited, ensure we do
-        #     sys.exit(1)
-
-        # Check user overrides
-        known_exceptions = tuple(known_exceptions)
-        if known_exceptions and isinstance(err, known_exceptions):
-            logger.fatal(err)
-            sys.exit(1)
-
-        # If user made an error on command line, show usage before leaving
+        # 3. Clak parse errors — show usage first
         if isinstance(err, exception.ClakParseError):
-            # Must go to stdout
             self.show_usage()
             print(f"{err}")
             sys.exit(err.rc)
 
-        # Choose dead end way generic user error
+        # 4. User-facing Clak errors
         if isinstance(err, exception.ClakUserError):
-            if isinstance(err.advice, str):
-                logger.warning(err.advice)
-
+            self._exception_advice(err)
             print(f"{err}")
             sys.exit(err.rc)
 
-        # Internal clak errors
+        # 5. Other Clak errors (app / bug)
         if isinstance(err, exception.ClakError):
             err_name = err.__class__.__name__
-            if isinstance(err.advice, str):
-                logger.warning(err.advice)
-
-            err_message = err.message
-            if not err_message:
-                err_message = err.__doc__
-
+            self._exception_advice(err)
+            err_message = err.message or err.__doc__
             print(f"{err}")
             logger.critical(
                 "Program exited with bug %s(%s): %s",
@@ -919,6 +938,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             )
             sys.exit(err.rc)
 
+        # 6. OS errors
         oserrors = [
             PermissionError,
             FileExistsError,
@@ -930,11 +950,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ]
 
         if err.__class__ in oserrors:
-
-            # Decode OS errors
-            # errno = os.strerror(err.errno)
-            # errint = str(err.errno)
-
             logger.critical("Program exited with OS error: %s", err)
             sys.exit(err.errno)
 
@@ -1049,15 +1064,14 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
         self.clean_terminate(error, known_exceptions)
 
-        # Developer catchall, when an exception is not handled
+        # Developer catchall — unexpected bug (Paasify-style)
         if trace is False:
-            # print("TRACE")
-            # Show traceback if not already shown
             logger.error("".join(traceback.format_exception(error)))
         logger.critical(
-            "Uncaught error %s, this may be a bug! Error: %s", error.__class__, error
+            "Uncaught error %s; this may be a bug! Please report to the developer.",
+            error.__class__.__name__,
         )
-        # logger.critical("Exit 1 with bugs")
+        logger.critical("Error: %s", error)
         sys.exit(1)
 
     def cli_execute(  # pylint: disable=too-many-locals,too-many-statements

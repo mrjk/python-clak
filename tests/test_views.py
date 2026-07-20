@@ -566,6 +566,25 @@ def test_explicit_view_still_works_with_mixin_and_cli_override(capsys, caplog):
     assert "overrides view setting" in caplog.text
 
 
+def test_example_script_exceptions_runs(capsys):
+    """Smoke-test the documented exception-handling example."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "examples" / "script_exceptions.py"
+    spec = importlib.util.spec_from_file_location("script_exceptions_example", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    with pytest.raises(SystemExit) as exc:
+        module.AppMain(parse=False, add_help=False).dispatch(["deploy", "missing"])
+    assert exc.value.code == 44
+    assert "not found" in capsys.readouterr().out
+
+
 def test_example_script_views_runs(capsys):
     """Smoke-test the documented example module."""
     import importlib.util

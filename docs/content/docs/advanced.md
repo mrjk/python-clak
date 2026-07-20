@@ -67,23 +67,16 @@ def cli_run(self, **_):
 
 ## Error Handling and Validation
 
-1. **Command Not Found**:
+For production CLI apps, prefer Clak's built-in exception pipeline instead of
+manual `print` + `return 1`. See [Error handling](exceptions.md) for patterns
+used in Paasify (domain translation, `result.error` guards, `Meta.known_exceptions`).
 
 ```python
-def cli_run(self, **_):
-    if not hasattr(self, 'subcommand'):
-        print("No command specified")
-        self.show_help()
-        return 1
-```
+from clak.exception import ClakUserError
 
-2. **Argument Validation**:
-
-```python
 def cli_run(self, name=None, **_):
     if not name:
-        print("Error: NAME is required")
-        return 1
+        raise ClakUserError("NAME is required")
 ```
 
 ## Testing Nested Commands
