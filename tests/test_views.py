@@ -22,6 +22,12 @@ USERS = [
     {"name": "linus", "role": "dev", "city": "Helsinki"},
 ]
 
+USERS_UNSORTED = [
+    {"name": "linus", "role": "dev", "city": "Helsinki"},
+    {"name": "ada", "role": "admin", "city": "London"},
+    {"name": "grace", "role": "dev", "city": "New York"},
+]
+
 
 def _option_flags(app):
     return {opt for action in app.parser._actions for opt in action.option_strings}
@@ -46,6 +52,15 @@ def test_parse_columns_rejects_non_string():
 
 def test_parse_sort_columns_alias():
     assert parse_sort_columns("name,role") == ["name", "role"]
+    assert parse_sort_columns("-1,-3,1") == [-1, -3, 1]
+    assert parse_sort_columns(["city", -1]) == ["city", -1]
+
+
+def test_normalize_sort_columns_accepts_sequence():
+    from clak.views import normalize_sort_columns
+
+    assert normalize_sort_columns(["name", -1]) == ["name", -1]
+    assert normalize_sort_columns("role,-1") == ["role", -1]
 
 
 def test_merge_view_settings_warns_on_override(caplog):
@@ -344,6 +359,60 @@ def test_list_view_mixin_sort_columns_desc(capsys):
 
     out = capsys.readouterr().out
     assert out.index("linus") < out.index("ada")
+
+
+def test_list_view_mixin_default_sorts_first_column_asc(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch([])
+
+    out = capsys.readouterr().out
+    assert out.index("ada") < out.index("grace") < out.index("linus")
+
+
+def test_list_view_mixin_meta_view_sort_columns(capsys):
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_sort_columns = ("city",)
+            view_sort_mode = "desc"
+
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch([])
+
+    out = capsys.readouterr().out
+    assert out.index("grace") < out.index("ada") < out.index("linus")
+
+
+def test_list_view_mixin_sort_columns_negative_indexes(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch(
+        ["--sort-columns", "-1", "--columns", "name,city"]
+    )
+
+    out = capsys.readouterr().out
+    # -1 = city column; asc -> Helsinki, London, New York
+    assert out.index("linus") < out.index("ada") < out.index("grace")
+
+
+def test_list_view_mixin_sort_columns_mixed_indexes(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch(
+        ["--sort-columns=-1,-2,1", "--columns", "name,role,city"]
+    )
+
+    out = capsys.readouterr().out
+    assert "ada" in out
+    assert "linus" in out
 
 
 def test_subcommand_list_view_mixin_format_json(capsys):

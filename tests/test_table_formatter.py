@@ -6,7 +6,11 @@ from pprint import pprint
 
 import pytest
 
-from clak.table_formatter import TableListFormatter, TableShowFormatter
+from clak.table_formatter import (
+    TableListFormatter,
+    TableShowFormatter,
+    resolve_sort_column_index,
+)
 
 ################## Test data
 
@@ -265,3 +269,24 @@ def test_render_stdout_still_returns_output(capsys):
 
     assert isinstance(output, str)
     assert output in capsys.readouterr().out
+
+
+def test_resolve_sort_column_index_negative_and_one_based():
+    headers = ["name", "role", "city"]
+
+    assert resolve_sort_column_index(-1, headers) == 2
+    assert resolve_sort_column_index(-3, headers) == 0
+    assert resolve_sort_column_index(1, headers) == 0
+    assert resolve_sort_column_index(2, headers) == 1
+    assert resolve_sort_column_index("role", headers) == 1
+
+
+def test_list_formatter_default_sorts_first_column():
+    data = [
+        {"name": "linus", "role": "dev"},
+        {"name": "ada", "role": "admin"},
+    ]
+
+    output = TableListFormatter().render(data, expand_keys=True)
+
+    assert output.index("ada") < output.index("linus")

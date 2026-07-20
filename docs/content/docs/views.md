@@ -52,8 +52,33 @@ $ python script_views.py --columns name,role
 | Flag | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
-| `--sort-columns` | `COL1,COL2,...` | — | Sort rows by one or more column names (or indexes) |
+| `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (names, **1-based** indexes, or **negative** from end: `-1`=last) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
+
+Index syntax for `--sort-columns`:
+
+| Form | Meaning |
+| --- | --- |
+| `name` | column header name |
+| `1` | first column |
+| `2` | second column |
+| `-1` | last column |
+| `-3` | third from last |
+
+Example: `--sort-columns=-1,-3,1` sorts by last column, then third-from-last, then first
+(use `=` when the value starts with `-`, so argparse does not treat it as a flag).
+
+When `--sort-columns` is omitted, the **first displayed column** is sorted ascending.
+Override defaults in `Meta`:
+
+```python
+class App(ListViewMixin, Parser):
+    class Meta:
+        view_sort_columns = ("role", "name")  # or "role,-1" or [-1, 1]
+        view_sort_mode = "desc"
+```
+
+CLI flags override `Meta.view_sort_columns` and `Meta.view_sort_mode`.
 
 ``` raw linenums="0"
 $ python script_views.py --format json --columns name,role

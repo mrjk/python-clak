@@ -25,7 +25,7 @@ from typing import Any, Mapping, Set
 
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
-from clak.views import ListView, PprintView, ShowView, parse_columns, parse_sort_columns
+from clak.views import ListView, PprintView, ShowView, normalize_sort_columns, parse_columns, parse_sort_columns
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,16 @@ class _ViewMixinBase(PluginHelpers):
         ),
     )
     meta__view_cli_options = True
+
+    meta__config__view_sort_columns = MetaSetting(
+        help="Default sort columns (same syntax as --sort-columns)",
+    )
+    meta__view_sort_columns = None
+
+    meta__config__view_sort_mode = MetaSetting(
+        help="Default sort mode: asc or desc",
+    )
+    meta__view_sort_mode = None
 
     def _enabled_view_options(self) -> Set[str]:
         available = set(self._view_cli_option_names)
@@ -146,6 +156,20 @@ class _ViewMixinBase(PluginHelpers):
             if value is not None:
                 settings["sort_mode"] = value
 
+        if "sort_columns" not in settings:
+            meta_sort = self.query_cfg_parents(
+                "view_sort_columns", default=None, include_self=True
+            )
+            if meta_sort is not None:
+                settings["sort_columns"] = normalize_sort_columns(meta_sort)
+
+        if "sort_mode" not in settings:
+            meta_mode = self.query_cfg_parents(
+                "view_sort_mode", default=None, include_self=True
+            )
+            if meta_mode is not None:
+                settings["sort_mode"] = meta_mode
+
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
@@ -189,7 +213,11 @@ class ShowViewMixin(_ViewMixinBase):
     sort_columns = Argument(
         "--sort-columns",
         default=None,
-        help="Comma-separated columns to sort by",
+        help=(
+            "Comma-separated columns to sort by (names, 1-based indexes, "
+            "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
+            "values start with '-'."
+        ),
     )
     sort_mode = Argument(
         "--sort-mode",
@@ -246,7 +274,11 @@ class ListViewMixin(_ViewMixinBase):
     sort_columns = Argument(
         "--sort-columns",
         default=None,
-        help="Comma-separated columns to sort by",
+        help=(
+            "Comma-separated columns to sort by (names, 1-based indexes, "
+            "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
+            "values start with '-'."
+        ),
     )
     sort_mode = Argument(
         "--sort-mode",

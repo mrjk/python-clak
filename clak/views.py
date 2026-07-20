@@ -152,7 +152,40 @@ def parse_columns(value):
     return cols
 
 
-parse_sort_columns = parse_columns
+def parse_sort_columns(value):
+    """Parse --sort-columns: names, 1-based indexes (1=first), or negatives from end."""
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    if not isinstance(value, str):
+        raise TypeError(
+            f"sort_columns must be a string or sequence, got {type(value).__name__}"
+        )
+    cols = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            cols.append(int(part))
+        except ValueError:
+            cols.append(part)
+    return cols
+
+
+def normalize_sort_columns(value):
+    """Normalize Meta.view_sort_columns (string or sequence) for render settings."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return parse_sort_columns(value)
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    raise TypeError(
+        "view_sort_columns must be a string or sequence, "
+        f"got {type(value).__name__}"
+    )
 
 
 def format_show_payload(payload, fmt, columns=None):

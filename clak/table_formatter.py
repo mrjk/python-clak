@@ -72,34 +72,62 @@ def normalize_sort_mode(mode, default="asc"):
     return mode == "desc"
 
 
-def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
-    """Sort tabular rows by one or more header names or indexes."""
-    if not sort_columns or not rows:
-        return rows
+def resolve_sort_column_index(col, headers):
+    """Resolve a sort column to a 0-based index in *headers*.
 
-    reverse = normalize_sort_mode(sort_mode)
-    indexes = []
-    for col in sort_columns:
-        if isinstance(col, int):
-            if col < 0 or col >= len(headers):
-                choices = ", ".join(str(header) for header in headers)
-                raise KeyError(
-                    f"Column index {col} out of range, choices: {choices}"
-                )
-            indexes.append(col)
-            continue
+    - str: header name
+    - int < 0: index from end (-1 = last column)
+    - int > 0: 1-based index (1 = first column)
+    """
+    if isinstance(col, str):
         try:
-            indexes.append(headers.index(col))
+            return headers.index(col)
         except ValueError as err:
             choices = ", ".join(str(header) for header in headers)
             raise KeyError(
                 f"Column {col!r} not found in headers, choices: {choices}"
             ) from err
 
+    if isinstance(col, int):
+        if col == 0:
+            raise KeyError(
+                "Sort column index 0 is invalid; use 1 for first column or -1 for last"
+            )
+        if col < 0:
+            idx = len(headers) + col
+        else:
+            idx = col - 1
+        if idx < 0 or idx >= len(headers):
+            choices = ", ".join(str(header) for header in headers)
+            raise KeyError(
+                f"Sort column index {col} out of range, choices: {choices}"
+            )
+        return idx
+
+    raise TypeError(
+        f"Sort column must be a string or int, got {type(col).__name__}"
+    )
+
+
+def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
+    """Sort tabular rows by one or more header names or indexes."""
+    if not sort_columns or not rows:
+        return rows
+
+    reverse = normalize_sort_mode(sort_mode)
+    indexes = [resolve_sort_column_index(col, headers) for col in sort_columns]
+
     def key_fn(row):
-        return [row[idx] if idx < len(row) else "" for idx in indexes]
+        return [str(row[idx]) if idx < len(row) else "" for idx in indexes]
 
     return sorted(rows, key=key_fn, reverse=reverse)
+
+
+def default_sort_columns(headers):
+    """Default: sort by the first displayed column, ascending."""
+    if not headers:
+        return None
+    return [1]
 
 
 def format_structured(rows, headers, fmt):
@@ -178,6 +206,9 @@ class _TableFormatter(ABC):
 
         data_table, headers = self.process_table(data, **_view_options)
         self.validate_table_data(data_table)
+
+        if not sort_columns and headers:
+            sort_columns = default_sort_columns(headers)
 
         if sort_columns:
             data_table = sort_table_rows(
