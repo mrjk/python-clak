@@ -13,6 +13,9 @@ dependencies = [
     "prettytable (>=3.16.0,<4.0.0)"
 ]
 
+[project.optional-dependencies]
+colors = ["coloredlogs (>=15.0.1,<16.0.0)"]
+
 [tool.poetry]
 packages = [{include = "clak/"}]
 
@@ -31,6 +34,7 @@ build-backend = "poetry.core.masonry.api"
 #prettytable = "^3.14.0"
 
 [tool.poetry.group.dev.dependencies]
+coloredlogs = "^15.0.1"
 black = "^24.10.0"
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"

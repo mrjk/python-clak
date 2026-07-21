@@ -71,16 +71,14 @@ import logging.config
 from types import SimpleNamespace
 
 from clak.exception import ClakAppError
+from clak.log_levels import register_clak_log_levels
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
-from clak.settings import CLAK_COLORS, LOG_FORMAT, LOG_STYLES
-
-# import sys
-# from types import SimpleNamespace
-
-
-# from pprint import pprint
-
+from clak.settings import (
+    CLAK_COLORS,
+    LOG_FORMAT,
+    apply_coloredlogs_defaults,
+)
 
 # pylint: disable=invalid-name
 coloredlogs = None
@@ -92,63 +90,11 @@ if CLAK_COLORS:
 
 
 if coloredlogs:
-    coloredlogs.DEFAULT_LEVEL_STYLES = LOG_STYLES
-    coloredlogs.DEFAULT_LOG_FORMAT = LOG_FORMAT
+    apply_coloredlogs_defaults(coloredlogs)
 
-# PEP 366
-# __package__ = "argcomplete.scripts"
+register_clak_log_levels()
 
 logger = logging.getLogger(__name__)
-
-
-# See:
-# /home/jez/volumes/data/prj/jez/lab/iam-python/iam/lib/logs.py
-# /home/jez/volumes/data/prj/mrjk/bench_paasify/python-paasify__work__v4/cafram/cafram/utils.py
-# /home/jez/volumes/data/prj/mrjk/bench_paasify/python-paasify__work__v4/cafram/cafram/utils.py
-
-
-# Note: The cli should be configrable as well
-# VERBOSITY_PARSER_LEVELS = ["{__name__}.cli", "{__name__}", "clak", ""]  # Root parser
-# VERBOSITY_LEVELS2 = [
-#     ("{__name__}.cli", logging.INFO),
-#     ("{__name__}.cli", logging.DEBUG),
-#     ("{__name__}", logging.DEBUG),
-#     # Future
-#     # [
-#     #     ("{__name__}", logging.DEBUG),
-#     #     ("clak", logging.INFO),
-#     # ],
-#     # [
-#     #     ("{__name__}", logging.DEBUG),
-#     #     ("clak", logging.DEBUG),
-#     # ],
-#     # [
-#     #     ("{__name__}", logging.DEBUG),
-#     #     ("", logging.INFO),
-#     # ],
-#     ("", logging.DEBUG),
-# ]
-
-
-# Logging support
-# ============================
-
-# VERBOSITY_LEVELS = {
-#     0: logging.ERROR,  # Default
-#     1: logging.WARNING,  # Default
-#     2: logging.INFO,  # -v
-#     3: logging.DEBUG,  # -vv
-#     4: logging.DEBUG,  # -vvv (more detailed)
-#     5: logging.DEBUG,  # -vvvv (most detailed)
-# }
-
-# LOGGING_LEVELS, a var containing the mapping between log levels and names
-LOGGING_LEVELS = dict(
-    zip(
-        logging._nameToLevel.values(),  # pylint: disable=protected-access
-        logging._nameToLevel.keys(),  # pylint: disable=protected-access
-    )
-)
 
 DEFAULT_LOG_LEVEL = logging.WARNING
 DEFAULT_LOG_LEVELS = [
@@ -158,72 +104,69 @@ DEFAULT_LOG_LEVELS = [
     ["DEBUG|"],
 ]
 
-# Logging helpers
-# ================
+
+def _logger_entry(**conf):
+    """Build a dictConfig logger entry bound to the default handler."""
+    return {
+        "handlers": ["default"],
+        "propagate": False,
+        **conf,
+    }
 
 
-# # pylint: disable=redefined-builtin
-# def get_app_verbosity(verbosity, vars=None):
-#     "Get app verbosity level"
-#     error = None
-#     vars = vars or {}
-#     max_ = len(VERBOSITY_LEVELS2)
-#     if verbosity >= max_:
-#         error = f"Verbosity already set to max: {verbosity}/{max_-1}"
-#         verbosity = max_ - 1
-#     elif verbosity < 0:
-#         error = f"Verbosity too low, setting to min: {verbosity}/{max_-1}"
-#         verbosity = 0
-
-#     logger_name = VERBOSITY_LEVELS2[verbosity][0]
-#     logger_name = logger_name.format(**vars)
-
-#     out = SimpleNamespace(
-#         verbosity=verbosity,
-#         logger_name=logger_name,
-#         logger_level=VERBOSITY_LEVELS2[verbosity][1],
-#         error=error,
-#     )
-#     return out
+def _dotted_suffix(value):
+    """Normalize a logger suffix so a non-empty value starts with ``.``."""
+    suffix = str(value)
+    if suffix and not suffix.startswith("."):
+        return f".{suffix}"
+    return suffix
 
 
-# Imported from python-iam
-def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="default"):
+def get_app_logger(
+    loggers=None,
+    level="WARNING",
+    colors=False,
+    formatter="default",
+    level_styles=None,
+):
     "Instanciate application logger"
 
     loggers = loggers or {}
 
     # Settings
     fclass = "logging.Formatter"
-    # msconds = ""
+    formatter_kwargs = {}
     if colors and coloredlogs:
         # Require coloredlogs
         fclass = "coloredlogs.ColoredFormatter"
-        # msconds = "%(msecs)03d"
+        if level_styles is not None:
+            formatter_kwargs["level_styles"] = level_styles
 
     # Define formatters
     formatters = {
         "default": {
             "()": fclass,
             "format": LOG_FORMAT,
-            # "format": "[%(levelname)8s] %(message)s",
-            # 'datefmt': '%Y-%m-%d %H:%M:%S',
+            **formatter_kwargs,
         },
         "extended": {
             "()": fclass,
             "format": "[%(levelname)8s] %(name)s: %(message)s",
             "datefmt": "%H:%M:%S",
+            **formatter_kwargs,
         },
         "audit": {
             "()": fclass,
             "format": "%(asctime)s.%(msecs)03d [%(levelname)s] %(name)s: %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
+            **formatter_kwargs,
         },
         "debug": {
             "()": fclass,
             "format": "%(msecs)03d %(levelname)8s %(name)-30s %(message)-80s"
             "\t[%(filename)s/%(funcName)s:%(lineno)d]",
             "datefmt": "%H:%M:%S",
+            **formatter_kwargs,
         },
     }
 
@@ -252,50 +195,16 @@ def get_app_logger(loggers=None, level="WARNING", colors=False, formatter="defau
         # Where logs come from
         "loggers": {
             # Used to catch ALL logs
-            "": {  # root logger
-                "handlers": ["default"],
-                "level": "WARNING",
-                "propagate": False,
-            },
-            # # Used to catch all logs of myapp and sublibs
-            # 'myapp': {
-            #     'handlers': ['default'],
-            #     'level': 'INFO',
-            #     'propagate': False
-            # },
-            # # Used to catch cli logs only
-            # 'myapp.cli': {
-            #     'handlers': ['default'],
-            #     'level': 'INFO',
-            #     'propagate': False
-            # },
-            # # Used to catch app components, instanciated loggers
-            # 'myapp.comp': {
-            #     'handlers': ['default'],
-            #     'level': 'DEBUG',
-            #     'propagate': False
-            # },
+            "": _logger_entry(level="WARNING"),  # root logger
         },
     }
 
     # Prepare logger components
     for name, conf in loggers.items():
-        logging_config["loggers"][name] = {
-            "propagate": False,
-            "handlers": ["default"],
-        }
-        logging_config["loggers"][name].update(conf)
-
-    # print("APPLIED CONFIG")
-    # pprint(logging_config["loggers"])
+        logging_config["loggers"][name] = _logger_entry(**conf)
 
     # Load logger
     logging.config.dictConfig(logging_config)
-
-    # print("EFFECTIVE LEVEL", logging.getLogger().getEffectiveLevel())
-
-
-#########################################################
 
 
 class LoggingOptMixin(PluginHelpers):
@@ -313,7 +222,6 @@ class LoggingOptMixin(PluginHelpers):
         "--log-format",
         choices=["default", "extended", "audit", "debug"],
         help="Set log formatter",
-        # help=argparse.SUPPRESS,
         default="default",
     )
 
@@ -426,12 +334,7 @@ class LoggingOptMixin(PluginHelpers):
                 break
 
             for logger_ns in logger_config:
-                logger_name = logger_ns.logger_name
-                req_config[logger_name] = {
-                    "handlers": ["default"],
-                    "level": logger_ns.level,
-                    "propagate": False,
-                }
+                req_config[logger_ns.logger_name] = _logger_entry(level=logger_ns.level)
 
         return SimpleNamespace(
             config=req_config,
@@ -476,22 +379,14 @@ class LoggingOptMixin(PluginHelpers):
             log_config = self.select_user_config(user_config, req=log_verbosity)
 
             logger_config = {
-                "": {  # root logger
-                    "handlers": ["default"],
-                    "level": self._log_level(log_default_level),
-                    "propagate": False,
-                },
+                "": _logger_entry(level=self._log_level(log_default_level)),
             }
             logger_config.update(log_config.config)
 
             logs_silenced = log_verbosity < log_config.max_level
             if logs_silenced:
                 for logger_name in log_silent:
-                    logger_config[logger_name] = {
-                        "handlers": ["default"],
-                        "level": logging.WARNING,
-                        "propagate": False,
-                    }
+                    logger_config[logger_name] = _logger_entry(level=logging.WARNING)
 
             get_app_logger(
                 loggers=logger_config,
@@ -522,13 +417,9 @@ class LoggingOptMixin(PluginHelpers):
         elif log_suffix == "==FLAT==":
             suffix = f".{instance.__class__.__name__}"
         elif log_suffix == "==NESTED==":
-            suffix = str(instance.get_fname(attr="key"))
-            if suffix and not suffix.startswith("."):
-                suffix = f".{suffix}"
+            suffix = _dotted_suffix(instance.get_fname(attr="key"))
         else:
-            suffix = str(log_suffix)
-            if suffix and not suffix.startswith("."):
-                suffix = f".{suffix}"
+            suffix = _dotted_suffix(log_suffix)
 
         log_name = instance.__class__.__module__
         if log_prefix is not None:
@@ -562,17 +453,3 @@ class LoggingOptMixin(PluginHelpers):
         instance.logger.warning("Test logger with WARNING")
         instance.logger.error("Test logger with ERROR")
         instance.logger.critical("Test logger with CRITICAL")
-
-
-# Command configuration
-# ============================
-
-# class CompCmdRender(CompRenderCmdMixin, Parser):
-#     pass
-
-# class CompOptRender(CompRenderOptMixin, Parser):
-#     pass
-
-
-# if __name__ == "__main__":
-#     sys.exit(main())
