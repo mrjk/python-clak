@@ -51,3 +51,13 @@ activate-global-python-argcomplete
 ```
 
 See also completion support in documentation.
+
+## Optional extras
+
+Colored log output (used by `LoggingOptMixin` when available):
+
+```bash
+pip install 'mrjk-clak[colors]'
+```
+
+Or set `CLAK_COLORS=0` to disable colors even when `coloredlogs` is installed.

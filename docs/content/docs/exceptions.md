@@ -169,21 +169,22 @@ raise ClakUserError(
 
 If the exception is not handled by any step, `dispatch()`:
 
-1. Logs the **full traceback** (unless `--debug` / `CLAK_DEBUG` already showed it).
+1. Logs the **full traceback**.
 2. Logs: `Uncaught error …; this may be a bug! Please report to the developer.`
 3. Exits with code `1`.
 
 ``` raw linenums="0"
 $ python script_exceptions.py broken
-Uncaught error RuntimeError; this may be a bug! Please report to the developer.
-
-$ python script_exceptions.py --debug broken
 Traceback (most recent call last):
   ...
 RuntimeError: unexpected failure in demo command
+
+Uncaught error RuntimeError; this may be a bug! Please report to the developer.
 ```
 
-During development, use `--debug` or `CLAK_DEBUG=1` to always see tracebacks.
+For **handled** app/library errors, use `--trace` (from `LoggingOptMixin`) or
+`CLAK_DEBUG=1` to also print the traceback **before** the handler chain runs.
+See [Logging](logging.md).
 
 ## Full minimal app
 
@@ -233,4 +234,4 @@ handle termination.
 - Paasify reference: `paasify/cli.py` — `CatchErrors`, `clean_terminate`, `app()`
 - Paasify v4: `paasify_v4/cli/main.py` — `known_exceptions = [PaasifyError]`
 - [`demo108_exceptions.py`](https://github.com/mrjk/python-clak/blob/develop/tests/features/demo_features/demo108_exceptions.py)
-- [Logging](../api/plugin_logging.md) — `--debug` / `-v` for diagnostics
+- [Logging](logging.md) — `-v` / `--trace` / `CLAK_DEBUG` for diagnostics

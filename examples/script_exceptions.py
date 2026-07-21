@@ -14,8 +14,9 @@ Try:
   ./script_exceptions.py deploy myapp
   ./script_exceptions.py deploy missing          # rc 44
   ./script_exceptions.py load bad.yaml           # YAML handler, rc 42
-  ./script_exceptions.py broken                  # unexpected bug
-  ./script_exceptions.py --debug broken          # traceback + bug message
+  ./script_exceptions.py broken                  # unexpected bug (traceback)
+  ./script_exceptions.py --trace broken          # traceback before handler chain
+  CLAK_DEBUG=1 ./script_exceptions.py broken     # same as --trace
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ import sys
 
 import yaml
 
-from clak import Argument, Command, Parser
+from clak import Argument, Command, LoggingOptMixin, Parser
 
 logger = logging.getLogger(__name__)
 
@@ -123,10 +124,11 @@ class CatalogGroup(Parser):
     list = Command(ListCmd)
 
 
-class AppMain(Parser):
+class AppMain(LoggingOptMixin, Parser):
     """Exception-handling demo."""
 
     class Meta:
+        log_prefix = __name__
         known_exceptions = [AppError]
         exception_handlers = [
             (yaml.parser.ParserError, handle_yaml_parser_error),

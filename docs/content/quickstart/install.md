@@ -19,3 +19,9 @@ uv add mrjk.clak
 ```
 
 For more installation methods, please check [detailed installation](install.md) documentation.
+
+Optional colored logs:
+
+```bash
+pip install 'mrjk-clak[colors]'
+```

@@ -14,7 +14,7 @@ The logging system can be configured through Meta settings in parser classes:
 - log_default_level: Sets the default logging level
 
 Notes:
-- `log_prefix` must be enabled to allow CLI logging.
+- Set ``log_prefix`` (typically ``__name__``) so ``self.logger`` uses your app namespace.
 
 
 
@@ -242,7 +242,10 @@ class LoggingOptMixin(PluginHelpers):
 
     # Meta settings
     meta__config__log_prefix = MetaSetting(
-        help="Prefix of the logger name, usually set to __name__. Required to enable logging.",
+        help=(
+            "Base name for self.logger, usually __name__. "
+            "If omitted, the parser module name is used."
+        ),
     )
     meta__config__log_suffix = MetaSetting(
         help="Suffix of the logger name, override the right part.",

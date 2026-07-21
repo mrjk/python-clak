@@ -17,10 +17,11 @@ Full walkthrough: [Views](../docs/views.md).
 
 ## Logging component
 
-This component provides logging features to your application:
+Configure `-v` tiers, formatters, and `self.logger`. Full walkthrough:
+[Logging](../docs/logging.md).
 
-``` python title="script5.py" linenums="1"
---8<-- "examples/script5.py"
+``` python title="script_logging.py" linenums="1"
+--8<-- "examples/script_logging.py"
 ```
 
 ## Completion component

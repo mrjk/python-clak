@@ -31,6 +31,9 @@ class AppMain(Parser):
                 print("Verbose mode enabled")
 ```
 
+For structured `-v` / `-vv` logging tiers, prefer `LoggingOptMixin`
+(see [Logging](logging.md)) instead of a hand-rolled boolean flag.
+
 ### 3. Custom Help Messages
 
 Override the default help behavior:

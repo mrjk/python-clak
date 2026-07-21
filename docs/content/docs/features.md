@@ -46,9 +46,11 @@
     - Uncaught bugs: traceback + report to developer.
     - Guide: [Error handling](exceptions.md).
   - Logging:
-    - Configure and enable Basic Logger
-    - Provide per Node logger
-    - Provide `--verbose` and `-v,-vv,-vvv` flags
+    - Configure stderr logging and per-parser `self.logger` via `LoggingOptMixin`
+    - Cumulative `-v` / `-vv` / `-vvv` tiers (`Meta.log_levels`)
+    - Formatters (`--log-format`), optional colors (`coloredlogs`), `--trace`
+    - Custom levels: `spam`, `verbose`, `success`, `notice`
+    - Guide: [Logging](logging.md).
   - Config:
     - Use XDG Base Directory Specification to provide config files and directory paths.
     - Load yaml, json, toml, ini files easily
