@@ -1,17 +1,32 @@
-"""XDG Base Directory CLI path helpers.
+"""XDG Base Directory path helpers and config-file loading.
 
 Provides ``XDGConfigMixin`` so apps can expose standard config/data/cache/log
-path flags with defaults derived from ``Meta.app_name`` and ``$XDG_*`` env vars.
+path flags with defaults from ``Meta.app_name`` / ``$XDG_*``, and load
+``--conf-file`` once via ``cli_hook__config``.
 """
 
+from __future__ import annotations
+
 import argparse
+import json
 import logging
 import os
 import re
+from pathlib import Path
+from typing import Any, Mapping
 
-from clak.parser import Argument
+from clak.common import ObjectNamespace
+from clak.exception import ClakUserError
+from clak.parser import Argument, MetaSetting
 
 logger = logging.getLogger(__name__)
+
+# Optional YAML support (extra: mrjk-clak[config])
+yaml = None
+try:
+    import yaml  # type: ignore
+except ImportError:
+    pass
 
 _DEFAULT_XDG = {
     "XDG_CONFIG_HOME": "~/.config",
@@ -20,6 +35,10 @@ _DEFAULT_XDG = {
 }
 
 _UNSAFE_APP_NAME = re.compile(r"[^\w.-]+")
+
+_YAML_SUFFIXES = {".yaml", ".yml"}
+_JSON_SUFFIXES = {".json"}
+_YAML_INSTALL_HINT = "pip install 'mrjk-clak[config]'"
 
 
 def xdg_dir(env_var: str, default: str | None = None) -> str:
@@ -56,12 +75,74 @@ def resolve_xdg_paths(app_name: str) -> dict[str, str]:
     }
 
 
+def load_config_file(path: str | Path) -> dict[str, Any]:
+    """Load a mapping from a JSON or YAML config file.
+
+    Format is detected from the file suffix (``.json``, ``.yaml``, ``.yml``).
+    YAML requires the optional ``config`` extra (PyYAML).
+
+    Raises:
+        ClakUserError: Unknown suffix, missing PyYAML, I/O/parse error, or
+            non-mapping root document.
+    """
+    conf_path = Path(path)
+    suffix = conf_path.suffix.lower()
+
+    if suffix in _JSON_SUFFIXES:
+        try:
+            with conf_path.open(encoding="utf-8") as handle:
+                data = json.load(handle)
+        except OSError as err:
+            raise ClakUserError(
+                f"Could not read config file: {conf_path}",
+                advice=str(err),
+            ) from err
+        except json.JSONDecodeError as err:
+            raise ClakUserError(
+                f"Invalid JSON in config file: {conf_path}",
+                advice=str(err),
+            ) from err
+    elif suffix in _YAML_SUFFIXES:
+        if yaml is None:
+            raise ClakUserError(
+                f"YAML config requires PyYAML ({conf_path})",
+                advice=f"Install with: {_YAML_INSTALL_HINT}",
+            )
+        try:
+            with conf_path.open(encoding="utf-8") as handle:
+                data = yaml.safe_load(handle)
+        except OSError as err:
+            raise ClakUserError(
+                f"Could not read config file: {conf_path}",
+                advice=str(err),
+            ) from err
+        except yaml.YAMLError as err:
+            raise ClakUserError(
+                f"Invalid YAML in config file: {conf_path}",
+                advice=str(err),
+            ) from err
+    else:
+        raise ClakUserError(
+            f"Unsupported config format: {conf_path}",
+            advice="Use a .json, .yaml, or .yml file",
+        )
+
+    if data is None:
+        return {}
+    if not isinstance(data, Mapping):
+        raise ClakUserError(
+            f"Config root must be a mapping/object: {conf_path}",
+            advice=f"Got {type(data).__name__}",
+        )
+    return dict(data)
+
+
 # Configuration and workdir support
 # ============================
 
 
 class XDGConfigMixin:  # pylint: disable=too-few-public-methods
-    """XDG path flags for configuration files and directories.
+    """XDG path flags and config-file loading.
 
     Adds:
     - ``--conf-file``: ``$XDG_CONFIG_HOME/<app>/config.yaml``
@@ -72,6 +153,11 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
     ``<app>`` comes from ``Meta.app_name``, else the parser name / class name.
     Defaults respect ``$XDG_CONFIG_HOME``, ``$XDG_DATA_HOME``, and
     ``$XDG_CACHE_HOME`` when set.
+
+    On dispatch, ``cli_hook__config`` loads ``--conf-file`` (JSON always;
+    YAML with the ``config`` extra). Missing file yields ``{}`` unless
+    ``Meta.config_required`` is true. Loaded data is available as
+    ``ctx.config`` (dict) and ``cli_root.config`` (attribute namespace).
     """
 
     xdg_config = Argument(
@@ -89,6 +175,10 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
     xdg_log_dir = Argument(
         "--log-dir",
         help=argparse.SUPPRESS,
+    )
+
+    meta__config__config_required = MetaSetting(
+        help="If true, missing --conf-file raises ClakUserError",
     )
 
     _XDG_ARG_DEFAULTS = (
@@ -123,3 +213,48 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
             arguments[attr_name] = arg
 
         return super().add_arguments(arguments)
+
+    def cli_hook__config(self, instance, ctx, **_):
+        """Load ``--conf-file`` once and expose it on ctx / root."""
+        if ctx.cli_first:
+            path = getattr(ctx.args, "xdg_config", None)
+            required = bool(
+                self.query_cfg_parents(
+                    "config_required", default=False, include_self=True
+                )
+            )
+
+            if not path:
+                data: dict[str, Any] = {}
+                if required:
+                    raise ClakUserError(
+                        "Configuration file path is required",
+                        advice="Pass --conf-file PATH",
+                    )
+            else:
+                conf_path = Path(path)
+                if not conf_path.is_file():
+                    if required:
+                        raise ClakUserError(
+                            f"Configuration file not found: {conf_path}",
+                            advice="Create the file or pass --conf-file PATH",
+                        )
+                    logger.debug(
+                        "Config file missing, using empty config: %s", conf_path
+                    )
+                    data = {}
+                else:
+                    data = load_config_file(conf_path)
+
+            ctx.plugins["config"] = data
+            ctx.plugins["config_path"] = str(path) if path else None
+            ctx.cli_root.config = ObjectNamespace(**data)
+            logger.debug(
+                "Config loaded for %s from %s (%d keys)",
+                instance,
+                path,
+                len(data),
+            )
+
+        # Re-attach each hierarchy step (fresh ObjectNamespace per node)
+        ctx.config = ctx.plugins.get("config", {})

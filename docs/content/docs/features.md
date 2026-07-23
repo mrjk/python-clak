@@ -52,6 +52,9 @@
   - Config:
     - `XDGConfigMixin`: `--conf-file` / data / cache / log paths from
       `Meta.app_name` and `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` / `$XDG_CACHE_HOME`.
+    - Loads `--conf-file` on dispatch into `ctx.config` / `root.config`
+      (JSON always; YAML via optional extra `config` / PyYAML).
+    - Missing file → `{}` unless `Meta.config_required = True`.
   - Completion:
     - Provide `completion` or `--complete` flag to generate completion script.
     - Support most common shell via the `argcomplete` library.

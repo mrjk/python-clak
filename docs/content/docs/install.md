@@ -61,3 +61,11 @@ pip install 'mrjk-clak[colors]'
 ```
 
 Or set `CLAK_COLORS=0` to disable colors even when `coloredlogs` is installed.
+
+YAML config files (used by `XDGConfigMixin` for `.yaml` / `.yml`):
+
+```bash
+pip install 'mrjk-clak[config]'
+```
+
+JSON config files work without extras (stdlib).

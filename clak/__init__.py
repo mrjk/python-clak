@@ -5,7 +5,7 @@ and enhances Python's argparse with features like:
 
 - Simplified parser composition and inheritance
 - Rich command completion support
-- XDG Base Directory path flags (`XDGConfigMixin`)
+- XDG Base Directory path flags and config-file loading (`XDGConfigMixin`)
 - Structured logging configuration
 - Recursive subcommand handling
 

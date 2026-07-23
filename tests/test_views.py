@@ -16,7 +16,6 @@ from clak.views import (
     parse_sort_columns,
 )
 
-
 USERS = [
     {"name": "ada", "role": "admin", "city": "London"},
     {"name": "linus", "role": "dev", "city": "Helsinki"},
@@ -273,7 +272,9 @@ def test_list_view_mixin_format_json(capsys):
         def cli_run(self, **_):
             return USERS
 
-    App(parse=False, add_help=False).dispatch(["--format", "json", "--columns", "name,role"])
+    App(parse=False, add_help=False).dispatch(
+        ["--format", "json", "--columns", "name,role"]
+    )
 
     out = capsys.readouterr().out
     records = json.loads(out)
@@ -290,9 +291,9 @@ def test_list_view_format_json_keeps_original_values():
         {"name": "linus", "tags": []},
     ]
 
-    rendered = ListView(payload, format="json", columns=["name", "role", "tags"]).render(
-        stdout=False
-    )
+    rendered = ListView(
+        payload, format="json", columns=["name", "role", "tags"]
+    ).render(stdout=False)
     records = json.loads(rendered)
 
     assert records == [
@@ -325,9 +326,7 @@ def test_list_view_mixin_format_yaml(capsys):
         def cli_run(self, **_):
             return USERS
 
-    App(parse=False, add_help=False).dispatch(
-        ["--format", "yaml", "--columns", "name"]
-    )
+    App(parse=False, add_help=False).dispatch(["--format", "yaml", "--columns", "name"])
 
     out = capsys.readouterr().out
     assert "name: ada" in out
@@ -478,9 +477,7 @@ def test_subcommand_list_view_mixin_columns(capsys):
     app = Root(parse=False, add_help=False)
     app.dispatch(["vars", "--columns", "name,role"])
 
-    assert getattr(app, "_clak_view_settings", None) == {
-        "columns": ["name", "role"]
-    }
+    assert getattr(app, "_clak_view_settings", None) == {"columns": ["name", "role"]}
     out = capsys.readouterr().out
     assert "ada" in out
     assert "admin" in out

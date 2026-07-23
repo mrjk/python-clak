@@ -8,16 +8,21 @@ Maintainer guide to bump, tag, and publish `mrjk-clak` to PyPI.
 |------|---------|
 | Bump + tag | `./scripts/release.sh <VERSION>` |
 | Push | `git push && git push --tags` |
-| Publish | `task publish_pypi` |
+| Publish | automatic on `v*` tag (or `task publish_pypi`) |
 
-Version lives in `pyproject.toml`. `poetry-bumpversion` also updates `clak/__init__.py` when Poetry bumps the version.
+Version lives in `pyproject.toml`. Install the bump plugin once with
+`poetry self add poetry-bumpversion` so `poetry version` also updates
+`clak/__init__.py` (see `[tool.poetry_bumpversion]` in `pyproject.toml`).
+
+Override the package directory if needed: `PKG_DIR=clak ./scripts/release.sh patch`.
 
 ## Prerequisites
 
 - Clean git working tree (untracked files are fine; modified/staged files are not)
-- Poetry installed and project deps available
+- Tools via mise (`mise install`) and Poetry project deps (`poetry install --with dev`)
 - For stable releases: checkout `main` or `master`
 - For pre-releases (`pre*`, or a version like `1.2.3a0`): any branch **except** `main`/`master` (usually `develop`)
+- For automated publish: repository secret `PYPI_TOKEN` and (optional) environment `pypi`
 
 ## Bump and tag
 
@@ -54,45 +59,37 @@ Then push:
 git push && git push --tags
 ```
 
+Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: `task test` on
+Python 3.10 + 3.12, then `task publish_pypi` using `PYPI_TOKEN`.
+
 See `./scripts/release.sh --help` for all bump keywords.
 
 ## PyPI authentication
 
-Publishing needs a PyPI API token. Create one at
-[pypi.org/manage/account/token/](https://pypi.org/manage/account/token/).
+### CI (recommended)
 
-Persist with Poetry:
+Create a PyPI API token at
+[pypi.org/manage/account/token/](https://pypi.org/manage/account/token/)
+and store it as the repository secret `PYPI_TOKEN`.
+
+### Local / manual
 
 ```bash
 poetry config pypi-token.pypi pypi-AgEIcHlwaS5vcmc...
-```
-
-Or for a single publish (no config file):
-
-```bash
+# or:
 export POETRY_PYPI_TOKEN_PYPI=pypi-AgEIcHlwaS5vcmc...
 task publish_pypi
 ```
 
-If you see `HTTP 403` / access denied, the token is missing or revoked — reconfigure as above.
+If you see `HTTP 403` / access denied, the token is missing or revoked.
 
 ### TestPyPI
-
-One-time repository + token setup:
 
 ```bash
 poetry config repositories.testpypi https://test.pypi.org/legacy/
 poetry config pypi-token.testpypi pypi-...   # token from test.pypi.org
+task publish_pypi_test
 ```
-
-## Publish
-
-```bash
-task publish_pypi_test   # test.pypi.org (needs testpypi config above)
-task publish_pypi        # pypi.org
-```
-
-These tasks run `poetry build` then `poetry publish`.
 
 ## Typical flows
 
@@ -100,15 +97,42 @@ These tasks run `poetry build` then `poetry publish`.
 
 ```bash
 ./scripts/release.sh prerelease
-git push && git push --tags
-task publish_pypi
+git push && git push --tags   # tag triggers CI publish
 ```
 
 **Stable release**
 
 ```bash
 git checkout main && git pull
-./scripts/release.sh patch   # or an explicit version
+./scripts/release.sh patch
 git push && git push --tags
+```
+
+**Manual publish** (if CI secret is not set)
+
+```bash
 task publish_pypi
+```
+
+## CI toolkit (reuse)
+
+Portable **CORE** (copy to other small Poetry projects):
+
+- `mise.toml` — pin python / task / poetry / shellcheck
+- `ci/Taskfile.core.yml` — `test_core`, lint, publish
+- `.github/actions/setup-ci/` — shared mise + Poetry bootstrap
+- `.github/workflows/test_project.yml` — thin `poetry run task test`
+- `scripts/release.sh` — bump + tag (`PKG_DIR=…`)
+
+**OPTIONAL** (keep project-specific): root `Taskfile.yml` regressions,
+`docs/Taskfile.yml`, docs/publish workflows.
+
+Validate locally:
+
+```bash
+mise install
+poetry install --with dev
+bash ci/smoke_core.sh
+task test_core    # portable gate
+task test         # full Clak gate
 ```

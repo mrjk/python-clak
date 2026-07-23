@@ -12,11 +12,11 @@ Classes:
         Renders collections of dictionaries or sequences as tables.
 """
 
-from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
 import csv
 import io
 import json
+from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 
 from clak.common import replace_tabs
 from clak.settings import CLAK_COLORS
@@ -99,14 +99,10 @@ def resolve_sort_column_index(col, headers):
             idx = col - 1
         if idx < 0 or idx >= len(headers):
             choices = ", ".join(str(header) for header in headers)
-            raise KeyError(
-                f"Sort column index {col} out of range, choices: {choices}"
-            )
+            raise KeyError(f"Sort column index {col} out of range, choices: {choices}")
         return idx
 
-    raise TypeError(
-        f"Sort column must be a string or int, got {type(col).__name__}"
-    )
+    raise TypeError(f"Sort column must be a string or int, got {type(col).__name__}")
 
 
 def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):

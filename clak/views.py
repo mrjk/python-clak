@@ -183,8 +183,7 @@ def normalize_sort_columns(value):
     if isinstance(value, (list, tuple)):
         return list(value)
     raise TypeError(
-        "view_sort_columns must be a string or sequence, "
-        f"got {type(value).__name__}"
+        "view_sort_columns must be a string or sequence, " f"got {type(value).__name__}"
     )
 
 
@@ -194,9 +193,7 @@ def _project_item_columns(item, columns):
         return {key: item[key] for key in columns if key in item}
     if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
         return [
-            item[key]
-            for key in columns
-            if isinstance(key, int) and key < len(item)
+            item[key] for key in columns if isinstance(key, int) and key < len(item)
         ]
     return item
 
@@ -260,11 +257,10 @@ def format_list_payload(payload, fmt, columns=None):
     strip tabs, add Index columns, or otherwise adapt values for display.
     """
     if fmt not in {"json", "yaml"}:
-        raise ValueError(
-            f"Unsupported format {fmt!r}, choose one of: ['json', 'yaml']"
-        )
+        raise ValueError(f"Unsupported format {fmt!r}, choose one of: ['json', 'yaml']")
 
     return _dump_structured_payload(_project_list_columns(payload, columns), fmt)
+
 
 def pformat_truncated(data, width=MAX_WIDTH):
     "Truncate a text to max lenght and replace by txt"

@@ -25,7 +25,14 @@ from typing import Any, Mapping, Set
 
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
-from clak.views import ListView, PprintView, ShowView, normalize_sort_columns, parse_columns, parse_sort_columns
+from clak.views import (
+    ListView,
+    PprintView,
+    ShowView,
+    normalize_sort_columns,
+    parse_columns,
+    parse_sort_columns,
+)
 
 logger = logging.getLogger(__name__)
 

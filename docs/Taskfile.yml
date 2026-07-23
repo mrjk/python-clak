@@ -1,7 +1,12 @@
 ---
+# OPTIONAL docs module. Expects PKG_DIR / PKG from parent (default: clak).
 # https://taskfile.dev
 
-version: '3'
+version: "3"
+
+vars:
+  PKG_DIR: '{{.PKG_DIR | default "clak"}}'
+  PKG: '{{.PKG | default .PKG_DIR}}'
 
 tasks:
 
@@ -36,7 +41,6 @@ tasks:
   prep_doc:
     desc: Prepare documentation assets
     cmds:
-      # - task: copy_logo
       - task: gen_class_graph
       - task: gen_adr_toc
 
@@ -57,10 +61,10 @@ tasks:
         fi
 
   gen_class_graph:
-    desc: generate clak class diagrams
+    desc: generate package class diagrams
     cmds:
       - mkdir -p content/images
-      - pyreverse -my -A -o svg -p clak -d content/images/ ../clak/
+      - pyreverse -my -A -o svg -p {{.PKG}} -d content/images/ ../{{.PKG_DIR}}/
       - for:
           - parser
           - plugins
@@ -70,9 +74,9 @@ tasks:
         cmd: |
           mkdir -p content/images/schema_{{.ITEM | replace "/" "_" }}
           pyreverse -my -A -o svg \
-            -p clak \
+            -p {{.PKG}} \
             -d content/images/schema_{{.ITEM | replace "/" "_"}} \
-            ../clak/{{.ITEM}}.py
+            ../{{.PKG_DIR}}/{{.ITEM}}.py
       - >
         echo "Image generated in: content/images/"
 
@@ -90,4 +94,3 @@ tasks:
     cmds:
       - task: prep_doc
       - poetry run mkdocs gh-deploy --force
-
