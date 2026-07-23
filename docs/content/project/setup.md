@@ -49,13 +49,15 @@ poetry env use "$(mise which python)"
 poetry install --with dev
 ```
 
-After that, run tools via Poetry (or with `.venv` on `PATH`):
+After bootstrap, run Task as usual — Python tools are invoked via `poetry run`
+(see `PY` in the root Taskfile), so you do **not** need to activate `.venv`:
 
 ```bash
-poetry run task test
-# equivalent once .venv/bin is on PATH (direnv does this when present):
-# task test
+task test
+task fix_lint
 ```
+
+`poetry` itself must be on your PATH (from `mise activate` / `.envrc`).
 
 Useful subsets:
 

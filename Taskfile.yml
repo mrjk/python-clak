@@ -1,13 +1,22 @@
 ---
 # https://taskfile.dev
+#
+# Python tools live in the Poetry env. Always invoke them via `poetry run`
+# so `task …` works without activating .venv (and without relying on Task
+# PATH templating, which varies by Task version).
 
 version: '3'
 
+vars:
+  # Prefix for project Python tooling (black, pytest, …)
+  PY: poetry run
 
 includes:
   docs:
     taskfile: ./docs/Taskfile.yml
     dir: ./docs
+    vars:
+      PY: '{{.PY}}'
 
 tasks:
 
@@ -47,23 +56,23 @@ tasks:
   fix_lint:
     desc: fix all what can be fixed
     cmds:
-      - isort --profile black --overwrite-in-place $(git ls-files | grep '\.py$')
-      - black $(git ls-files | grep '\.py$')
-      - pymarkdownlnt fix $( git ls-files | grep '\.md$' | grep -v 'docs/' )
+      - "{{.PY}} isort --profile black --overwrite-in-place $(git ls-files | grep '\\.py$')"
+      - "{{.PY}} black $(git ls-files | grep '\\.py$')"
+      - "{{.PY}} pymarkdownlnt fix $( git ls-files | grep '\\.md$' | grep -v 'docs/' )"
 
   test_lint:
     desc: show what can be improved
     cmds:
-      - isort --profile black $(git ls-files | grep '\.py$')
-      - black --check $(git ls-files | grep '\.py$')
-      - pylint $(git ls-files | grep '\.py$' | grep clak/)
+      - "{{.PY}} isort --profile black $(git ls-files | grep '\\.py$')"
+      - "{{.PY}} black --check $(git ls-files | grep '\\.py$')"
+      - "{{.PY}} pylint $(git ls-files | grep '\\.py$' | grep clak/)"
 
   test_lint_full:
     desc: run all linting tests
     cmds:
       - task: test_lint
-      - yamllint $( git ls-files | grep '\.yml$' )
-      - pymarkdownlnt scan $( git ls-files | grep '\.md$' | grep -v 'docs/' )
+      - "{{.PY}} yamllint $( git ls-files | grep '\\.yml$' )"
+      - "{{.PY}} pymarkdownlnt scan $( git ls-files | grep '\\.md$' | grep -v 'docs/' )"
       - shellcheck $( git ls-files | grep '\.sh$' )
       - task: docs:test
 
@@ -95,13 +104,13 @@ tasks:
   fix_regressions:
     desc: Fix regressions
     cmds:
-      - pytest tests/ --force-regen
+      - "{{.PY}} pytest tests/ --force-regen"
 
   test_pytest:
     desc: Test with pytest
     once: true
     cmds:
-      - pytest tests/ -vv --tags unit-tests examples-unit examples-regressions
+      - "{{.PY}} pytest tests/ -vv --tags unit-tests examples-unit examples-regressions"
 
   test_regressions:
     desc: Test for regressions (slow)
@@ -111,15 +120,15 @@ tasks:
       # colorama to patch python stdout/err and break the tests.
       CLAK_COLORS: false
     cmds:
-      - pytest tests/ --tags examples-regressions
-      - pytest tests/ --tags examples-regressions-cli
+      - "{{.PY}} pytest tests/ --tags examples-regressions"
+      - "{{.PY}} pytest tests/ --tags examples-regressions-cli"
 
   test_report:
     desc: Report tests
     once: true
     cmds:
       # - pytest tests --tb no -vv -q
-      - pytest tests/ --tb no -q --cov=clak --cov-report term-missing --tags examples-unit unit-tests
+      - "{{.PY}} pytest tests/ --tb no -q --cov=clak --cov-report term-missing --tags examples-unit unit-tests"
 
   test_matrix:
     desc: Run pytest matrix (3.10–3.14) via mise + isolated .venvs
@@ -132,4 +141,3 @@ tasks:
       vars: [PYTHON_VERSION]
     cmds:
       - PYTHON_VERSION={{.PYTHON_VERSION}} bash ./scripts/run_python_matrix.sh
-

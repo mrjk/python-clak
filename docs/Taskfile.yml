@@ -7,6 +7,7 @@ version: "3"
 vars:
   PKG_DIR: '{{.PKG_DIR | default "clak"}}'
   PKG: '{{.PKG | default .PKG_DIR}}'
+  PY: '{{.PY | default "poetry run"}}'
 
 tasks:
 
@@ -28,12 +29,12 @@ tasks:
   test_lint:
     desc: "Check markdown linting"
     cmds:
-      - pymarkdownlnt scan $(git ls-files . | grep md$ )
+      - "{{.PY}} pymarkdownlnt scan $(git ls-files . | grep md$ )"
 
   test_mkdocs:
     desc: "Check mkdocs linting"
     cmds:
-      - mkdocs build --strict
+      - "{{.PY}} mkdocs build --strict"
 
   # Generate
   # =============
@@ -64,7 +65,7 @@ tasks:
     desc: generate package class diagrams
     cmds:
       - mkdir -p content/images
-      - pyreverse -my -A -o svg -p {{.PKG}} -d content/images/ ../{{.PKG_DIR}}/
+      - "{{.PY}} pyreverse -my -A -o svg -p {{.PKG}} -d content/images/ ../{{.PKG_DIR}}/"
       - for:
           - parser
           - plugins
@@ -73,7 +74,7 @@ tasks:
           - common
         cmd: |
           mkdir -p content/images/schema_{{.ITEM | replace "/" "_" }}
-          pyreverse -my -A -o svg \
+          {{.PY}} pyreverse -my -A -o svg \
             -p {{.PKG}} \
             -d content/images/schema_{{.ITEM | replace "/" "_"}} \
             ../{{.PKG_DIR}}/{{.ITEM}}.py
@@ -87,7 +88,7 @@ tasks:
     desc: serve mkdoc website locally
     cmds:
       - task: prep_doc
-      - mkdocs serve
+      - "{{.PY}} mkdocs serve"
 
   publish:
     desc: update gh_page branch with new documentation
