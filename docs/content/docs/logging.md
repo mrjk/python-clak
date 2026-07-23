@@ -154,7 +154,7 @@ Clak registers these levels on import of the logging component (and when
 They work on `logging`, `Logger`, and `LoggerAdapter`. Styles for colored
 output live next to the level definitions and are merged into `LOG_STYLES`.
 
-Advanced: register your own with `clak.log_levels.add_logging_level` / 
+Advanced: register your own with `clak.log_levels.add_logging_level` /
 `register_clak_log_levels`.
 
 ## Environment variables

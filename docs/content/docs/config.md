@@ -27,7 +27,7 @@ if __name__ == "__main__":
 Default `--conf-file` path (when `Meta.app_name = "cool-cli"`):
 
 ```text
-$XDG_CONFIG_HOME/cool-cli/config.yaml
+"$XDG_CONFIG_HOME/cool-cli/config.yaml"
 ```
 
 If `XDG_CONFIG_HOME` is unset, that is `~/.config/cool-cli/config.yaml`.

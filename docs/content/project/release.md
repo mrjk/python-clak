@@ -86,7 +86,7 @@ task publish_pypi_test
 
 ## Typical flows
 
-**Next alpha on develop**
+### Next alpha on develop
 
 ```bash
 ./scripts/release.sh prerelease
@@ -94,7 +94,7 @@ git push && git push --tags
 task publish_pypi
 ```
 
-**Stable release**
+### Stable release
 
 ```bash
 git checkout main && git pull
