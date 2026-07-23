@@ -271,13 +271,12 @@ class LoggingOptMixin(PluginHelpers):
             return value
         if not isinstance(value, str):
             raise TypeError(f"Log level must be a string or integer, got {type(value)}")
-        level = logging._nameToLevel.get(
-            value.upper()
-        )  # pylint: disable=protected-access
+        # logging has no public name→level map on all supported Pythons.
+        # pylint: disable-next=protected-access
+        name_to_level = logging._nameToLevel
+        level = name_to_level.get(value.upper())
         if level is None:
-            choices = ", ".join(
-                sorted(logging._nameToLevel)
-            )  # pylint: disable=protected-access
+            choices = ", ".join(sorted(name_to_level))
             raise ValueError(f"Unknown log level '{value}', choose one of: {choices}")
         return level
 
@@ -345,7 +344,9 @@ class LoggingOptMixin(PluginHelpers):
             level=req,
         )
 
-    def cli_hook__logging(self, instance, ctx, **_):
+    def cli_hook__logging(  # pylint: disable=too-many-locals,too-many-branches
+        self, instance, ctx, **_
+    ):
         "Inject or create logger into instance"
 
         logger.debug("Load Logging hook for %s", instance)

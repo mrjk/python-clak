@@ -22,11 +22,10 @@ from clak.parser import Argument, MetaSetting
 logger = logging.getLogger(__name__)
 
 # Optional YAML support (extra: mrjk.clak[config])
-yaml = None
 try:
-    import yaml  # type: ignore
+    import yaml as _yaml  # type: ignore
 except ImportError:
-    pass
+    _yaml = None
 
 _DEFAULT_XDG = {
     "XDG_CONFIG_HOME": "~/.config",
@@ -103,20 +102,20 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
                 advice=str(err),
             ) from err
     elif suffix in _YAML_SUFFIXES:
-        if yaml is None:
+        if _yaml is None:
             raise ClakUserError(
                 f"YAML config requires PyYAML ({conf_path})",
                 advice=f"Install with: {_YAML_INSTALL_HINT}",
             )
         try:
             with conf_path.open(encoding="utf-8") as handle:
-                data = yaml.safe_load(handle)
+                data = _yaml.safe_load(handle)
         except OSError as err:
             raise ClakUserError(
                 f"Could not read config file: {conf_path}",
                 advice=str(err),
             ) from err
-        except yaml.YAMLError as err:
+        except _yaml.YAMLError as err:
             raise ClakUserError(
                 f"Invalid YAML in config file: {conf_path}",
                 advice=str(err),

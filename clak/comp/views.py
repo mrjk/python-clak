@@ -15,7 +15,7 @@ Example:
             return [{"name": "a"}, {"name": "b"}]
 """
 
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,duplicate-code
 
 from __future__ import annotations
 
@@ -123,6 +123,7 @@ class _ViewMixinBase(PluginHelpers):
             return args.get(key, default)
         return getattr(args, key, default)
 
+    # pylint: disable-next=too-many-branches
     def collect_view_settings(self, args: Any) -> dict:
         """Build view render kwargs from parsed CLI args (only set flags)."""
         enabled = self._enabled_view_options()

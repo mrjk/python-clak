@@ -24,6 +24,18 @@ from clak.settings import CLAK_COLORS
 OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
 SORT_MODES = frozenset({"asc", "desc"})
 
+
+def require_yaml():
+    """Import PyYAML or raise a clear InstallError-style ImportError."""
+    try:
+        import yaml  # pylint: disable=import-outside-toplevel
+    except ImportError as err:
+        raise ImportError(
+            "PyYAML is required for --format yaml. Install with: pip install pyyaml"
+        ) from err
+    return yaml
+
+
 # assert False
 
 
@@ -138,12 +150,7 @@ def format_structured(rows, headers, fmt):
         return json.dumps(records, indent=2, default=str) + "\n"
 
     if fmt == "yaml":
-        try:
-            import yaml
-        except ImportError as err:
-            raise ImportError(
-                "PyYAML is required for --format yaml. Install with: pip install pyyaml"
-            ) from err
+        yaml = require_yaml()
         records = [dict(zip(headers, row)) for row in rows]
         return yaml.safe_dump(records, sort_keys=False, default_flow_style=False)
 

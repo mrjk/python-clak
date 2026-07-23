@@ -41,7 +41,7 @@ if _missing_styles or _extra_styles:
     )
 
 
-def add_logging_level(
+def add_logging_level(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements,protected-access
     level_name,
     level_num,
     method_name=None,

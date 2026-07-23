@@ -11,22 +11,18 @@ unless ``parse=False``.
 import logging
 import sys
 import traceback
-from pprint import pprint
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from clak import exception
 from clak.argparse_ import RecursiveHelpFormatter, argparse
 from clak.common import ObjectNamespace
 from clak.descriptors import (
-    USE_SUBPARSERS,
     ArgParseItem,
     Argument,
     FormatEnv,
     MetaSetting,
-    RegistryEntry,
     SubParser,
-    first_doc_line,
     prepare_docstring,
 )
 from clak.nodes import NOT_SET, Node
@@ -533,7 +529,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         return parser.parse_args(args)
 
-    def dispatch(
+    def dispatch(  # pylint: disable=too-many-branches
         self,
         args: Optional[Dict[str, Any]] = None,
         trace: Optional[bool] = False,

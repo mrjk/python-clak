@@ -64,6 +64,7 @@ from clak.table_formatter import (
     TableListFormatter,
     TableShowFormatter,
     format_structured,
+    require_yaml,
 )
 
 logger = logging.getLogger(__name__)
@@ -220,13 +221,9 @@ def _dump_structured_payload(payload, fmt):
         return json.dumps(payload, indent=2, default=str) + "\n"
 
     if fmt == "yaml":
-        try:
-            import yaml
-        except ImportError as err:
-            raise ImportError(
-                "PyYAML is required for --format yaml. Install with: pip install pyyaml"
-            ) from err
-        return yaml.safe_dump(payload, sort_keys=False, default_flow_style=False)
+        return require_yaml().safe_dump(
+            payload, sort_keys=False, default_flow_style=False
+        )
 
     raise ValueError(f"Unsupported format {fmt!r}")
 
