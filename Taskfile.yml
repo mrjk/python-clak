@@ -19,6 +19,11 @@ tasks:
     cmds:
       - task --list-all
 
+  clean:
+    desc: Remove local venvs, caches, and build artifacts (fresh-clone-like workspace)
+    cmds:
+      - bash ./scripts/clean_workspace.sh
+
   # Publish and release
   # =============
 

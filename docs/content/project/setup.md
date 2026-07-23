@@ -27,26 +27,34 @@ Both directories are gitignored.
 
 ## Prerequisites
 
-- [mise](https://mise.jdx.dev/) — pins the default Python (and other tools when configured)
-- [Poetry](https://python-poetry.org/) — project dependencies (creates `.venv/`)
-- [Task](https://taskfile.dev/) — `task test`, lint, docs, matrix
+- [mise](https://mise.jdx.dev/) — pins **Python 3.12**, **Poetry**, and **Task** (`mise.toml`)
+- A shell with mise activated (`eval "$(mise activate bash)"`, or direnv + `use mise` in `.envrc`)
+
+Poetry and Task come from mise after `mise install` — you do **not** need a system-wide Poetry install.
 
 ## Bootstrap (daily env)
 
-`mise.toml` pins **only** 3.12. A normal `mise install` does **not** download other Python versions.
+`mise.toml` pins the daily toolchain. A normal `mise install` does **not** download other Python versions (those come with the matrix).
 
 ```bash
+# 1) Activate mise in this shell (skip if direnv already loaded .envrc)
+eval "$(mise activate bash)"   # or: eval "$(mise activate zsh)"
+
+# 2) Install pinned tools (python 3.12, poetry, task)
 mise install
-poetry env use "$(mise which python)"   # bind Poetry to mise’s 3.12
-poetry install --with dev               # creates/updates ./.venv
+mise which poetry              # should print a path under ~/.local/share/mise/...
+
+# 3) Create/update project .venv
+poetry env use "$(mise which python)"
+poetry install --with dev
 ```
 
-After that, run tools via Poetry (or with `.venv` activated):
+After that, run tools via Poetry (or with `.venv` on `PATH`):
 
 ```bash
 poetry run task test
-# equivalent once activated:
-# source .venv/bin/activate && task test
+# equivalent once .venv/bin is on PATH (direnv does this when present):
+# task test
 ```
 
 Useful subsets:
@@ -57,6 +65,31 @@ Useful subsets:
 | `task test_regressions` | Example regressions (incl. CLI; `CLAK_COLORS=false`) |
 | `task test_lint_full` | Lint + docs checks |
 | `task fix_regressions` | `pytest --force-regen` for regression fixtures |
+| `task clean` | Remove `.venv`, `.venvs`, caches, build artifacts |
+
+## Reset environment (fresh-clone-like)
+
+Removes local virtualenvs and generated artifacts only — **not** git history, source, or mise-installed tools.
+
+```bash
+task clean
+```
+
+What it deletes (see `scripts/clean_workspace.sh`):
+
+- `.venv/`, `.venvs/`
+- `dist/`, `build/`, `*.egg-info`
+- `__pycache__/`, `.pytest_cache/`, coverage and similar caches
+- `docs/site/`, `.cache/`
+
+Then bootstrap again:
+
+```bash
+eval "$(mise activate bash)"   # if needed
+mise install
+poetry env use "$(mise which python)"
+poetry install --with dev
+```
 
 ## Local Python matrix
 

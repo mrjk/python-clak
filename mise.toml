@@ -1,2 +1,7 @@
+# Tool pins for local + CI. https://mise.jdx.dev/
+# Python matrix versions (3.10–3.14) are installed on demand by scripts/run_python_matrix.sh.
+
 [tools]
 python = "3.12"
+poetry = "2.1.4"
+task = "3.52.0"
