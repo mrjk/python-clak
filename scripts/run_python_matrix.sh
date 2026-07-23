@@ -96,7 +96,9 @@ ensure_venv() {
   fi
 
   echo "poetry install into ${venv_dir}"
-  with_matrix_venv "$venv_dir" poetry install --with dev --without docs --no-interaction
+  # rpds-py (via jsonschema) needs this on Python 3.14 until PyO3 catches up
+  with_matrix_venv "$venv_dir" env PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
+    poetry install --with dev --without docs --no-interaction
 }
 
 run_tests() {
