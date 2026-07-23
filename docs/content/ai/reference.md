@@ -11,7 +11,7 @@ Technical context for AI assistants when the
 # Clak — AI context (reference)
 
 Companion to the Clak AI primer. Package: mrjk.clak; import: clak.
-Python >= 3.10. Site: https://mrjk.github.io/python-clak/
+Python 3.10–3.14. Site: https://mrjk.github.io/python-clak/
 
 Assume the primer rules still apply (Parser / Argument / Command,
 App() auto-dispatch, mixin-left-of-Parser, no Click/Typer DSL).

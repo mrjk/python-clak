@@ -1,5 +1,9 @@
 # Installation
 
+## Requirements
+
+Clak supports **Python 3.10–3.14**.
+
 ## Clak Installation
 
 Clak is a Python library. Install it with any of the following methods.

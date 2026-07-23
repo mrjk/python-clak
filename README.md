@@ -5,7 +5,7 @@
 </p>
 
 <p align='center'>
-<img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
+<img src="https://img.shields.io/badge/python-3.10%E2%80%933.14-blue" alt="Python Version">
 <img src="https://img.shields.io/badge/license-GPL%20v3-blue" alt="License">
 <img src="https://img.shields.io/pypi/v/mrjk.clak.svg" alt="PyPI">
 </p>
@@ -28,8 +28,10 @@ PyPI: [mrjk.clak](https://pypi.org/project/mrjk.clak/)
 
 ## Requirements
 
-- Python 3.10 or higher
+- **Python 3.10–3.14** (declared `>=3.10,<4.0`; CI and local matrix cover 3.10–3.14)
 - `argparse` (stdlib)
+
+Developer setup and the version matrix: [Development setup](https://mrjk.github.io/python-clak/project/setup/).
 
 ## Install
 

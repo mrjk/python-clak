@@ -6,6 +6,8 @@ Define apps with `Parser`, `Argument`, and `Command` — same argument syntax yo
 already know, plus optional components for views, logging, config, and shell
 completion.
 
+**Requires Python 3.10–3.14.**
+
 ## Start here
 
 1. [Install](quickstart/install.md) — `pip install mrjk.clak`

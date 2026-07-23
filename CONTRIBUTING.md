@@ -157,7 +157,8 @@ Please contact main maintener.
 Maintainers: see the [Release](https://mrjk.github.io/python-clak/project/release/) guide
 (source: `docs/content/project/release.md`) for bump, tag, PyPI auth, and publish steps.
 
-Local setup and the Python test matrix: [Development setup](https://mrjk.github.io/python-clak/project/setup/)
+Local setup and the Python test matrix (**supported: 3.10–3.14**, daily base **3.12**):
+[Development setup](https://mrjk.github.io/python-clak/project/setup/)
 (source: `docs/content/project/setup.md`).
 
 <!-- omit in toc -->

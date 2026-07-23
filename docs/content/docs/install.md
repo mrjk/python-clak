@@ -1,6 +1,11 @@
 # Installation
 
 
+## Requirements
+
+Clak supports **Python 3.10–3.14**. Packaging declares `requires-python = ">=3.10,<4.0"`.
+
+
 ## Package installation
 
 Clak is a Python library. Install it with any of the following methods.

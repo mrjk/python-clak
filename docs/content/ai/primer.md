@@ -13,7 +13,7 @@ Paste this into an AI chat when you want accurate help writing or reviewing
 
 Package: mrjk.clak (PyPI https://pypi.org/project/mrjk.clak/)
 Import package name: clak
-Python: >= 3.10
+Python: 3.10–3.14 (requires-python >=3.10,<4.0)
 Docs: https://mrjk.github.io/python-clak/
 
 ## What Clak is
