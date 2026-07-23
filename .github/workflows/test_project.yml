@@ -54,6 +54,9 @@ jobs:
           poetry config --list
 
       - name: Install dependencies
+        env:
+          # rpds-py builds via PyO3; 3.14 is newer than PyO3 0.24's declared max (3.13)
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
         run: |
-          poetry install
+          poetry install --with dev
           poetry run task test
