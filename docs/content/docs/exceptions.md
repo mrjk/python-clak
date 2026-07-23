@@ -1,6 +1,7 @@
 # Error handling
 
-Clak wraps the whole CLI in a **try/except** inside `Parser.dispatch()`. When
+Clak wraps the whole CLI in a **try/except** inside `Parser.dispatch()`
+(called automatically when you instantiate a root `Parser()`, unless `parse=False`). When
 anything fails, `clean_terminate()` walks a **handler chain** (same idea as
 Paasify's `CatchErrors` + `clean_terminate` in `paasify/cli.py`). If nothing
 matches, the user gets an **unexpected bug** message with a full Python

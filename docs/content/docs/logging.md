@@ -5,6 +5,23 @@ per-parser **`self.logger`** via `LoggingOptMixin`.
 
 Runnable example: [`examples/script_logging.py`](https://github.com/mrjk/python-clak/blob/develop/examples/script_logging.py).
 
+## Two approaches
+
+Pick one ownership model; do not mix them for the same process.
+
+**Clak manages logging** — inherit `LoggingOptMixin`. Clak configures stderr
+handlers, formatters, `-v` tiers from `Meta.log_levels`, and binds
+`self.logger`. Use this for new CLIs or when you want Clak’s logging UX.
+
+**App manages logging** — use `Parser` only (omit `LoggingOptMixin`). Keep
+your own `logging` setup (`basicConfig`, `dictConfig`, handlers, libraries).
+Clak does not call `dictConfig`. Wire `-v` (or equivalent) yourself if you
+need verbosity flags.
+
+Custom Clak levels (`SPAM`, `VERBOSE`, `SUCCESS`, `NOTICE`) register only when
+something imports the logging component / mixin path; they are additive on the
+stdlib `logging` module and usually harmless next to an app-owned setup.
+
 ## Quick start
 
 ```python
@@ -148,6 +165,23 @@ Advanced: register your own with `clak.log_levels.add_logging_level` /
 | `CLAK_COLORS=0` | Disable coloredlogs integration |
 
 ## Common patterns
+
+=== "Existing project logging"
+
+    Keep your existing `logging` configuration. Omit `LoggingOptMixin` so Clak
+    does not install handlers or call `dictConfig`.
+
+    ```python
+    import logging
+    from clak import Parser  # no LoggingOptMixin
+
+    logging.basicConfig(level=logging.INFO)  # or your existing setup
+    logger = logging.getLogger(__name__)
+
+    class App(Parser):
+        def cli_run(self, **_):
+            logger.info("app logging stays as configured")
+    ```
 
 === "App + dependency quieting"
 

@@ -3,14 +3,12 @@
 - Argparse friendly:
   - Reuse as much as possible from argparse, but allow a new modular way to built CLI.
   - If you know argparse, then you already know how to use clak.
-  - Same API:
+  - Same API (canonical names: `Parser`, `Argument`, `Command`):
     - `argparse.ArgumentParser()` becomes `class MyApp(Parser):`
     - `.add_argument(...)` becomes `dest = Argument(...)`
-    - `.add_subparser(...)` becomes `subcmd1 = SubCommand(...)`
-  - Extended API:
-    - `.add_argument("--option", "o", help="Optional argument")` => `option = Opt("--option", "o", help="Optional argument")`
-    - `.add_argument("param", help="Positional argument")` => `param = Arg(help="Positional argument")`
-    - `.add_suparser(...)` => `subcmd1 = Cmd(ChildrenParserClass, help="Subcommand help")`
+    - `.add_subparser(...)` becomes `subcmd1 = Command(...)`
+  - Aliases: `SubParser` / `SubCommand` / `Cmd` are the same as `Command`; `ArgumentParser` is `Parser`.
+  - Planned (not shipped yet): distinct `Opt` / `Arg` helpers for optional vs positional.
 
 - Class based approach:
   - Use Python class to provide declarative command line.
@@ -22,7 +20,7 @@
 - Build git-like CLI with ease
   - Rely on arparse subparser functionality.
   - Pythonic class based approach to represent.
-  - Each subcommands are `Parser` instances, referenced via the `SubCommand` field.
+  - Each subcommands are `Parser` instances, referenced via the `Command` field.
 
 - Easy sub-command discovery
   - All possible command are show in the root help

@@ -1,6 +1,8 @@
 # Logging
 
 Add `LoggingOptMixin` to the parser and configure logging through `Meta`.
+If the app already owns handlers / `dictConfig`, omit the mixin — see
+[Two approaches](../docs/logging.md#two-approaches) in the logging guide.
 Full walkthrough: [Logging](../docs/logging.md).
 
 ```python
