@@ -29,4 +29,4 @@ ArgumentParser = Parser
 SubCommand = SubParser
 Cmd = SubParser
 
-__version__ = "0.4.0a3"
+__version__ = "0.4.0"
