@@ -67,6 +67,7 @@ EOF
 Project Informations:
     Version command: $GET_VERSION_CMD
     Current project version: $(get_current_version)
+    Package dir (PKG_DIR): $(get_pkg_dir)
 EOF
     exit 0
 }
@@ -99,9 +100,9 @@ get_current_version() {
     $GET_VERSION_CMD
 }
 
-# Dump way to get current project name
-get_project_name() {
-    grep "^name" pyproject.toml | cut -d'"' -f2
+# Package directory (import path), not PyPI name. Override with PKG_DIR.
+get_pkg_dir() {
+    echo "${PKG_DIR:-clak}"
 }
 
 # Enforce branch restrictions based on version type:
@@ -174,17 +175,18 @@ commit_and_tag() {
     # Get current version from poetry without extra output
     local version
     version=$(poetry version -s)
-    prj_name=$(get_project_name)
-    
-    local target="$prj_name/__init__.py"
+    local pkg_dir
+    pkg_dir=$(get_pkg_dir)
+
+    local target="$pkg_dir/__init__.py"
     local targets=""
     for file in pyproject.toml "$target" ; do
         [[ -f "$file" ]] || continue
         targets="$targets $file"
     done
-    
+
     # shellcheck disable=SC2086
-    git add $targets    
+    git add $targets
     echo ">>> Committing version bump and create tag"
     # shellcheck disable=SC2086
     git commit -m "bump: version v$version" $targets
