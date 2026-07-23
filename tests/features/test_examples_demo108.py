@@ -30,8 +30,7 @@ TEST_PARAMETERS = [
     # Test command1 raises ClakNotImplementedError
     (["command1"], "No 'cli_run' method found for", 31),
     # Test command2 raises AppException with custom handler
-    (["command2"], "", 1),
-    # TODO: Exception error message is too different from the one in the script
+    (["command2"], "Custom exception", 1),
     # Test command3 raises uncaught RuntimeError
     (["command3"], "", 1),
 ]
