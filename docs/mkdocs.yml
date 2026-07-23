@@ -40,9 +40,6 @@ theme:
         name: Switch to light mode
 
 markdown_extensions:
-  # - literate-nav:
-  #     nav_file: SUMMARY.md
-
   - abbr
   - attr_list
   - admonition
@@ -54,11 +51,9 @@ markdown_extensions:
       anchor_linenums: true
       pygments_lang_class: true
       auto_title: false
-      # linenums: true
 
   - pymdownx.inlinehilite
   - pymdownx.snippets:
-      # auto_append: ["../LICENSE"]
       base_path:
         - ".."
         - "../logo"
@@ -66,7 +61,6 @@ markdown_extensions:
       auto_append:
         - docs/includes/abbreviations.md
       check_paths: true
-
 
   - pymdownx.tabbed:
       alternate_style: true
@@ -76,7 +70,6 @@ markdown_extensions:
   - sane_lists
   - toc
 
-  # Ensure we have easy list parsing
   - mdx_truly_sane_lists:
       nested_indent: 2
       truly_sane: true
@@ -88,6 +81,7 @@ plugins:
   - mkdocs-simple-hooks:
       hooks:
         on_post_build: "docs.hooks:copy_get"
+  - autorefs
   - mkdocstrings:
       handlers:
         python:
@@ -95,6 +89,14 @@ plugins:
           options:
             show_source: true
             show_root_heading: true
+
+# MkDocs validates nav before awesome-pages expands `... | dir/*`.
+# Ignore those false positives; real missing pages still fail --strict later.
+validation:
+  nav:
+    omitted_files: ignore
+    not_found: ignore
+    absolute_links: ignore
 
 nav:
   - Home: index.md
@@ -117,4 +119,3 @@ nav:
       - Release: project/release.md
       - Code of Conduct: project/CODE_OF_CONDUCT.md
       - License: project/license.md
-
