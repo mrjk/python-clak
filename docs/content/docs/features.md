@@ -50,13 +50,12 @@
     - Custom levels: `spam`, `verbose`, `success`, `notice`
     - Guide: [Logging](logging.md).
   - Config:
-    - Use XDG Base Directory Specification to provide config files and directory paths.
-    - Load yaml, json, toml, ini files easily
+    - `XDGConfigMixin`: `--conf-file` / data / cache / log paths from
+      `Meta.app_name` and `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` / `$XDG_CACHE_HOME`.
   - Completion:
     - Provide `completion` or `--complete` flag to generate completion script.
     - Support most common shell via the `argcomplete` library.
   - More to come ...
     - Environment var support
-    - Automatic app config reader/writer
   - Build your own:
     - Reuse your existing code, your favorite CLI options, put them in a library and ship it.
