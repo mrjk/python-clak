@@ -1,6 +1,8 @@
 import re
 
 REGEX_RULES = [
+    # Strip ANSI color / style escapes (TTY vs CI)
+    (r"\x1b\[[0-9;]*m", r""),
     # matches "<object at 0xHEXPATTERN>"
     (r"<([^>]+) at 0x[0-9a-fA-F]+>", r"<\1>"),
     # Fall back for project
@@ -10,6 +12,10 @@ REGEX_RULES = [
     (r"/home/[^/]+/", r"/home/user/"),  # matches /home/USER/
     # Match eceptions lines
     (r"line [0-9]+,", r"line XXX,"),
+    # Python 3.11+ traceback caret / wavy underline lines
+    (r"(?m)^[ \t]*[~^]+[ \t]*\n?", r""),
+    # Path rewrite can drop the opening quote: File /app/...py" → File "/app/...py"
+    (r'File (/app/python-clak[^"]*")', r'File "\1'),
 ]
 
 

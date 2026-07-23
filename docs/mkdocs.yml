@@ -115,6 +115,7 @@ nav:
 
   - About:
       - Contributing: project/CONTRIBUTING.md
+      - Development setup: project/setup.md
       - Roadmap: project/roadmap.md
       - Release: project/release.md
       - Code of Conduct: project/CODE_OF_CONDUCT.md

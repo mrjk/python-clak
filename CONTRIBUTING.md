@@ -136,7 +136,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/mrjk/c
 
 ### Your First Code Contribution
 
-Please learn [how to configure your development envrionment](https://mrjk.github.io/python-clak/develop/setup) then how to [contribute to clak](https://mrjk.github.io/python-clak/develop/clak).
+Please learn [how to configure your development environment](https://mrjk.github.io/python-clak/project/setup/) then how to [contribute to clak](https://mrjk.github.io/python-clak/project/CONTRIBUTING/).
 
 ### Improving The Documentation
 
@@ -156,6 +156,9 @@ Please contact main maintener.
 
 Maintainers: see the [Release](https://mrjk.github.io/python-clak/project/release/) guide
 (source: `docs/content/project/release.md`) for bump, tag, PyPI auth, and publish steps.
+
+Local setup and the Python test matrix: [Development setup](https://mrjk.github.io/python-clak/project/setup/)
+(source: `docs/content/project/setup.md`).
 
 <!-- omit in toc -->
 

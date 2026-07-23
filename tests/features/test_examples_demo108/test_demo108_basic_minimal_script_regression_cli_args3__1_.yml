@@ -2,10 +2,10 @@ cli_args:
 - command3
 exit_code: 1
 output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo108_exceptions.py\
-  \ command3\n\n  STDOUT:\nTraceback (most recent call last):\n  File /app/python-clak/parser.py\"\
-  , line XXX, in dispatch\n    data = self.cli_execute(args=args)\n  File /app/python-clak/parser.py\"\
+  \ command3\n\n  STDOUT:\nTraceback (most recent call last):\n  File \"/app/python-clak/parser.py\"\
+  , line XXX, in dispatch\n    data = self.cli_execute(args=args)\n  File \"/app/python-clak/parser.py\"\
   , line XXX, in cli_execute\n    ret = run_fn(ctx=_ctx, **_ctx.args.__dict__)\n \
-  \ File /app/python-clak/tests/features/demo_features/demo108_exceptions.py\", line\
-  \ XXX, in cli_run\n    raise RuntimeError(\"Runtime exception\")\nRuntimeError:\
+  \ File \"/app/python-clak/tests/features/demo_features/demo108_exceptions.py\",\
+  \ line XXX, in cli_run\n    raise RuntimeError(\"Runtime exception\")\nRuntimeError:\
   \ Runtime exception\n\nUncaught error RuntimeError; this may be a bug! Please report\
   \ to the developer.\nError: Runtime exception\n\n\n  STDERR:\n"
