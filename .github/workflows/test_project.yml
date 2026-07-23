@@ -3,7 +3,8 @@ name: test-project
 
 # yamllint disable-line rule:truthy
 on:
-  - push
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
