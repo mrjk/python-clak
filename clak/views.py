@@ -188,23 +188,37 @@ def normalize_sort_columns(value):
     )
 
 
-def format_show_payload(payload, fmt, columns=None):
-    """Render a single show payload as yaml, json, or csv."""
-    if fmt not in OUTPUT_FORMATS - {"view"}:
-        raise ValueError(
-            f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
-        )
+def _project_item_columns(item, columns):
+    """Keep original values while projecting selected columns on one row."""
+    if isinstance(item, Mapping):
+        return {key: item[key] for key in columns if key in item}
+    if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
+        return [
+            item[key]
+            for key in columns
+            if isinstance(key, int) and key < len(item)
+        ]
+    return item
 
-    if columns is not None:
-        if isinstance(payload, Mapping):
-            payload = {key: payload[key] for key in columns if key in payload}
-        elif isinstance(payload, Sequence) and not isinstance(payload, (str, bytes)):
-            payload = [
-                payload[key]
-                for key in columns
-                if isinstance(key, int) and key < len(payload)
-            ]
 
+def _project_list_columns(payload, columns):
+    """Project columns onto list/dict payloads without table display adapts."""
+    if columns is None:
+        return payload
+
+    if isinstance(payload, Mapping):
+        return {
+            key: _project_item_columns(item, columns) for key, item in payload.items()
+        }
+
+    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes)):
+        return [_project_item_columns(item, columns) for item in payload]
+
+    return payload
+
+
+def _dump_structured_payload(payload, fmt):
+    """Serialize an original payload as json or yaml."""
     if fmt == "json":
         return json.dumps(payload, indent=2, default=str) + "\n"
 
@@ -217,12 +231,40 @@ def format_show_payload(payload, fmt, columns=None):
             ) from err
         return yaml.safe_dump(payload, sort_keys=False, default_flow_style=False)
 
+    raise ValueError(f"Unsupported format {fmt!r}")
+
+
+def format_show_payload(payload, fmt, columns=None):
+    """Render a single show payload as yaml, json, or csv."""
+    if fmt not in OUTPUT_FORMATS - {"view"}:
+        raise ValueError(
+            f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
+        )
+
+    if fmt in {"json", "yaml"}:
+        if columns is not None:
+            payload = _project_item_columns(payload, columns)
+        return _dump_structured_payload(payload, fmt)
+
     if fmt == "csv":
         rows, headers = TableShowFormatter().process_table(payload, columns=columns)
         return format_structured(rows, headers, "csv")
 
     raise ValueError(f"Unsupported format {fmt!r}")
 
+
+def format_list_payload(payload, fmt, columns=None):
+    """Render a list payload as yaml or json with original values.
+
+    Unlike the table path, this does not fill missing cells with ``"-"``,
+    strip tabs, add Index columns, or otherwise adapt values for display.
+    """
+    if fmt not in {"json", "yaml"}:
+        raise ValueError(
+            f"Unsupported format {fmt!r}, choose one of: ['json', 'yaml']"
+        )
+
+    return _dump_structured_payload(_project_list_columns(payload, columns), fmt)
 
 def pformat_truncated(data, width=MAX_WIDTH):
     "Truncate a text to max lenght and replace by txt"
@@ -287,5 +329,14 @@ class ListView(FeatureFullViewier):
         "Render data"
 
         payload, settings = self._render(*args, **kwargs)
-        rendered = TableListFormatter().render(payload, **settings)
+        fmt = settings.pop("format", None) or "view"
+        if fmt in {"yaml", "json"}:
+            rendered = format_list_payload(
+                payload,
+                fmt,
+                columns=settings.get("columns"),
+            )
+            return self._output(rendered, stdout=stdout)
+
+        rendered = TableListFormatter().render(payload, format=fmt, **settings)
         return self._output(rendered, stdout=stdout)
