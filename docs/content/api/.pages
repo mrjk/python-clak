@@ -8,6 +8,7 @@ nav:
       - Nodes: nodes.md
       - Plugins: plugins.md
   - Components:
+      - Views: plugin_views.md
       - Logging: plugin_logging.md
       - Completion: plugin_complete.md
       - Config: plugin_config.md

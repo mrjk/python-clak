@@ -64,4 +64,6 @@ options:
 
 You can either follow the [guides](../guides/guide_101.md) or dive into the technical [documentation](../docs/features.md).
 
+Highlight: [Views](../docs/views.md) — turn return values into CLI tables with `ListViewMixin` / `ShowViewMixin`.
+
 Reference documentation is available in the [API reference](../api/module.md).

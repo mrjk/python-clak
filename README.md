@@ -1,7 +1,11 @@
 # Clak
 
 <p align='center'>
-<img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python Version">
+<img src="logo/logo.svg" alt="Clak Logo" width="128">
+</p>
+
+<p align='center'>
+<img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
 <img src="https://img.shields.io/badge/license-GPL%20v3-blue" alt="License">
 </p>
 
@@ -14,17 +18,17 @@ Clak (Command Line avec Klass) is a Python library that simplifies the creation 
 - Based on Python Argparser. All what your learned is still useful, you wont be lost as it follows the same syntax.
 - Light and minimalistic, while providing standard features via optional components.
 
-- 🎯 Class-based command-line interface definition
-- 🌳 Easy nested subcommand creation
-- 🔄 Automatic help formatting with command tree display
-- 🎨 Clean and intuitive API for defining arguments
-- 📦 Inheritance-based command organization
-- 🚀 Built on top of Python's standard `argparse`
+- Class-based command-line interface definition
+- Easy nested subcommand creation
+- Automatic help formatting with command tree display
+- Clean and intuitive API for defining arguments
+- Inheritance-based command organization
+- Built on top of Python's standard `argparse`
 
 
 ## Requirements
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - argparse (built into Python)
 
 ## Quick Start
@@ -55,8 +59,8 @@ class MainApp(Parser):
     # Define subcommands
     show = Command(ShowCommand, help='Show something', choices=['phone', 'email', 'address'])
 
-# Instanciate your app, parse command line and run appropiate command.
-MainApp().dispatch()
+# Instantiate your app: parses argv and runs the matching command.
+MainApp()
 ```
 
 This will create a CLI with the following structure:
@@ -75,7 +79,7 @@ myapp [-h] [--debug] [--config CONFIG] {show} ...
 Define arguments using the `Argument` class:
 
 ```python
-class MyCommand(ArgumentParserPlus):
+class MyCommand(Parser):
     # As class attributes
     verbose = Argument('-v', '--verbose', action='store_true', help='Verbose output')
     
@@ -87,10 +91,10 @@ class MyCommand(ArgumentParserPlus):
 
 ### Nested Commands
 
-Create complex command hierarchies using the `Command` class:
+Create complex command hierarchies using the `Command` class (alias of `SubParser`):
 
 ```python
-class MainApp(ArgumentParserPlus):
+class MainApp(Parser):
     # As class attributes
     status = Command(StatusCommand, help='Show status')
     
@@ -116,13 +120,13 @@ Implementation:
 
 Features:
 
-- [ ] Add support for `argcomplete`
+- [x] Add support for `argcomplete` (shellcode mixins; runtime autocomplete optional)
 - [ ] Add support for argparse Argument groups
   - [Argument groups](https://docs.python.org/3/library/argparse.html#argument-groups)
   - [Mutual exclusive groups](https://docs.python.org/3/library/argparse.html#mutual-exclusion)
 - [ ] Add support for intermixed arguments
   - [Intermixed arguments](https://docs.python.org/3/library/argparse.html#intermixed-arguments)
-- [ ] Add support for `fire`
+- [ ] Distinct `Opt` / `Arg` helpers (optional vs positional) — planned
 
 
 ## Contributing

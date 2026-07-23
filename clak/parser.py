@@ -1,499 +1,42 @@
-"""Clak ParserNode Module
+"""Clak parser: ParserNode build, dispatch, and execute.
 
-This module provides an enhanced command-line argument parsing system built on top of argparse.
-It supports hierarchical command structures, subcommands, and argument injection.
+Descriptors (Argument, SubParser, MetaSetting, docstring helpers) live in
+``clak.descriptors`` and are re-exported here for compatibility.
 
-Key Features:
-
-- Hierarchical command structure support via subparsers
-- Argument injection capabilities
-- Enhanced help formatting
-- Debug logging support
-- Exception handling for clean program termination
-
-The module provides several key classes:
-
-- ParserNode: Main parser class extending argparse functionality
-- SubParser: For creating nested command structures 
-- Command: Alias for SubParser for compatibility
-
-Usage can be in either argparse-style:
-
-```python
-ArgumentParser()
-Argument() 
-SubParser()
-```
-
-Or Clak-style:
-
-```python
-ClakParser()
-Opt()
-Arg() 
-Cmd()
-```
-
-Debug logging can be enabled by setting CLAK_DEBUG=1 environment variable.
+Canonical public names: ``Parser``, ``Argument``, ``Command`` (alias of SubParser).
+Instantiate a root ``Parser`` to parse and run; it calls ``dispatch()`` automatically
+unless ``parse=False``.
 """
 
-# pylint: disable=too-many-lines
 import logging
-import os
 import sys
 import traceback
-
-# from pprint import pprint
+from pprint import pprint
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-# import argparse
-import argcomplete
-
-# import clak.exception as exception
 from clak import exception
-from clak.argparse_ import (
-    SUPPRESS,
-    RecursiveHelpFormatter,
-    argparse,
-    argparse_inject_as_subparser,
+from clak.argparse_ import RecursiveHelpFormatter, argparse
+from clak.common import ObjectNamespace
+from clak.descriptors import (
+    USE_SUBPARSERS,
+    ArgParseItem,
+    Argument,
+    FormatEnv,
+    MetaSetting,
+    RegistryEntry,
+    SubParser,
+    first_doc_line,
+    prepare_docstring,
 )
-from clak.common import deindent_docstring
-from clak.nodes import NOT_SET, Fn, Node
+from clak.nodes import NOT_SET, Node
+from clak.settings import CLAK_DEBUG
+from clak.views import ClakView, merge_view_settings
 
 logger = logging.getLogger(__name__)
 
-# Enable debug logging if CLAK_DEBUG environment variable is set to 1
-CLAK_DEBUG = False
-if os.environ.get("CLAK_DEBUG") == "1":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="[%(levelname)8s] %(name)s - %(message)s",
-    )
-    logger.debug("Debug logging enabled via CLAK_DEBUG environment variable")
-    CLAK_DEBUG = True
-
-
-# Version: v6
-
-# This version of the lib:
-# Implement merge+inject methods
-# Implement basic
-
-
-# Argparser Merge Library
-# ################################################################################
-
-# Argparse helpers, portable library for argparse.
-
-# Keep this as True for performance reasons,
-# children nodes will be considered as subparsers and not other parsers to be
-# injected into the parent parser. The latter is slower.
-
-USE_SUBPARSERS = True
-# USE_SUBPARSERS = False    # BETA - Do not enable this, it is slower
-
-# ArgumentParserPlus Core library
-# ################################################################################
-
-# Top objects
-
-T = TypeVar("T")  # For generic type hints
-
-
-class ArgParseItem(Fn):
-    """Base class for argument parser items.
-
-    This class represents a generic argument parser item that can be added to an argument parser.
-    It provides common functionality for handling destinations and building parameter dictionaries.
-
-    Attributes:
-        _destination (str): The destination name for the argument value
-    """
-
-    _destination: str = None
-
-    @property
-    def destination(self) -> Optional[str]:
-        """Get the destination name for this argument.
-
-        Returns:
-            str: The destination name, derived from the argument name if not explicitly set
-            None: If no destination can be determined
-        """
-        return self._get_best_dest()
-
-    @destination.setter
-    def destination(self, value):
-        self._destination = value
-
-    def _get_best_dest(self) -> str:
-        "Get the best destination name for this argument"
-        if self._destination is not None:
-            return self._destination
-
-        # If no arguments, return None
-        if not self.args:
-            return None
-
-        # Get first argument which should be the flag name
-        arg = self.args[0]
-
-        # Remove leading dashes and convert remaining dashes to underscores
-        if arg.startswith("--"):
-            key = arg[2:].replace("-", "_")
-        elif arg.startswith("-"):
-            # For short flags like -v, use the longer version if available
-            if len(self.args) > 1 and self.args[1].startswith("--"):
-                key = self.args[1][2:].replace("-", "_")
-            else:
-                key = arg[1:]
-        else:
-            key = arg.replace("-", "_")
-
-        return key
-
-    def build_params(self, dest: str) -> Tuple[tuple, dict]:
-        """Build parameter dictionary for argument parser.
-
-        Args:
-            dest (str): Destination name for the argument
-
-        Returns:
-            tuple: A tuple containing (args, kwargs) for argument parser
-
-        Raises:
-            ValueError: If no arguments are found
-        """
-        # Create parser arguments
-        kwargs = self.kwargs
-
-        # kind = "option"
-        if len(self.args) > 0:
-            if len(self.args) > 2:
-                raise ValueError(
-                    f"Too many arguments found for {self.__class__.__name__}: {self.args}"
-                )
-
-            args = self.args
-
-            arg1 = args[0]
-            if not arg1.startswith("-"):
-                # Remove first position arg to avoid argparse error:
-                # ValueError: dest supplied twice for positional argument
-                kwargs["metavar"] = args[0]
-                args = ()
-                # kind = "argument"
-
-        elif dest:
-            if len(dest) <= 2:
-                args = (f"-{dest}",)
-            else:
-                args = (f"--{dest}",)
-        else:
-            raise ValueError(
-                f"No arguments found for {self.__class__.__name__}: {self.__dict__}"
-            )
-
-        # Update dest if forced
-        if dest:
-            kwargs["dest"] = dest
-
-        # if kind == "argument":
-        #     if "dest" in kwargs:
-        #         if len(args) == 1:
-        #             # Remove first position arg to avoid argparse error:
-        #             # ValueError: dest supplied twice for positional argument
-        #             kwargs["metavar"] = args[0]
-        #             args = ()
-        #         else:
-        #             raise ValueError(
-        #                 f"Too many arguments found for {self.__class__.__name__}: {self.__dict__}"
-        #             )
-
-        return args, kwargs
-
-
-# Developper objects
-
-
-class Argument(ArgParseItem):
-    """Represents an argument that can be added to an argument parser.
-
-    This class handles both positional arguments and optional flags, automatically determining
-    the appropriate type based on the argument format.
-    """
-
-    def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
-        """Create and add an argument to the parser.
-
-        Args:
-            key (str): The argument key/name
-            config (ParserNode): The parser configuration object
-
-        Returns:
-            argparse.Action: The created argument parser action
-        """
-        parser = config.parser
-        args, kwargs = self.build_params(key)
-        assert isinstance(
-            args, tuple
-        ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
-
-        # Create argument
-        logger.debug(
-            "Create new argument %s.%s: %s",
-            config.get_fname(attr="key"),
-            key,
-            self.kwargs,
-        )
-
-        parser.add_argument(*args, **kwargs)
-
-        return parser
-
-
-class SubParser(ArgParseItem):
-    """Represents a subcommand parser that can be added to a parent parser.
-
-    This class handles creation of nested command structures, allowing for hierarchical
-    command-line interfaces. It supports both subparser and injection modes.
-
-    Attributes:
-        meta__help_flags (bool): Whether to enable -h and --help support
-        meta__usage (str): Custom usage message
-        meta__description (str): Custom description message
-        meta__epilog (str): Custom epilog message
-    """
-
-    # If true, enable -h and --help support
-    meta__help_flags = True
-
-    meta__usage = None
-    meta__description = None
-    meta__epilog = None
-
-    def __init__(self, cls, *args, use_subparsers: bool = USE_SUBPARSERS, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.cls = cls
-        self.use_subparsers = use_subparsers
-
-    def attach_sub_to_parser(self, key: str, config: "ParserNode") -> "ParserNode":
-        """Create a subcommand parser for this command.
-
-        Creates a new subparser for the command and configures it with the appropriate
-        help text and options. Validates that the command name is valid.
-
-        Args:
-            key (str): Name of the subcommand
-            config (ParserNode): Parent parser configuration object
-
-        Raises:
-            ValueError: If command name contains spaces
-
-        Returns:
-            ParserNode: The created child parser instance
-        """
-
-        if " " in key:
-            raise ValueError(
-                f"Command name '{key}' contains spaces. Command names must not contain spaces."
-            )
-
-        if self.use_subparsers:
-
-            logger.debug(
-                "Create new subparser %s.%s",
-                config.get_fname(attr="key"),
-                key,
-            )  # , self.kwargs)
-
-            # Fetch help from class
-            parser_help = self.kwargs.get(
-                "help",
-                self.cls.query_cfg_inst(
-                    self.cls, "help_description", default=self.cls.__doc__
-                ),
-            )
-            parser_help_enabled = self.kwargs.get(
-                "help_flags",
-                self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
-            )
-
-            ctx_vars = {"key": key, "self": config}
-
-            # Create a new subparser for this command (flat structure)
-            parser_help = prepare_docstring(
-                first_doc_line(parser_help), variables=ctx_vars
-            )
-            parser_kwargs = {
-                "formatter_class": RecursiveHelpFormatter,
-                "add_help": parser_help_enabled,  # Add support for --help
-                "exit_on_error": False,
-                "help": parser_help,
-            }
-            # if parser_help is not None:
-            #     parser_kwargs["help"] = parser_help
-
-            # Create parser
-            subparser = config.subparsers.add_parser(
-                key,
-                **parser_kwargs,
-            )
-
-            # Create an instance of the command class with the subparser
-            child = self.cls(parent=config, parser=subparser, key=key)
-            ctx_vars["self"] = child
-
-            # logger.debug(
-            #     "Create new SUBPARSER %s %s %s",
-            #     child.get_fname(attr="key"),
-            #     key,
-            #     self.kwargs,
-            # )
-
-            child_usage = child.query_cfg_inst("help_usage", default=None)
-            child_desc = first_doc_line(
-                child.query_cfg_inst("help_description", default=child.__doc__)
-            )
-            child_epilog = child.query_cfg_inst("help_epilog", default=None)
-            # print(f"DESC: |{desc}|")
-
-            # Reconfigure subparser
-            child_usage = prepare_docstring(child_usage, variables=ctx_vars)
-            child_desc = prepare_docstring(child_desc, variables=ctx_vars)
-            child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
-
-            subparser.add_help = (
-                False  # child.query_cfg_inst("help_enable", default=True)
-            )
-            subparser.usage = child_usage
-            subparser.description = child_desc
-            subparser.epilog = child_epilog
-
-            # pprint (subparser.__dict__)
-
-        else:
-            # This part is in BETA
-
-            # Create nested structure
-            child = self.cls(parent=config)
-            # Pass help text from Command class kwargs
-            child.parser.help = self.kwargs.get("help", child.__doc__)
-            argparse_inject_as_subparser(config.parser, key, child.parser)
-
-        return child
-
-
-class RegistryEntry:
-    "Registry entry"
-
-    def __init__(self, config):
-        # super().__init__(*args, **kwargs)
-        # self.parser = None
-        self._config = config
-        self._entries = {}
-
-    def add_entry(self, key: str, value: Any) -> None:
-        """Add a new entry to the registry.
-
-        Args:
-            key: Key to store the entry under
-            value: Value to store in the registry
-        """
-        self._entries[key] = value
-
-    def __repr__(self):
-        return f"RegistryEntry({self._config})"
-
-
-def first_doc_line(text: str) -> str:
-    """Get the first non-empty line from a text string.
-
-    Args:
-        text (str): The text to extract the first line from
-
-    Returns:
-        str: The first non-empty line, or empty string if no non-empty lines found
-
-    Raises:
-        AssertionError: If first non-empty line starts with spaces
-    """
-    lines = text.split("\n")
-    for line in lines:
-        if line.strip():
-            assert not line.startswith(
-                " "
-            ), f"First line of docstring should not start with 2 spaces: {line}"
-            return line
-    return ""
-
-
-def prepare_docstring(
-    text: Optional[str], variables: Optional[Dict[str, Any]] = None, reindent: str = ""
-) -> Optional[str]:
-    """Prepare a docstring by deindenting and formatting with variables.
-
-    Args:
-        text (str): The docstring text to prepare
-        variables (dict, optional): Variables to format into the docstring
-        reindent (str, optional): String to use for reindenting
-
-    Returns:
-        str: The prepared docstring, or None/SUPPRESS if input was None/SUPPRESS
-
-    Raises:
-        KeyError: If formatting fails due to missing variables
-        AssertionError: If variables arg is not a dict
-    """
-
-    variables = variables or {}
-    assert isinstance(variables, dict), f"Got {type(variables)} instead of dict"
-
-    if text is None:
-        return None
-    if text == SUPPRESS:
-        return SUPPRESS
-
-    text = deindent_docstring(text, reindent=reindent)
-    try:
-        text = text.format(**variables)
-    except KeyError as e:
-        print(f"Error formatting docstring: {e}")
-        print(f"Variables: {variables}")
-        print(f"Text: {text}")
-        raise e
-
-    return text
-
-
-class FormatEnv(dict):
-    "Format env"
-
-    _default = {
-        "type": "type FUNC",
-    }
-
-    def __init__(self, variables=None):
-        self._variables = variables or {}
-
-    # def __str__(self):
-    #     return self.value.format(**self.variables)
-
-    def get(self):
-        "Get dict of vars"
-        out = {}
-        out.update(self._default)
-        out.update(self._variables)
-        return out
-
-    def __dict__(self):
-        return dict(self.get())
-
-
-class MetaSetting(Fn):  # pylint: disable=too-few-public-methods
-    "A setting that is used to configure a node"
-
+# Backwards-compatible aliases (preferred public name is Command via clak.__init__)
+Command = SubParser
 
 # Main parser object
 
@@ -530,6 +73,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__subcommands_dict: dict[str, SubParser] = {}
     meta__arguments_dict: dict[str, Argument] = {}
 
+    meta__cli_view: ClakView = None
+
     # Meta settings
     meta__config__name = MetaSetting(
         help="Name of the parser",
@@ -551,6 +96,17 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
+    )
+    meta__config__exception_handlers = MetaSetting(
+        help=(
+            "Extra (exception_type, handler) pairs or handler callables "
+            "for clean_terminate (third-party libs, etc.)"
+        ),
+    )
+
+    # Views support
+    meta__config__cli_view = MetaSetting(
+        help="class of the view to use",
     )
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -574,6 +130,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             inject_as_subparser (bool): Whether to inject as subparser
             proc_name (str): Process name
         """
+
+        self.logger = logger
+
         super().__init__(parent=parent)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
@@ -607,6 +166,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # meta__subcommands_dict = {}
         self.add_arguments()
         self.add_subcommands()
+
+    def __repr__(self):
+        return f"<{self.__class__.__module__}.{self.__class__.__name__}>"
 
     def create_parser(self):
         "Create a new parser"
@@ -826,71 +388,91 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         return last_child
 
+    @staticmethod
+    def _exception_exit_code(err, default=1):
+        rc = getattr(err, "rc", default)
+        return rc if isinstance(rc, int) else default
+
+    @staticmethod
+    def _exception_advice(err):
+        advice = getattr(err, "advice", None)
+        if isinstance(advice, str):
+            logger.warning(advice)
+
+    def _terminate_app_exception(self, err):
+        """Default handler for app exceptions (Paasify-style: rc + message)."""
+        self._exception_advice(err)
+        print(err)
+        rc = self._exception_exit_code(err)
+        logger.critical(
+            "Program exited with: error %s: %s",
+            rc,
+            err.__class__.__name__,
+        )
+        sys.exit(rc)
+
+    @staticmethod
+    def _iter_exception_entries(entries):
+        for entry in entries or []:
+            if isinstance(entry, (tuple, list)) and entry:
+                exc_type = entry[0]
+                handler = entry[1] if len(entry) > 1 else None
+                yield exc_type, handler
+            else:
+                yield entry, None
+
+    def _run_exception_handler(self, handler, err):
+        if handler is None:
+            self._terminate_app_exception(err)
+            return
+        handler(self, err)
+        sys.exit(self._exception_exit_code(err))
+
     def clean_terminate(self, err, known_exceptions=None):
         """Handle program termination based on exception type.
+
+        Processing order (Paasify-style chain):
+
+        1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
+        2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, …)
+        3. Built-in Clak exceptions
+        4. Common OS errors
+
+        If nothing matches, return and let ``dispatch()`` report an unexpected bug.
 
         Args:
             err (Exception): The exception that triggered termination
             known_exceptions (list): List of exception types to handle specially
         """
 
-        def default_exception_handler(node, exc):
-            print(f"Default exception handler: {exc} on {node}")
-            sys.exit(1)
+        # 1. App-known exceptions (e.g. PaasifyError hierarchy)
+        for exc_type, handler in self._iter_exception_entries(known_exceptions):
+            if isinstance(err, exc_type):
+                self._run_exception_handler(handler, err)
 
-        # Prepare known exceptions list
-        known_exceptions = known_exceptions or []
-        known_exceptions_conf = {}
-        for _exception in known_exceptions:
-            exception_fn = default_exception_handler
-            if isinstance(_exception, Sequence):
-                exception_cls = _exception[0]
-                if len(_exception) > 1:
-                    exception_fn = _exception[1]
-            else:
-                exception_cls = _exception
+        # 2. Registered third-party / library handlers
+        extra_handlers = self.query_cfg_parents("exception_handlers", default=[])
+        for exc_type, handler in self._iter_exception_entries(extra_handlers):
+            if isinstance(err, exc_type):
+                self._run_exception_handler(handler, err)
 
-            exception_name = str(exception_cls)
-            known_exceptions_conf[exception_name] = {
-                "fn": exception_fn,
-                "exception": exception_cls,
-            }
-        known_exceptions_list = tuple(
-            val["exception"] for val in known_exceptions_conf.values()
-        )
-
-        # Check user overrides
-        if known_exceptions_list and isinstance(err, known_exceptions_list):
-            get_handler = known_exceptions_conf[str(type(err))]["fn"]
-            get_handler(self, err)
-            # If handler did not exited, ensure we do
-            sys.exit(1)
-
-        # If user made an error on command line, show usage before leaving
+        # 3. Clak parse errors — show usage first
         if isinstance(err, exception.ClakParseError):
-            # Must go to stdout
             self.show_usage()
             print(f"{err}")
             sys.exit(err.rc)
 
-        # Choose dead end way generic user error
+        # 4. User-facing Clak errors
         if isinstance(err, exception.ClakUserError):
-            if isinstance(err.advice, str):
-                logger.warning(err.advice)
-
+            self._exception_advice(err)
             print(f"{err}")
             sys.exit(err.rc)
 
-        # Internal clak errors
+        # 5. Other Clak errors (app / bug)
         if isinstance(err, exception.ClakError):
             err_name = err.__class__.__name__
-            if isinstance(err.advice, str):
-                logger.warning(err.advice)
-
-            err_message = err.message
-            if not err_message:
-                err_message = err.__doc__
-
+            self._exception_advice(err)
+            err_message = err.message or err.__doc__
             print(f"{err}")
             logger.critical(
                 "Program exited with bug %s(%s): %s",
@@ -900,6 +482,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             )
             sys.exit(err.rc)
 
+        # 6. OS errors
         oserrors = [
             PermissionError,
             FileExistsError,
@@ -911,11 +494,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ]
 
         if err.__class__ in oserrors:
-
-            # Decode OS errors
-            # errno = os.strerror(err.errno)
-            # errint = str(err.errno)
-
             logger.critical("Program exited with OS error: %s", err)
             sys.exit(err.errno)
 
@@ -938,7 +516,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ValueError: If args is invalid type
         """
         parser = self.parser
-        argcomplete.autocomplete(parser)
+        # argcomplete.autocomplete(parser)
 
         # args = args[0] if len(args) > 0 else sys.argv[1:]
 
@@ -957,8 +535,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
     def dispatch(
         self,
-        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
-        debug: Optional[bool] = None,
+        args: Optional[Dict[str, Any]] = None,
+        trace: Optional[bool] = False,
         **_: Any,
     ) -> Any:
         """Main dispatch function for command execution.
@@ -967,29 +545,81 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             args: Arguments to parse
             **_: Unused keyword arguments
         """
+
+        # Process or reuse args
+        # if args is None:
+        error = None
         try:
-            return self.cli_execute(args=args)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            error = err
-            debug = debug if isinstance(debug, bool) else CLAK_DEBUG
+            args = self.parse_args(args)
+            args = args.__dict__
+        except argparse.ArgumentError as err:
+            msg = f"Could not parse command line: {err.argument_name} {err.message}"
+            error = exception.ClakParseError(msg)
+            # raise exception.ClakParseError(msg) from err
 
-            # Always show traceback if debug mode is enabled
-            if debug is True:
-                logger.error(traceback.format_exc())
+        if not error:
+            assert isinstance(args, dict)
 
-            known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
+            # Check for trace mode
+            if "app_trace_mode" in args:
+                trace = args["app_trace_mode"]
+            if CLAK_DEBUG:
+                trace = True
 
-            self.clean_terminate(error, known_exceptions)
+            # Leaf command (may carry Meta.cli_view / view mixins on nested cmds)
+            cli_leaf = args.get("__cli_self__", self)
 
-            # Developer catchall
-            if debug is False:
-                logger.error(traceback.format_exc())
-            logger.critical("Uncaught error %s; this may be a bug!", err.__class__)
-            logger.critical("Exit 1 with bugs")
-            sys.exit(1)
+            # Run app command
+            try:
+                # Process commands
+                data = self.cli_execute(args=args)
+
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                error = err
+
+        if not error:
+            # Prepare viewer output (CLI view mixins may stash settings on root)
+            view_settings = getattr(self, "_clak_view_settings", None) or {}
+            if isinstance(data, ClakView):
+                render_kwargs = merge_view_settings(
+                    getattr(data, "settings", None), view_settings
+                )
+                data.render(**render_kwargs)
+            else:
+                viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
+                if isinstance(viewer, type) and issubclass(viewer, ClakView):
+                    viewer = viewer()
+                if viewer is not None:
+                    if not isinstance(viewer, ClakView):
+                        raise TypeError(
+                            "Meta.cli_view must be a ClakView instance or subclass"
+                        )
+                    viewer.render(data, **view_settings)
+
+            return data
+
+        if trace is True:
+            # print("TRACE")
+            # Show traceback if debug mode is enabled
+            logger.error("".join(traceback.format_exception(error)))
+            # print("TRACE")
+
+        # Process exception handling
+        known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
+        self.clean_terminate(error, known_exceptions)
+
+        # Developer catchall — unexpected bug (Paasify-style)
+        if trace is False:
+            logger.error("".join(traceback.format_exception(error)))
+        logger.critical(
+            "Uncaught error %s; this may be a bug! Please report to the developer.",
+            error.__class__.__name__,
+        )
+        logger.critical("Error: %s", error)
+        sys.exit(1)
 
     def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
-        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
+        self, args: Optional[Dict[str, Any]] = None
     ) -> Any:
         """Execute the command with given arguments.
 
@@ -1000,16 +630,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ClakParseError: If argument parsing fails
             NotImplementedError: If command has no implementation
         """
-        try:
-            args = self.parse_args(args)
-        except argparse.ArgumentError as err:
-            msg = f"Could not parse command line: {err.argument_name} {err.message}"
-            raise exception.ClakParseError(msg) from err
+        assert isinstance(args, dict)
 
         # Prepare args and context
         hook_list = {}
 
-        args = args.__dict__
+        # args = args.__dict__
         cli_command_hier = [
             value
             for key, value in sorted(args.items())
@@ -1053,7 +679,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         ctx["cli_root"] = self
         ctx["cli_depth"] = node_count
         ctx["cli_commands"] = cli_command_hier
-        ctx["args"] = SimpleNamespace(**args)
+        ctx["args"] = ObjectNamespace(**args)
 
         # Shared data
         ctx["data"] = {}
@@ -1066,19 +692,20 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Execute all nodes in hierarchy
         ret = None
+        # pylint: disable=attribute-defined-outside-init
         for idx, node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
 
             logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
             # print(f"Node {idx}:{node}")
 
-            # Prepare hooks list
+            # Prepare hooks list (per hierarchy node — mixins on subcommands)
             cls_hooks = [
-                method for method in dir(self) if method.startswith(fn_hook_prefix)
+                method for method in dir(node) if method.startswith(fn_hook_prefix)
             ]
             for hook_name in cls_hooks:
                 if not hook_name in hook_list:
-                    hook_fn = getattr(self, hook_name, None)
+                    hook_fn = getattr(node, hook_name, None)
                     if hook_fn is not None:
                         # Hooks order should be preserved with dict
                         hook_list[hook_name] = hook_fn
@@ -1093,7 +720,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
             # Sort ctx dict by keys before creating namespace
             sorted_ctx = dict(sorted(ctx.items()))
-            _ctx = SimpleNamespace(**sorted_ctx)
+            _ctx = ObjectNamespace(**sorted_ctx)
             _ctx.cli_state = "run_hooks"
 
             # Process hooks
@@ -1150,24 +777,5 @@ class Parser(ParserNode):
         super().__init__(*args, **kwargs)
 
         if not self.parent and parse is True:
-            logger.debug("Starting automatig arg_parse")
+            logger.debug("Starting automatic arg_parse")
             self.dispatch(*args)
-
-
-# # # Compatibility
-# ArgumentParser = ParserNode
-# ArgumentParserPlus = ParserNode
-# ArgParser = ParserNode
-Command = SubParser
-# SubCommand = SubParser
-
-# # Argparse mode
-# ArgumentParser()
-# Argument()
-# SubParser()
-
-# # Clak mode:
-# ClakParser()
-# Opt()
-# Arg()
-# Cmd()

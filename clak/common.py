@@ -5,6 +5,22 @@ around handling docstring indentation and formatting.
 """
 
 
+def replace_tabs(text, value=None):
+    """Replace all tabs with spaces in a text string.
+
+    Args:
+        text (str): The text to process
+        spaces (int): Number of spaces to replace each tab with. Defaults to 2.
+
+    Returns:
+        str: The text with tabs replaced by spaces
+    """
+    if not isinstance(text, str):
+        return text
+    value = value if isinstance(value, str) else "  "
+    return text.replace("\t", value)
+
+
 def deindent_docstring(text, reindent=False):
     """
     Remove indentation from a docstring.
@@ -37,3 +53,66 @@ def deindent_docstring(text, reindent=False):
         )
 
     return out
+
+
+def to_boolean(value):
+    "Convert anything to boolean value"
+
+    if isinstance(value, bool):
+        return value
+
+    value = str(value).lower()
+
+    default_values = {
+        "1": True,
+        "true": True,
+        "yes": True,
+        "y": True,
+        "on": True,
+        "t": True,
+        "0": False,
+        "false": False,
+        "no": False,
+        "n": False,
+        "off": False,
+        "f": False,
+    }
+
+    try:
+        return default_values[value]
+    except KeyError:
+        raise ValueError(f"Invalid boolean value: {value}") from None
+
+
+class ObjectNamespace:
+    """A simple attribute-based namespace."""
+
+    # see also: https://dev.to/taqkarim/extending-simplenamespace-for-nested-dictionaries-58e8
+
+    def __init__(self, **kwargs):
+        self.__dict__ = {}
+        self.__dict__.update(kwargs)  # or self.__dict__ = kwargs
+
+    def __repr__(self):
+        keys = sorted(k for k in self.__dict__ if not k.startswith("_"))
+        return f"{type(self).__name__}[{', '.join(keys)}]"
+
+    def get(self, key, default=None):
+        "Return the value for key if key is in the dictionary, else default."
+        return self.__dict__.get(key, default)
+
+    def update(self, **kwargs):
+        "Update the dictionary with the key-value pairs from kwargs."
+        self.__dict__.update(kwargs)
+
+    def __getattr__(self, key):
+        return self.__dict__.get(key, None)
+
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def __len__(self):
+        return len(self.__dict__)

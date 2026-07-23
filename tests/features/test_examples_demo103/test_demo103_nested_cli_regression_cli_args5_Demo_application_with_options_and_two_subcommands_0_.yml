@@ -1,5 +1,0 @@
-cli_args: []
-err: No 'cli_run' method found for <examples.demo103_nested.AppMain object at 0x7fc6eff0c5e0>
-output: 'No code to execute, method is missing: AppMain.cli_run(self, ctx, **kwargs)
-
-  '

@@ -1,39 +1,31 @@
 # Advanced Usage
 
-Clak provide a bunch of functionnalities out of the box.
+Clak provides several integrated features out of the box.
 
-## Integrated fetaures
+## Integrated features
 
 * Automatic environment variable parsing
-* Error and exception handling
+* [Error and exception handling](../docs/exceptions.md) — `ClakUserError`, exit codes, `Meta.known_exceptions`
 * Automatic management of `--help` and `-h` flags
-
-TODO: Where is the ref ???
-
 
 ## Advanced customization
 
-Some behavior can be overriden on a per node or per argument basis.
+Some behavior can be overridden on a per-node or per-argument basis.
 
 ### Arguments customization
 
-Arguments are defined directly in classes, via the `Argument` class. This class accept a number of parameters that bring you a lot of flexibility on how arguments
-are parsed.
+Arguments are defined directly in classes via the `Argument` class. See the
+[Parser API](../api/parser.md).
 
-TODO: Where is the ref ???
+### Parser `Meta`
 
-### Parsers `Meta`
+The `Meta` class changes parser behavior. Examples:
 
-The `Meta` class allows to change some behaviors of the parser. For example:
-
-``` python
-
+```python
 class MyApp(Parser):
-
     class Meta:
         app_name = "My app name"
-        env_prefix = "MY_APP_ENV_PREFIX"
-
+        known_exceptions = [MyDomainError]
 ```
 
-TODO: Where is the ref ???
+See [Error handling](../docs/exceptions.md) for exception-related `Meta` settings.

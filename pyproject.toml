@@ -1,42 +1,40 @@
-[tool.poetry]
-name = "mrjk.clak"
-version = "0.3.1"
+[project]
+name = "mrjk-clak"
+version = "0.4.0a4"
 description = "Command Line avec Klass"
-authors = ["mrjk <mrjk.78@gmail.com>"]
-license = "GPLv3"
-readme = "README.md"
-
-packages = [
-  { include = "clak/" }
+authors = [
+    {name = "mrjk <mrjk.78@gmail.com>"}
 ]
+license = {text = "GPLv3"}
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "argcomplete (>=3.6.2,<4.0.0)",
+    "prettytable (>=3.16.0,<4.0.0)"
+]
+
+[project.optional-dependencies]
+colors = ["coloredlogs (>=15.0.1,<16.0.0)"]
+
+[tool.poetry]
+packages = [{include = "clak/"}]
 
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Environment :: Console",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Information Technology",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Topic :: Utilities",
-  "Topic :: Software Development :: Build Tools",
-  "Topic :: Software Development :: Libraries :: Python Modules"
-]
 
 # Dependencies groups
 # ========================
 
-[tool.poetry.dependencies]
-python = "^3.9"
-argcomplete = "^3.5.3"
+#[tool.poetry.dependencies]
+#python = "^3.9"
+#argcomplete = "^3.5.3"
+#prettytable = "^3.14.0"
 
 [tool.poetry.group.dev.dependencies]
+coloredlogs = "^15.0.1"
 black = "^24.10.0"
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
@@ -51,6 +49,7 @@ sh = "^2.2.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.5.49"
+mkdocs-simple-hooks = "^0.1.5"
 mkdocstrings = {extras = ["python"], version = "^0.27.0"}
 pylint = "^3.3.3"
 

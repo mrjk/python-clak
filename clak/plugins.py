@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # MixinSupport Helpers
 # ============================
-def is_bound(m):
+def is_bound(method):
     """Check if a method is bound to an instance.
 
     Args:
@@ -22,7 +22,7 @@ def is_bound(m):
     Returns:
         bool: True if the method is bound to an instance, False otherwise
     """
-    return hasattr(m, "__self__")
+    return hasattr(method, "__self__")
 
 
 class PluginHelpers:
@@ -50,8 +50,6 @@ class PluginHelpers:
         Example:
             >>> cls.hook_register("test_log", self)
         """
-        # setattr(self, name, cls_method)
-
         # Ensure methods_dict is initialized
         methods_dict = getattr(instance, "cli_methods", None)
         if methods_dict is None:
@@ -83,4 +81,6 @@ class PluginHelpers:
         # Register saved commands
         methods_dict[name] = fn_new
         setattr(instance, name, fn_new)
-        logger.debug("Registered plugin method %s.%s = %s", instance, name, fn_new)
+        logger.debug(
+            "Registered plugin method %s.%s = %s", instance, name, fn_new.__qualname__
+        )

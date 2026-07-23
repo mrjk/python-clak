@@ -1,8 +1,0 @@
-cli_args:
-- --config
-- new_conf.yml
-err: '2'
-output: "usage: demo102-test [-h] [--force] [--config CONFIG]\n                  \
-  \  [--color {red,green,blue,unknown}] [--items ITEMS]\n                    NAME\
-  \ [SURNAME] [ALIAS ...]\ndemo102-test: error: the following arguments are required:\
-  \ NAME\n"

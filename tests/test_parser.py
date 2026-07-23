@@ -9,7 +9,9 @@ This module contains test cases for the parser functionality including:
 """
 
 import argparse
+import logging
 import os
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -153,6 +155,66 @@ def test_user_error():
 
     with pytest.raises(SystemExit):
         parser.dispatch([])
+
+
+class _DemoAppError(Exception):
+    rc = 44
+
+
+def test_known_exception_uses_rc(capsys):
+    """Known app exceptions exit with err.rc (Paasify-style)."""
+
+    def run_cmd(**_):
+        raise _DemoAppError("application missing")
+
+    parser = ParserNode()
+    parser.meta__known_exceptions = [_DemoAppError]
+    parser.cli_run = run_cmd
+
+    with pytest.raises(SystemExit) as exc:
+        parser.dispatch([])
+    assert exc.value.code == 44
+    assert "application missing" in capsys.readouterr().out
+
+
+def test_exception_handlers_third_party(capsys):
+    """Meta.exception_handlers map library errors to clean messages."""
+
+    class _LibError(Exception):
+        pass
+
+    def handle_lib(_app, err):
+        print(f"handled: {err}")
+        sys.exit(42)
+
+    def run_cmd(**_):
+        raise _LibError("bad config")
+
+    parser = ParserNode()
+    parser.meta__exception_handlers = [(_LibError, handle_lib)]
+    parser.cli_run = run_cmd
+
+    with pytest.raises(SystemExit) as exc:
+        parser.dispatch([])
+    assert exc.value.code == 42
+    assert "handled: bad config" in capsys.readouterr().out
+
+
+def test_uncaught_error_reports_bug(caplog):
+    """Unhandled exceptions get the developer bug message."""
+
+    def run_cmd(**_):
+        raise RuntimeError("boom")
+
+    parser = ParserNode()
+    parser.cli_run = run_cmd
+
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(SystemExit) as exc:
+            parser.dispatch([])
+    assert exc.value.code == 1
+    assert "may be a bug" in caplog.text
+    assert "report to the developer" in caplog.text
 
 
 # Utility Function Tests

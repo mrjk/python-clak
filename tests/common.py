@@ -1,9 +1,14 @@
 import re
 
 REGEX_RULES = [
-    (r"<([^>]+) at 0x[0-9a-fA-F]+>", r"<\1>"),  # matches "<object at 0xHEXPATTERN>"
+    # matches "<object at 0xHEXPATTERN>"
+    (r"<([^>]+) at 0x[0-9a-fA-F]+>", r"<\1>"),
+    # Fall back for project
     (r"\S+/python-clak", r"/app/python-clak"),  # matches python-clak/ root project
+    (r"\S+/[^/]*clak[^/]*", r"/app/python-clak"),  # matches *clak*/ root project
+    # Home overrides
     (r"/home/[^/]+/", r"/home/user/"),  # matches /home/USER/
+    # Match eceptions lines
     (r"line [0-9]+,", r"line XXX,"),
 ]
 
@@ -25,6 +30,7 @@ def replace_with_placeholders(input_str: str, regex_rules: list[str] = None) -> 
         >>> replace_with_placeholders(text, rules)
         'PLACEHOLDER line PLACEHOLDER: Invalid token'
     """
+    input_str = str(input_str)
     regex_rules = regex_rules or REGEX_RULES
     result = input_str
     for rule in regex_rules:

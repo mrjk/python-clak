@@ -1,7 +1,6 @@
 cli_args:
 - command1
 err: '31'
-output: 'No ''cli_run'' method found for <tests.features.demo_features.demo108_exceptions.AppCommand1
-  object>
+output: 'No ''cli_run'' method found for <tests.features.demo_features.demo108_exceptions.AppCommand1>
 
   '

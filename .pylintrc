@@ -1,0 +1,12 @@
+[MAIN]
+
+disable=
+  unknown-option-value
+
+# See: https://pylint.readthedocs.io/en/latest/user_guide/messages/index.html
+fail-under=8
+
+[MISCELLANEOUS]
+
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,XXX,TODO

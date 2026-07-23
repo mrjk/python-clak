@@ -61,6 +61,7 @@ markdown_extensions:
       # auto_append: ["../LICENSE"]
       base_path:
         - ".."
+        - "../logo"
         - "content"
       auto_append:
         - docs/includes/abbreviations.md
@@ -84,6 +85,9 @@ markdown_extensions:
 plugins:
   - search
   - awesome-pages
+  - mkdocs-simple-hooks:
+      hooks:
+        on_post_build: "docs.hooks:copy_get"
   - mkdocstrings:
       handlers:
         python:
@@ -116,6 +120,7 @@ nav:
 
   - About:
       - Contributing: project/CONTRIBUTING.md
+      - Release: project/release.md
       - Code of Conduct: project/CODE_OF_CONDUCT.md
       - License: project/license.md
 
