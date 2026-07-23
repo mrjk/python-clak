@@ -283,6 +283,25 @@ def test_list_view_mixin_format_json(capsys):
     ]
 
 
+def test_list_view_format_json_keeps_original_values():
+    """yaml/json must not reuse table display adapts (missing→'-', tabs)."""
+    payload = [
+        {"name": "ada\tlovelace", "role": "admin", "tags": ["a", "b"]},
+        {"name": "linus", "tags": []},
+    ]
+
+    rendered = ListView(payload, format="json", columns=["name", "role", "tags"]).render(
+        stdout=False
+    )
+    records = json.loads(rendered)
+
+    assert records == [
+        {"name": "ada\tlovelace", "role": "admin", "tags": ["a", "b"]},
+        {"name": "linus", "tags": []},
+    ]
+    assert all("-" not in record.values() for record in records)
+
+
 def test_list_view_mixin_format_csv(capsys):
     class App(ListViewMixin, Parser):
         def cli_run(self, **_):

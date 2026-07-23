@@ -134,4 +134,4 @@ class MainApp(Parser):
 
 
 # Instanciate your app, parse command line and run appropiate command.
-MainApp().dispatch()
+MainApp()
