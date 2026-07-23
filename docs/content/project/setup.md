@@ -14,10 +14,21 @@ How to run Clak locally and across supported Python versions.
 
 Tested continuously via [`.github/workflows/test_project.yml`](https://github.com/mrjk/python-clak/blob/develop/.github/workflows/test_project.yml) and locally with `task test_matrix`.
 
+## Virtualenvs (always)
+
+Development **always** uses a project-local virtualenv — never install into the system Python.
+
+| Env | Path | Role |
+| --- | --- | --- |
+| Daily / release | **`.venv/`** | Poetry in-project env (`poetry.toml`: `virtualenvs.in-project = true`) |
+| Version matrix | **`.venvs/pyX.Y/`** | Isolated envs for `task test_matrix` (does not replace `.venv`) |
+
+Both directories are gitignored.
+
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) — pins the default Python (and other tools when configured)
-- [Poetry](https://python-poetry.org/) — project dependencies
+- [Poetry](https://python-poetry.org/) — project dependencies (creates `.venv/`)
 - [Task](https://taskfile.dev/) — `task test`, lint, docs, matrix
 
 ## Bootstrap (daily env)
@@ -26,14 +37,16 @@ Tested continuously via [`.github/workflows/test_project.yml`](https://github.co
 
 ```bash
 mise install
-poetry env use "$(mise which python)"
-poetry install --with dev
+poetry env use "$(mise which python)"   # bind Poetry to mise’s 3.12
+poetry install --with dev               # creates/updates ./.venv
 ```
 
-Run the full local suite (default Poetry `.venv`):
+After that, run tools via Poetry (or with `.venv` activated):
 
 ```bash
-task test
+poetry run task test
+# equivalent once activated:
+# source .venv/bin/activate && task test
 ```
 
 Useful subsets:
@@ -47,7 +60,7 @@ Useful subsets:
 
 ## Local Python matrix
 
-To exercise 3.10–3.14 without switching the default `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it points Poetry/pytest at each venv with `VIRTUAL_ENV` + `PATH`.
+To exercise 3.10–3.14 without touching daily `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it points Poetry/pytest at each venv with `VIRTUAL_ENV` + `PATH`.
 
 ```bash
 task test_matrix                       # all of 3.10–3.14
@@ -69,14 +82,14 @@ export PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 The matrix script and CI already set this. Remove it once upstream PyO3 advertises 3.14 support.
 
 Implementation: [`scripts/run_python_matrix.sh`](https://github.com/mrjk/python-clak/blob/develop/scripts/run_python_matrix.sh).  
-`.venvs/` is gitignored and never replaces Poetry’s `.venv`. If a previous failed run left empty dirs, remove them: `rm -rf .venvs/py3.10` (etc.).
+If a previous failed run left empty dirs, remove them: `rm -rf .venvs/py3.10` (etc.).
 
 ## CI
 
-GitHub Actions runs the same version range as a **matrix** (one job per Python). Local `task test_matrix` complements that; it does not replace CI.
+GitHub Actions also uses an in-project `.venv` (`virtualenvs-in-project: true`) and runs the same Python matrix. Local `task test_matrix` complements that; it does not replace CI.
 
 See [`.github/workflows/test_project.yml`](https://github.com/mrjk/python-clak/blob/develop/.github/workflows/test_project.yml).
 
 ## Releases
 
-Bump/tag/publish uses the **3.12** daily env. Maintainer guide: [Release](release.md).
+Bump/tag/publish uses the **3.12** daily `.venv`. Maintainer guide: [Release](release.md).

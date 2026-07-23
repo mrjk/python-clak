@@ -1,0 +1,4 @@
+# Always create the project virtualenv at ./.venv (not Poetry's global cache).
+[virtualenvs]
+in-project = true
+create = true

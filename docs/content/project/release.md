@@ -21,7 +21,7 @@ Automated publish-on-tag is tracked on the [roadmap](roadmap.md).
 ## Prerequisites
 
 - Clean git working tree (untracked files are fine; modified/staged files are not)
-- Poetry project deps on the **daily Python 3.12** env (`mise.toml` / `poetry install --with dev`)
+- Poetry project deps on the **daily Python 3.12** env (in-project **`.venv/`** via `poetry install --with dev`)
 - For stable releases: checkout `main` or `master`
 - For pre-releases (`pre*`, or a version like `1.2.3a0`): any branch **except** `main`/`master` (usually `develop`)
 - For publish: a PyPI API token (`poetry config` or `POETRY_PYPI_TOKEN_PYPI`)
