@@ -22,6 +22,7 @@ Then pick what you need:
 | Load XDG config files | [Config](docs/config.md) |
 | Ship shell tab-completion scripts | [Completion](docs/completion.md) |
 | Handle errors with exit codes | [Error handling](docs/exceptions.md) |
+| Paste context into an AI chat | [AI primer](ai/primer.md) · [AI reference](ai/reference.md) |
 | See what is planned | [Roadmap](project/roadmap.md) |
 
 ## Why Clak?

@@ -104,6 +104,9 @@ nav:
 
   - Reference:
       - ... | api/*
+      - AI:
+          - Primer: ai/primer.md
+          - Reference: ai/reference.md
       - Architecture:
           - Overview: architecture/list.md
           - ... | architecture/*

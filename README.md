@@ -117,6 +117,7 @@ class MainApp(Parser):
 
 - [Installation](https://mrjk.github.io/python-clak/quickstart/install/) and [Quickstart](https://mrjk.github.io/python-clak/quickstart/quickstart/)
 - Guides under `docs/` / the site **Guides** tab
+- Pasteable AI context: [primer](https://mrjk.github.io/python-clak/ai/primer/) · [reference](https://mrjk.github.io/python-clak/ai/reference/)
 - Runnable examples in [`examples/`](examples/)
 - Planned work: [Roadmap](https://mrjk.github.io/python-clak/project/roadmap/)
 
