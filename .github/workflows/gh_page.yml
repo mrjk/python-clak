@@ -52,7 +52,9 @@ jobs:
       - name: Install poetry
         uses: abatilo/actions-poetry@v3
         with:
-          poetry-version: "1.8.5"
+          # Poetry 2 reads PEP 621 [project] metadata; 1.8.x requires
+          # name/version/authors/description under [tool.poetry] and fails CI.
+          poetry-version: "2.1.4"
 
       - name: Setup a local virtual environment (if no poetry.toml file)
         run: |
