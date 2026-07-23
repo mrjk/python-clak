@@ -4,6 +4,8 @@ This module provides helper functions for working with text, particularly
 around handling docstring indentation and formatting.
 """
 
+import inspect
+
 
 def replace_tabs(text, value=None):
     """Replace all tabs with spaces in a text string.
@@ -19,6 +21,27 @@ def replace_tabs(text, value=None):
         return text
     value = value if isinstance(value, str) else "  "
     return text.replace("\t", value)
+
+
+class CleandocProxy:
+    """Proxy so ``{self.__doc__}`` is stable across Python versions.
+
+    Python 3.13+ stores already-dedented docstrings on objects; older
+    versions keep source indentation. Always expose ``inspect.cleandoc`` text.
+    """
+
+    __slots__ = ("_obj",)
+
+    def __init__(self, obj):
+        object.__setattr__(self, "_obj", obj)
+
+    @property
+    def __doc__(self):
+        doc = self._obj.__doc__
+        return inspect.cleandoc(doc) if isinstance(doc, str) else doc
+
+    def __getattr__(self, name):
+        return getattr(self._obj, name)
 
 
 def deindent_docstring(text, reindent=False):

@@ -13,7 +13,7 @@ from clak.argparse_ import (
     argparse,
     argparse_inject_as_subparser,
 )
-from clak.common import deindent_docstring
+from clak.common import CleandocProxy, deindent_docstring
 from clak.nodes import Fn
 
 logger = logging.getLogger(__name__)
@@ -419,7 +419,12 @@ class FormatEnv(dict):
         "Get dict of vars"
         out = {}
         out.update(self._default)
-        out.update(self._variables)
+        for key, value in self._variables.items():
+            # Normalize object.__doc__ across Python versions (3.13+ cleandoc).
+            if key == "self" and value is not None:
+                out[key] = CleandocProxy(value)
+            else:
+                out[key] = value
         return out
 
     def __dict__(self):

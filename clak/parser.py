@@ -15,7 +15,12 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Union
 
 from clak import exception
-from clak.argparse_ import RecursiveHelpFormatter, argparse
+from clak.argparse_ import (
+    ArgumentParserPlus,
+    RecursiveHelpFormatter,
+    argparse,
+    format_argument_error,
+)
 from clak.common import ObjectNamespace
 from clak.descriptors import (
     ArgParseItem,
@@ -176,7 +181,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         usage = prepare_docstring(usage, variables=fenv.get())
         desc = prepare_docstring(desc, variables=fenv.get())
         epilog = prepare_docstring(epilog, variables=fenv.get())
-        parser = argparse.ArgumentParser(
+        parser = ArgumentParserPlus(
             prog=self.proc_name,
             usage=usage,
             description=desc,
@@ -184,6 +189,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             formatter_class=RecursiveHelpFormatter,
             add_help=self.add_help,
             exit_on_error=False,
+            clak_instance=self,
         )
         return parser
 
@@ -203,7 +209,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if self._subparsers is None:
             level = len(self.get_hierarchy())
             self._subparsers = self.parser.add_subparsers(
-                dest=f"__cli_cmd__{level}", help="Available commands"
+                dest=f"__cli_cmd__{level}",
+                help="Available commands",
+                parser_class=ArgumentParserPlus,
             )
         return self._subparsers
 
@@ -549,8 +557,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             args = self.parse_args(args)
             args = args.__dict__
         except argparse.ArgumentError as err:
-            msg = f"Could not parse command line: {err.argument_name} {err.message}"
-            error = exception.ClakParseError(msg)
+            error = exception.ClakParseError(format_argument_error(err))
             # raise exception.ClakParseError(msg) from err
 
         if not error:

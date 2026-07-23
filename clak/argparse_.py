@@ -205,6 +205,21 @@ def argparse_inject_as_subparser(parent_parser, key, child_parser):
     return parent_parser
 
 
+def format_argument_error(err: argparse.ArgumentError) -> str:
+    """Build a stable Clak parse-error message from argparse.ArgumentError.
+
+    ``argument_name`` is often ``None`` (e.g. missing required args). Avoid
+    embedding the literal ``None`` in user-facing output.
+    """
+    parts = []
+    if err.argument_name:
+        parts.append(str(err.argument_name))
+    if err.message:
+        parts.append(str(err.message))
+    detail = " ".join(parts) if parts else str(err)
+    return f"Could not parse command line: {detail}"
+
+
 # Inherit from Raw formatter.
 class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """A recursive help formatter to help command discovery."""
@@ -215,6 +230,28 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         super().__init__(
             *args, max_help_position=self.config__max_help_position, **kwargs
         )
+
+    def _format_action_invocation(self, action):
+        """Keep option help stable across Python versions.
+
+        Python 3.13+ changed optional formatting from
+        ``-s ARGS, --long ARGS`` to ``-s, --long ARGS``. Pin the older form so
+        Clak help output does not drift with the interpreter.
+        """
+        if not action.option_strings:
+            default = self._get_default_metavar_for_positional(action)
+            (metavar,) = self._metavar_formatter(action, default)(1)
+            return metavar
+
+        parts = []
+        if action.nargs == 0:
+            parts.extend(action.option_strings)
+        else:
+            default = self._get_default_metavar_for_optional(action)
+            args_string = self._format_args(action, default)
+            for option_string in action.option_strings:
+                parts.append(f"{option_string} {args_string}")
+        return ", ".join(parts)
 
     def _get_default_metavar_for_positional(self, action):
         "Automatically show positional as uppercase"
@@ -301,11 +338,21 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class ArgumentParserPlus(argparse.ArgumentParser):
-    "Improved version of ArgumentParser"
+    """ArgumentParser with Clak-stable error behavior across Python versions.
+
+    Python < 3.12 still calls ``error()`` for some failures (e.g. missing
+    required args) even when ``exit_on_error=False``. Raise ``ArgumentError``
+    instead so Clak can always handle parse errors the same way.
+    """
 
     def __init__(self, *args, clak_instance=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.clak_instance = clak_instance
+
+    def error(self, message):
+        if getattr(self, "exit_on_error", True):
+            return super().error(message)
+        raise argparse.ArgumentError(None, message)
 
     def parse_args(self, args=None, namespace=None):
         args, argv = self.parse_known_args(args, namespace)
