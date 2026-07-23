@@ -31,7 +31,7 @@ remains supported and expands every group into INFO and DEBUG tiers.
 `log_silent` namespaces stay at WARNING until maximum verbosity.
 
 CLI flags: `-v` / `--verbose`, `--log-format`, `--trace`, and optionally
-`--log-colors` when `coloredlogs` is installed (`pip install 'mrjk-clak[colors]'`).
+`--log-colors` when `coloredlogs` is installed (`pip install 'mrjk.clak[colors]'`).
 
 Custom levels `spam`, `verbose`, `success`, and `notice` are registered
 automatically.

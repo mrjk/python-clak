@@ -1,17 +1,15 @@
 # Installation
 
 
-## Package Installation
+## Package installation
 
-Clak is a python library, and can be installed with any of the following methods.
+Clak is a Python library. Install it with any of the following methods.
 
 
 ### Install with pip
 
 !!! tip
-    Recommended for quickstart and evaluation..
-
-Install clak using pip:
+    Recommended for quickstart and evaluation.
 
 ```bash
 pip install mrjk.clak
@@ -22,8 +20,6 @@ pip install mrjk.clak
 !!! tip
     Recommended for production use.
 
-Install with your project manager:
-
 ```bash
 poetry add mrjk.clak
 pdm add mrjk.clak
@@ -33,39 +29,48 @@ uv add mrjk.clak
 ### Install from git
 
 !!! tip
-    Recommended for development or testing specific versions.
+    Recommended for development or testing a specific branch.
 
-With pip, with `development` branch. Use `main` for stable version:
-
-``` bash
+```bash
+# Development branch
 pip install git+https://github.com/mrjk/python-clak.git@develop
+
+# Stable default branch
+pip install git+https://github.com/mrjk/python-clak.git
 ```
 
 
-## Completion support
+## Optional extras
 
-Install argcomplete globally, required only once for all application using argcomplete:
+### Colors
+
+Colored log output for `LoggingOptMixin` (via `coloredlogs`):
+
+```bash
+pip install 'mrjk.clak[colors]'
+```
+
+Or set `CLAK_COLORS=0` to disable colors even when `coloredlogs` is installed.
+
+### Config / YAML
+
+YAML config files for `XDGConfigMixin`, and YAML output for views
+(`--format yaml`), need PyYAML:
+
+```bash
+pip install 'mrjk.clak[config]'
+```
+
+JSON config files and `--format json` / `csv` work without extras (stdlib).
+
+
+## Shell completion helper
+
+`argcomplete` is already a dependency of Clak. To activate it for many Python
+CLIs on a machine (optional, once):
 
 ```bash
 activate-global-python-argcomplete
 ```
 
-See also completion support in documentation.
-
-## Optional extras
-
-Colored log output (used by `LoggingOptMixin` when available):
-
-```bash
-pip install 'mrjk-clak[colors]'
-```
-
-Or set `CLAK_COLORS=0` to disable colors even when `coloredlogs` is installed.
-
-YAML config files (used by `XDGConfigMixin` for `.yaml` / `.yml`):
-
-```bash
-pip install 'mrjk-clak[config]'
-```
-
-JSON config files work without extras (stdlib).
+See [Shell completion](completion.md) for generating a script for your app.

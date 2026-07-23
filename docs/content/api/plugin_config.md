@@ -1,7 +1,6 @@
 # Config
 
-`XDGConfigMixin` adds XDG path flags and loads `--conf-file` once during
-dispatch (`cli_hook__config`).
+User guide: [Config](../docs/config.md).
 
 ## Usage
 
@@ -25,7 +24,7 @@ if __name__ == "__main__":
 
 - **JSON** (`.json`): always available (stdlib).
 - **YAML** (`.yaml` / `.yml`): requires optional extra:
-  `pip install 'mrjk-clak[config]'`.
+  `pip install 'mrjk.clak[config]'`.
 - Missing file → empty config unless `Meta.config_required = True`.
 - Config is **not** merged into CLI args; read `ctx.config` / `self.config`
   explicitly.

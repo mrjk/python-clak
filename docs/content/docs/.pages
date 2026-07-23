@@ -3,10 +3,9 @@ nav:
     - Features: features.md
     - Views: views.md
     - Logging: logging.md
+    - Config: config.md
+    - Completion: completion.md
     - Error handling: exceptions.md
     - Installation: install.md
     - Advanced: advanced.md
-    - Execution: execution.md
-
-    - Other:
-      - ...
+    - Shipping your CLI: execution.md

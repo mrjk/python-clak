@@ -86,7 +86,7 @@ Hello, Ada!
 Install colors:
 
 ```bash
-pip install 'mrjk-clak[colors]'
+pip install 'mrjk.clak[colors]'
 # or: pip install coloredlogs
 ```
 

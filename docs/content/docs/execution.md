@@ -1,240 +1,121 @@
-# Make script executable
-This guide explains different ways to make your Python scripts executable and runnable from the command line. Whether you're developing a simple script or a full CLI application, you'll learn how to:
+# Shipping your CLI
 
-- Run scripts directly with Python
-- Make scripts executable on Unix-like systems
-- Package scripts as command-line tools
-- Use package managers like pip, Poetry, PDM and UV
+Ways to run a Clak app from the command line — from a local script to an
+installed console entry point.
 
-We'll cover best practices and common patterns for each approach.
+- Call with the Python interpreter: `python script.py …`
+- Make the file executable on Unix-like systems
+- Package as a `console_scripts` / Poetry / PDM / UV entry point
 
-
-There are different ways:
-
-- Direct call:
-  - `python script.py --help`
-  - `python script.py ...`
-- Direct executable:
-  - `chmod +x script.py`
-  - `./script.py --help`
-  - `./script.py ...`
-- Module call, when packaged:
-  - `python -m pkg --help`
-  - `python -m pkg ...`
+Clak does not replace packaging; it replaces hand-rolled argparse wiring inside
+your `main`.
 
 
 ## Without package managers
 
 
-### With python interpreter
+### With the Python interpreter
 
-The simplest way is to call Python directly with your script:
-
-1. Create your Python script:
-
-   ```python
-   import sys
-
-   def main():
-       print("Hello, World!")
-       return 0
-
-   if __name__ == "__main__":
-       sys.exit(main())
-   ```
-
-2. Run the script:
-  
-```bash
-   python script.py --help
-   python script.py ...
-   ```
-
-This method requires no additional setup or modifications to the script file.
-
-### As executable script
-
-To make a Python script executable without using package managers, follow these steps:
-
-1. Add a shebang line at the beginning of your script:
+1. Create your script (Clak example):
 
    ```python
    #!/usr/bin/env python3
-   
-   import sys
-   
-   def main():
-       print("Hello, World!")
-   
+   from clak import Argument, Parser
+
+   class App(Parser):
+       """Hello CLI."""
+       name = Argument("NAME", nargs="?", default="World")
+
+       def cli_run(self, name="World", **_):
+           print(f"Hello, {name}")
+
    if __name__ == "__main__":
-       sys.exit(main())
+       App()
    ```
 
-2. Make the script executable:
-  
-   ```bash
-   chmod +x script.py
-   ```
+2. Run it:
 
-3. Run the script:
-  
-   ```bash
-   ./script.py --help
-   # or from anywhere if the script is in $PATH
-   script.py --help
+```bash
+python script.py --help
+python script.py Ada
+```
 
-   ```
+### As an executable script
+
+1. Keep the shebang (`#!/usr/bin/env python3`).
+2. `chmod +x script.py`
+3. Run `./script.py --help` (or put the directory on `$PATH`).
+
 
 ## With package managers
 
-Here's how to make your Python scripts executable using different package managers:
+Expose a function that constructs your root `Parser` (instantiation runs
+dispatch). Prefer returning/`sys.exit`ing an int only if you call `dispatch`
+yourself with `parse=False` patterns; for the default `App()` style, the
+entry point can simply construct the app.
 
 ### Setuptools
 
-1. Create a `setup.py`:
+```python
+# your_package/__main__.py or cli.py
+from your_package.app import App
 
-   ```python
-   from setuptools import setup
+def main():
+    App()
+```
 
-   setup(
-       name="your-package",
-       version="0.1.0",
-       packages=["your_package"],
-       entry_points={
-           "console_scripts": [
-               "your-command=your_package.main:main",
-           ],
-       },
-   )
-   ```
+```python
+# setup.py
+from setuptools import setup
 
-2. Install in development mode:
-  
-   ```bash
-   pip install -e .
-   ```
+setup(
+    name="your-package",
+    version="0.1.0",
+    packages=["your_package"],
+    entry_points={
+        "console_scripts": [
+            "your-command=your_package.cli:main",
+        ],
+    },
+)
+```
 
-3. Run your command:
-  
-   ```bash
-   your-command
-   ```
+```bash
+pip install -e .
+your-command --help
+```
 
 ### Poetry
 
-1. Configure `pyproject.toml`:
-
-   ```toml
-   [tool.poetry]
-   name = "your-package"
-   version = "0.1.0"
-   description = ""
-   authors = ["Your Name <your@email.com>"]
-
-   [tool.poetry.dependencies]
-   python = "^3.8"
-
-   [tool.poetry.scripts]
-   your-command = "your_package.main:main"
-   ```
-
-2. Install using Poetry:
-
-   ```bash
-   poetry install
-   ```
-
-3. Run your command:
-  
-   ```bash
-   poetry run your-command
-
-   ```
-
-### PDM
-
-1. Configure `pyproject.toml`:
-
-   ```toml
-   [project]
-   name = "your-package"
-   version = "0.1.0"
-   dependencies = []
-
-   [project.scripts]
-   your-command = "your_package.main:main"
-   ```
-
-2. Install using PDM:
-  
-   ```bash
-   pdm install
-   ```
-
-3. Run your command:
-  
-   ```bash
-   pdm run your-command
-
-   ```
-
-### UV
-
-1. Configure `pyproject.toml` (similar to Poetry or PDM format):
-
-   ```toml
-   [project]
-   name = "your-package"
-   version = "0.1.0"
-   dependencies = []
-
-   [project.scripts]
-   your-command = "your_package.main:main"
-   ```
-
-2. Install using UV:
-  
-   ```bash
-   uv pip install -e .
-   ```
-
-3. Run your command:
-  
-   ```bash
-   your-command
-
-   ```
-
-### Best Practices
-
-1. Always use `sys.exit(main())` in your entry points for proper exit code handling
-2. Include proper argument parsing (e.g., using `argparse` or `click`)
-3. Use descriptive command names that don't conflict with existing system commands
-4. Provide proper documentation and help messages
-5. Handle errors gracefully
-
-Example of a well-structured entry point:
-
-```python
-#!/usr/bin/env python3
-import argparse
-import sys
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Your command description")
-    parser.add_argument("--option", help="An option description")
-    return parser.parse_args()
-
-def main():
-    args = parse_args()
-    try:
-        # Your main logic here
-        return 0
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
-if __name__ == "__main__":
-    sys.exit(main())
-
+```toml
+[tool.poetry.scripts]
+your-command = "your_package.cli:main"
 ```
+
+```bash
+poetry install
+poetry run your-command --help
+```
+
+### PDM / UV
+
+```toml
+[project.scripts]
+your-command = "your_package.cli:main"
+```
+
+```bash
+pdm install && pdm run your-command --help
+# or
+uv pip install -e . && your-command --help
+```
+
+
+### Best practices
+
+1. Use a clear command name that does not collide with system tools.
+2. Rely on Clak/`argparse` help instead of a custom usage printer.
+3. Raise `ClakUserError` (or your app errors) and let Clak set exit codes —
+   see [Error handling](exceptions.md).
+4. For tab completion after install, emit a script with
+   [Completion](completion.md) using the installed executable name.

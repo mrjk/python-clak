@@ -124,7 +124,7 @@ def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
     path.write_text("debug: true\n", encoding="utf-8")
     with pytest.raises(ClakUserError, match="PyYAML") as exc:
         load_config_file(path)
-    assert "mrjk-clak[config]" in (exc.value.advice or "")
+    assert "mrjk.clak[config]" in (exc.value.advice or "")
 
 
 @pytest.mark.skipif(config_mod.yaml is None, reason="PyYAML not installed")

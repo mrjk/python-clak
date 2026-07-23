@@ -1,64 +1,78 @@
 # Features
 
-- Argparse friendly:
-  - Reuse as much as possible from argparse, but allow a new modular way to built CLI.
-  - If you know argparse, then you already know how to use clak.
-  - Same API (canonical names: `Parser`, `Argument`, `Command`):
-    - `argparse.ArgumentParser()` becomes `class MyApp(Parser):`
-    - `.add_argument(...)` becomes `dest = Argument(...)`
-    - `.add_subparser(...)` becomes `subcmd1 = Command(...)`
-  - Aliases: `SubParser` / `SubCommand` / `Cmd` are the same as `Command`; `ArgumentParser` is `Parser`.
-  - Planned (not shipped yet): distinct `Opt` / `Arg` helpers for optional vs positional.
+Clak extends Python’s `argparse` with a class-based API. If you know argparse,
+you already know most of Clak.
 
-- Class based approach:
-  - Use Python class to provide declarative command line.
-  - Since we use class, we can take advantage of Python inheritance to create CLI.
-    - Including organizing command in a tree structure.
-    - Inherit and share settings among different class, to allow maximum reusability.
-  - Hide internal argparse implementation from user, so you can focus on your app.
+## Argparse-friendly core
 
-- Build git-like CLI with ease
-  - Rely on arparse subparser functionality.
-  - Pythonic class based approach to represent.
-  - Each subcommands are `Parser` instances, referenced via the `Command` field.
+- Reuse argparse concepts; organize CLI code as Python classes.
+- Canonical API:
+  - `argparse.ArgumentParser()` → `class MyApp(Parser):`
+  - `.add_argument(...)` → `dest = Argument(...)`
+  - `.add_subparsers(...)` → `subcmd = Command(...)`
+- Aliases (supported, not preferred in new code): `SubParser` / `SubCommand` /
+  `Cmd` for `Command`; `ArgumentParser` for `Parser`.
+  See [Roadmap](../project/roadmap.md) for planned `Opt` / `Arg` helpers.
 
-- Easy sub-command discovery
-  - All possible command are show in the root help
-  - All subcommands display indiviudal and customizable help message.
+## Class-based structure
 
-- Modular components and reusable components:
-  - Help:
-    - Comprehensive help message with command tree display.
-    - Manage `--help` and `-h` flags.
-    - Easily change usage, description or epilog
-  - Views:
-    - Turn command return values into tables or pretty-prints.
-    - Mix in `ShowViewMixin`, `ListViewMixin`, or `PprintViewMixin` for auto-render + CLI flags.
-    - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`, `--sort-mode`.
-    - Or return `ShowView` / `ListView` / `PprintView` from `cli_run`, or set `Meta.cli_view`.
-    - Guide: [Views](views.md).
-  - Error handling:
-    - `dispatch()` try/except + `clean_terminate()` handler chain (Paasify-style).
-    - `Meta.known_exceptions` for app errors with custom `rc`.
-    - `Meta.exception_handlers` for third-party libs (YAML, shell, …).
-    - Uncaught bugs: traceback + report to developer.
-    - Guide: [Error handling](exceptions.md).
-  - Logging:
-    - Configure stderr logging and per-parser `self.logger` via `LoggingOptMixin`
-    - Cumulative `-v` / `-vv` / `-vvv` tiers (`Meta.log_levels`)
-    - Formatters (`--log-format`), optional colors (`coloredlogs`), `--trace`
-    - Custom levels: `spam`, `verbose`, `success`, `notice`
-    - Guide: [Logging](logging.md).
-  - Config:
-    - `XDGConfigMixin`: `--conf-file` / data / cache / log paths from
-      `Meta.app_name` and `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` / `$XDG_CACHE_HOME`.
-    - Loads `--conf-file` on dispatch into `ctx.config` / `root.config`
-      (JSON always; YAML via optional extra `config` / PyYAML).
-    - Missing file → `{}` unless `Meta.config_required = True`.
-  - Completion:
-    - Provide `completion` or `--complete` flag to generate completion script.
-    - Support most common shell via the `argcomplete` library.
-  - More to come ...
-    - Environment var support
-  - Build your own:
-    - Reuse your existing code, your favorite CLI options, put them in a library and ship it.
+- Declarative CLI via classes and inheritance.
+- Share options and behaviour up the command tree.
+- Keep argparse internals out of your application code.
+
+## Nested (git-like) commands
+
+- Each subcommand is a `Parser`, bound with `Command`.
+- Root `--help` lists the command tree; each node has its own help text.
+
+## Optional components
+
+Mix in only what you need:
+
+### Help
+
+- Command-tree overview, `--help` / `-h`, customizable usage / description /
+  epilog.
+
+### Views
+
+- Turn return values into tables or pretty-prints.
+- Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`.
+- Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
+  `--sort-mode`.
+- Guide: [Views](views.md).
+
+### Error handling
+
+- `dispatch()` try/except + `clean_terminate()` handler chain.
+- `Meta.known_exceptions` for app errors with custom `rc`.
+- `Meta.exception_handlers` for third-party libraries.
+- Guide: [Error handling](exceptions.md).
+
+### Logging
+
+- `LoggingOptMixin`: stderr logging, `self.logger`, cumulative `-v` tiers.
+- Formatters, optional colors (`mrjk.clak[colors]`), `--trace`.
+- Custom levels: `spam`, `verbose`, `success`, `notice`.
+- Guide: [Logging](logging.md).
+
+### Config
+
+- `XDGConfigMixin`: `--conf-file` and XDG data/cache/log paths from
+  `Meta.app_name`.
+- Loads JSON always; YAML via `mrjk.clak[config]`.
+- Guide: [Config](config.md).
+
+### Completion
+
+- Emit shell completion scripts with `CompCmdRender` (argcomplete).
+- Guide: [Completion](completion.md).
+
+### Build your own
+
+- Package reusable mixins (options + hooks) the same way Clak’s components do.
+
+## Planned
+
+See the [roadmap](../project/roadmap.md) for argparse groups, intermixed args,
+`Opt`/`Arg` helpers, env-var mapping, and runtime autocomplete.

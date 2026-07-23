@@ -21,7 +21,7 @@ from clak.parser import Argument, MetaSetting
 
 logger = logging.getLogger(__name__)
 
-# Optional YAML support (extra: mrjk-clak[config])
+# Optional YAML support (extra: mrjk.clak[config])
 yaml = None
 try:
     import yaml  # type: ignore
@@ -38,7 +38,7 @@ _UNSAFE_APP_NAME = re.compile(r"[^\w.-]+")
 
 _YAML_SUFFIXES = {".yaml", ".yml"}
 _JSON_SUFFIXES = {".json"}
-_YAML_INSTALL_HINT = "pip install 'mrjk-clak[config]'"
+_YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
 
 
 def xdg_dir(env_var: str, default: str | None = None) -> str:

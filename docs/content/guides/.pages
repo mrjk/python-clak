@@ -1,7 +1,6 @@
 title: Guides
 nav:
-  - Basic application: guide_101.md
-  - Nested application: guide_102.md
+  - Getting started: guide_101.md
+  - Nested commands: guide_102.md
   - Customization: guide_103.md
-  - Advanced features: guide_104.md
-  - ...
+  - Components: guide_104.md

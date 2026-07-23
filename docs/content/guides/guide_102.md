@@ -166,13 +166,9 @@ python script.py --debug command1 sub2 sub2a arg1 arg2
 
 ## Next Steps
 
-After mastering nested commands, you can explore:
+* [Customization](guide_103.md) — `Meta`, inheritance, built-in behaviour
+* [Components](guide_104.md) — views, logging, config, completion
+* [Advanced nesting tips](../docs/advanced.md)
 
-* Command plugins and dynamic loading
-* Custom argument types
-* Command aliases
-* Shell completion
-* Configuration file integration
-* Interactive command modes
-
-Remember that well-designed command-line interfaces make your tools more user-friendly and maintainable. Take time to plan your command hierarchy and argument structure before implementation.
+Plan the command tree before coding: keep depth shallow (about 3–4 levels)
+and put shared options on parent parsers.

@@ -1,31 +1,77 @@
-# Advanced Usage
+# Customization
 
-Clak provides several integrated features out of the box.
+Clak ships sensible defaults. This guide covers what you commonly tweak next:
+`Meta`, help text, and built-in behaviour.
 
-## Integrated features
+## Built-in behaviour (no mixin)
 
-* Automatic environment variable parsing
-* [Error and exception handling](../docs/exceptions.md) — `ClakUserError`, exit codes, `Meta.known_exceptions`
-* Automatic management of `--help` and `-h` flags
+These work on any `Parser`:
 
-## Advanced customization
+* Automatic `--help` / `-h`
+* Instantiating the root parser parses argv and runs the matched command
+  (pass `parse=False` to build without dispatching)
+* [Error and exception handling](../docs/exceptions.md) —
+  `ClakUserError`, exit codes, `Meta.known_exceptions`
 
-Some behavior can be overridden on a per-node or per-argument basis.
+Clak does **not** auto-map arbitrary environment variables to CLI options.
+Library flags that *do* read the environment:
 
-### Arguments customization
+* `CLAK_DEBUG`, `CLAK_COLORS` — see [Logging](../docs/logging.md)
+* `$XDG_*` — see [Config](../docs/config.md) when using `XDGConfigMixin`
 
-Arguments are defined directly in classes via the `Argument` class. See the
+Env-var → option mapping is on the [roadmap](../project/roadmap.md).
+
+## Arguments
+
+Define arguments on the class with `Argument` — same kwargs as
+`argparse.ArgumentParser.add_argument()`. See the
 [Parser API](../api/parser.md).
 
-### Parser `Meta`
+```python
+class MyCmd(Parser):
+    verbose = Argument("-v", "--verbose", action="store_true", help="Verbose")
+    path = Argument("PATH", help="Input path")
+```
 
-The `Meta` class changes parser behavior. Examples:
+## Parser `Meta`
+
+Nested `Meta` changes parser behaviour. Common settings:
 
 ```python
 class MyApp(Parser):
     class Meta:
-        app_name = "My app name"
+        app_name = "myapp"              # XDG paths, process naming
+        help_description = "My CLI"     # override docstring-based description
         known_exceptions = [MyDomainError]
 ```
 
-See [Error handling](../docs/exceptions.md) for exception-related `Meta` settings.
+Exception-related settings: [Error handling](../docs/exceptions.md).
+Logging / views / config each document their own `Meta` keys on their guides.
+
+## Inheritance
+
+Share options or helpers via a base class:
+
+```python
+class BaseCmd(Parser):
+    dry_run = Argument("--dry-run", action="store_true")
+
+    def maybe_write(self, dry_run=False, **_):
+        if dry_run:
+            print("skip write")
+            return
+        ...
+
+class ApplyCmd(BaseCmd):
+    def cli_run(self, **kwargs):
+        self.maybe_write(**kwargs)
+```
+
+Parent options are visible to child `cli_run` methods when using nested
+`Command`s — see [Nested commands](guide_102.md).
+
+## Next steps
+
+* Components: [guide 104](guide_104.md) (views, logging, config, completion)
+* Deeper nesting patterns: [Advanced](../docs/advanced.md)
+* Shipping an entry point: [Shipping your CLI](../docs/execution.md)

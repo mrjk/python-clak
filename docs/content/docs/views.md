@@ -115,7 +115,7 @@ $ python script_views.py --sort-columns name --sort-mode desc --columns name,rol
 
 - **`view`** — PrettyTable output (default).
 - **`json`** / **`csv`** — stdlib only.
-- **`yaml`** — requires [PyYAML](https://pypi.org/project/PyYAML/) (`pip install pyyaml`).
+- **`yaml`** — requires PyYAML (`pip install 'mrjk.clak[config]'` or `pip install pyyaml`).
 
 Sorting applies before rendering, so it works for every format (including multi-column sort).
 
@@ -177,7 +177,8 @@ class App(ListViewMixin, Parser):
     Build the view yourself (still works with or without a mixin):
 
     ```python
-    from clak import ListView, Parser
+    from clak import Parser
+    from clak.views import ListView
 
     class App(Parser):
         def cli_run(self, **_):
@@ -192,7 +193,8 @@ class App(ListViewMixin, Parser):
     No mixin flags — configure the view class yourself:
 
     ```python
-    from clak import ListView, Parser
+    from clak import Parser
+    from clak.views import ListView
 
     class App(Parser):
         class Meta:
