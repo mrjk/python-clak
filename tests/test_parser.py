@@ -17,15 +17,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from clak.descriptors import FormatEnv, first_doc_line, prepare_docstring
 from clak.exception import ClakError, ClakParseError, ClakUserError
 from clak.parser import (
     Argument,
     Command,
-    FormatEnv,
     ParserNode,
     SubParser,
-    first_doc_line,
-    prepare_docstring,
 )
 
 

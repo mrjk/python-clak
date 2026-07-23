@@ -5,10 +5,9 @@ Test examples from demo101.
 import os.path
 
 import pytest
-import sh
 
 import tests.features.demo_features.demo101_basic_minimal as example
-from tests.common import replace_with_placeholders
+from tests.common import replace_with_placeholders, run_cli_script
 
 
 @pytest.fixture
@@ -83,6 +82,7 @@ def test_demo101_basic_minimal_cli(
     ), f"Expected exit code {expected_exit}, but got: {exit_code}"
 
 
+@pytest.mark.tags("examples", "examples-regressions")
 @pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
 def test_demo101_basic_minimal_cli_regression(
     demo101_app, capsys, data_regression, cli_args, expected_output, expected_exit
@@ -100,6 +100,7 @@ def test_demo101_basic_minimal_cli_regression(
 
     captured = capsys.readouterr()
     output = captured.out + captured.err
+    output = replace_with_placeholders(output)
 
     # Prepare regression data structure
     test_data = {
@@ -119,17 +120,7 @@ def test_demo101_basic_minimal_script_regression(
 ):
     """Regression test that executes the actual script file using sh library."""
 
-    # Get the path to the demo script
-    demo_script = sh.Command(demo101_file)
-    output = "<???>"
-    exit_code = 0
-
-    try:
-        output = demo_script(*cli_args, _err_to_out=True, _tty_out=True)
-    except sh.ErrorReturnCode as e:
-        output = str(e)
-        exit_code = int(e.exit_code)
-
+    output, exit_code = run_cli_script(demo101_file, cli_args)
     output = replace_with_placeholders(output)
     assert expected_exit == exit_code
 

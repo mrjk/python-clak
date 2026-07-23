@@ -5,11 +5,9 @@ Test examples from demo102.
 import os.path
 
 import pytest
-import sh
-from common import replace_with_placeholders
 
 import tests.features.demo_features.demo102_basic_argparse as example
-from tests.common import replace_with_placeholders
+from tests.common import replace_with_placeholders, run_cli_script
 
 
 @pytest.fixture
@@ -62,7 +60,7 @@ TEST_PARAMETERS = [
     # Test with missing value for config
     (
         ["--config", "new_conf.yml"],
-        "error: the following arguments are required: NAME",
+        "Could not parse command line: the following arguments are required: NAME",
         2,
     ),
     # Test with items list
@@ -142,18 +140,7 @@ def test_demo102_basic_minimal_script_regression(
 ):
     """Regression test that executes the actual script file using sh library."""
 
-    # Get the path to the demo script
-    demo_script = sh.Command(demo102_file)
-
-    output = "<???>"
-    exit_code = 0
-
-    try:
-        output = demo_script(*cli_args, _err_to_out=True, _tty_out=True)
-    except sh.ErrorReturnCode as e:
-        output = str(e)
-        exit_code = int(e.exit_code)
-
+    output, exit_code = run_cli_script(demo102_file, cli_args)
     output = replace_with_placeholders(output)
     assert expected_exit == exit_code
 

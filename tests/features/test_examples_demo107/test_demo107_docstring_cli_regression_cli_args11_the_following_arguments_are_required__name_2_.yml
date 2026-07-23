@@ -1,8 +1,9 @@
 cli_args:
 - command2
 err: '2'
-output: 'usage: command usage for command2 can be overriden
+output: 'usage: demo107-test [-h] [--debug] [--config CONFIG] {command1,command2}
+  ...
 
-  demo107-test command2: error: the following arguments are required: name
+  Could not parse command line: the following arguments are required: name
 
   '

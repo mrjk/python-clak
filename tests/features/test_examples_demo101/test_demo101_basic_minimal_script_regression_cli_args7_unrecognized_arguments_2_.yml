@@ -4,5 +4,4 @@ cli_args:
 exit_code: 2
 output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo101_basic_minimal.py\
   \ John Alice\n\n  STDOUT:\nusage: demo101_basic_minimal.py [-h] [--config CONFIG]\
-  \ [NAME]\ndemo101_basic_minimal.py: error: unrecognized arguments: Alice\n\n\n \
-  \ STDERR:\n"
+  \ [NAME]\nCould not parse command line: unrecognized arguments: Alice\n\n\n  STDERR:\n"

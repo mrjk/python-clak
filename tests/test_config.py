@@ -119,7 +119,7 @@ def test_load_config_file_unknown_suffix(tmp_path):
 
 
 def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
-    monkeypatch.setattr(config_mod, "yaml", None)
+    monkeypatch.setattr(config_mod, "_yaml", None)
     path = tmp_path / "app.yaml"
     path.write_text("debug: true\n", encoding="utf-8")
     with pytest.raises(ClakUserError, match="PyYAML") as exc:
@@ -127,7 +127,7 @@ def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
     assert "mrjk.clak[config]" in (exc.value.advice or "")
 
 
-@pytest.mark.skipif(config_mod.yaml is None, reason="PyYAML not installed")
+@pytest.mark.skipif(config_mod._yaml is None, reason="PyYAML not installed")
 def test_load_config_file_yaml(tmp_path):
     path = tmp_path / "app.yaml"
     path.write_text("debug: true\nname: demo\n", encoding="utf-8")

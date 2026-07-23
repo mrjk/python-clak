@@ -2,6 +2,6 @@ cli_args:
 - command2
 exit_code: 2
 output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo104_nested_deep.py\
-  \ command2\n\n  STDOUT:\nusage: demo104_nested_deep.py command2 [-h] [--alias ALIASES]\
-  \ NAME\ndemo104_nested_deep.py command2: error: the following arguments are required:\
-  \ NAME\n\n\n  STDERR:\n"
+  \ command2\n\n  STDOUT:\nusage: demo104_nested_deep.py [-h] [--debug] [--config\
+  \ CONFIG]\n                              {command1,command2} ...\nCould not parse\
+  \ command line: the following arguments are required: NAME\n\n\n  STDERR:\n"
