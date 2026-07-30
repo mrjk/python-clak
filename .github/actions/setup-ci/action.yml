@@ -1,0 +1,46 @@
+name: Setup CI
+description: Install mise-managed tools and Poetry dependencies
+
+inputs:
+  poetry_args:
+    description: Extra args for poetry install (e.g. --with docs,dev)
+    required: false
+    default: "--with dev"
+  python_version:
+    description: Overrides mise Python via PYTHON_VERSION
+    required: false
+    default: "3.12"
+  install_graphviz:
+    description: If true, apt-install graphviz (docs / pyreverse)
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Graphviz
+      if: inputs.install_graphviz == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz
+
+    - name: Install mise tools
+      uses: jdx/mise-action@v3
+      with:
+        cache: true
+      env:
+        PYTHON_VERSION: ${{ inputs.python_version }}
+
+    - name: Configure Poetry
+      shell: bash
+      run: |
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
+
+    - name: Install dependencies
+      shell: bash
+      env:
+        # rpds-py builds via PyO3; 3.14 is newer than PyO3 0.24's declared max (3.13)
+        PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+      run: poetry install ${{ inputs.poetry_args }}

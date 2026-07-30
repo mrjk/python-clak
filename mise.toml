@@ -1,7 +1,9 @@
-# Tool pins for local + CI. https://mise.jdx.dev/
-# Python matrix versions (3.10–3.14) are installed on demand by scripts/run_python_matrix.sh.
+# Tool pins for local + CI. Override Python in Actions with PYTHON_VERSION.
+# Extra matrix Pythons for task test_matrix: scripts/run_python_matrix.sh.
+# https://mise.jdx.dev/
 
 [tools]
-python = "3.12"
+python = "{{ get_env(name='PYTHON_VERSION', default='3.12') }}"
 poetry = "2.1.4"
 task = "3.52.0"
+shellcheck = "0.10.0"

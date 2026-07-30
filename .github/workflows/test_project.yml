@@ -15,48 +15,13 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - name: Install Graphviz
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y graphviz
-
       - uses: actions/checkout@v6
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+
+      - name: Setup CI
+        uses: ./.github/actions/setup-ci
         with:
-          python-version: ${{ matrix.python-version }}
+          python_version: ${{ matrix.python-version }}
+          install_graphviz: "true"
 
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-
-      - uses: actions/cache@v5
-        with:
-          key: project-${{ env.cache_id }}
-          path: ~/.local
-          restore-keys: |
-            project-
-
-      - name: Install go-task
-        run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: "2.1.4"
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          virtualenvs-path: .venv
-          installer-parallel: true
-
-      - name: Setup a local virtual environment (if no poetry.toml file)
-        run: |
-          poetry env info
-          poetry config --list
-
-      - name: Install dependencies
-        env:
-          # rpds-py builds via PyO3; 3.14 is newer than PyO3 0.24's declared max (3.13)
-          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-        run: |
-          poetry install --with dev
-          poetry run task test
+      - name: Run full test gate
+        run: poetry run task test
