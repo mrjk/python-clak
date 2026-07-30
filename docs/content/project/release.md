@@ -75,10 +75,16 @@ See `./scripts/release.sh --help` for all bump keywords.
 Configure once in the GitHub repo:
 
 1. Environment: `pypi`
-2. Secret: `PYPI_TOKEN` (PyPI API token)
+2. Environment **secret** (not a variable): `PYPI_TOKEN`
+3. Value: a PyPI **API token** from https://pypi.org/manage/account/token/
+   (must start with `pypi-`; not a password; not a TestPyPI token)
 
-On `v*` tag push, the workflow sets `POETRY_PYPI_TOKEN_PYPI` and runs
+On `v*` tag push, the workflow configures Poetry with that token and runs
 `poetry run task publish_pypi`.
+
+If publish fails with `403 Invalid or non-existent authentication information`,
+the secret is usually missing/empty, misnamed, stored as a variable, or not a
+live `pypi-…` token for pypi.org.
 
 ### Local / manual
 

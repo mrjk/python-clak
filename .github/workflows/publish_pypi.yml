@@ -43,5 +43,22 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: poetry run task publish_pypi
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          # Avoid keyring prompts/failures in CI; use config + env only.
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+        run: |
+          set -euo pipefail
+          if [ -z "${PYPI_TOKEN:-}" ]; then
+            echo "::error::PYPI_TOKEN is empty. Add a GitHub Actions *secret* (not a variable) named PYPI_TOKEN on the 'pypi' environment or the repository."
+            exit 1
+          fi
+          case "${PYPI_TOKEN}" in
+            pypi-*) ;;
+            *)
+              echo "::error::PYPI_TOKEN must be a PyPI API token starting with 'pypi-' (from https://pypi.org/manage/account/token/, not TestPyPI)."
+              exit 1
+              ;;
+          esac
+          poetry config pypi-token.pypi "${PYPI_TOKEN}"
+          export POETRY_PYPI_TOKEN_PYPI="${PYPI_TOKEN}"
+          poetry run task publish_pypi
