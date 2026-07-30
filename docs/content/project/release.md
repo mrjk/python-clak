@@ -8,7 +8,7 @@ Maintainer guide to bump, tag, and publish `mrjk.clak` to PyPI.
 |------|---------|
 | Bump + tag | `./scripts/release.sh <VERSION>` |
 | Push | `git push && git push --tags` |
-| Publish | `task publish_pypi` (manual today) |
+| Publish | CI on `v*` tags (or `task publish_pypi` manually) |
 
 Version lives in `pyproject.toml`. Install the bump plugin once with
 `poetry self add poetry-bumpversion` so `poetry version` also updates
@@ -16,7 +16,9 @@ Version lives in `pyproject.toml`. Install the bump plugin once with
 
 Override the package directory if needed: `PKG_DIR=clak ./scripts/release.sh patch`.
 
-Automated publish-on-tag is tracked on the [roadmap](roadmap.md).
+Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: test gate, then
+`task publish_pypi`. Requires a GitHub environment named `pypi` with secret
+`PYPI_TOKEN` (PyPI API token).
 
 ## Prerequisites
 
@@ -24,7 +26,8 @@ Automated publish-on-tag is tracked on the [roadmap](roadmap.md).
 - Poetry project deps on the **daily Python 3.12** env (in-project **`.venv/`** via `poetry install --with dev`)
 - For stable releases: checkout `main` or `master`
 - For pre-releases (`pre*`, or a version like `1.2.3a0`): any branch **except** `main`/`master` (usually `develop`)
-- For publish: a PyPI API token (`poetry config` or `POETRY_PYPI_TOKEN_PYPI`)
+- For CI publish: GitHub environment `pypi` + secret `PYPI_TOKEN`
+- For local/manual publish: a PyPI API token (`poetry config` or `POETRY_PYPI_TOKEN_PYPI`)
 
 Supported runtime range for users: **Python 3.10–3.14** (see [Development setup](setup.md)).
 
@@ -67,7 +70,17 @@ See `./scripts/release.sh --help` for all bump keywords.
 
 ## PyPI authentication
 
-### Local / manual (current)
+### CI (default)
+
+Configure once in the GitHub repo:
+
+1. Environment: `pypi`
+2. Secret: `PYPI_TOKEN` (PyPI API token)
+
+On `v*` tag push, the workflow sets `POETRY_PYPI_TOKEN_PYPI` and runs
+`poetry run task publish_pypi`.
+
+### Local / manual
 
 ```bash
 poetry config pypi-token.pypi pypi-AgEIcHlwaS5vcmc...
@@ -80,9 +93,13 @@ If you see `HTTP 403` / access denied, the token is missing or revoked.
 
 ### TestPyPI
 
+`task publish_pypi_test` configures the TestPyPI repository URL. You still need
+a token:
+
 ```bash
-poetry config repositories.testpypi https://test.pypi.org/legacy/
 poetry config pypi-token.testpypi pypi-...   # token from test.pypi.org
+# or:
+export POETRY_PYPI_TOKEN_TESTPYPI=pypi-...
 task publish_pypi_test
 ```
 
@@ -93,7 +110,7 @@ task publish_pypi_test
 ```bash
 ./scripts/release.sh prerelease
 git push && git push --tags
-task publish_pypi
+# CI publishes on the v* tag
 ```
 
 ### Stable release
@@ -102,5 +119,7 @@ task publish_pypi
 git checkout main && git pull
 ./scripts/release.sh patch
 git push && git push --tags
-task publish_pypi
+# CI publishes on the v* tag
 ```
+
+Manual override (local or recovery): `task publish_pypi`.

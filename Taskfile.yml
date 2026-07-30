@@ -39,9 +39,9 @@ tasks:
   publish_pypi_test:
     desc: Publish package on test.pypi.org
     cmds:
+      - poetry config repositories.testpypi https://test.pypi.org/legacy/
       - poetry build
       - poetry publish -r testpypi
-
 
   publish_pypi:
     desc: Publish package on pypi.org
