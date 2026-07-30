@@ -76,7 +76,8 @@ Configure once in the GitHub repo:
 
 1. Environment: `pypi`
 2. Environment **secret** (not a variable): `PYPI_TOKEN`
-3. Value: a PyPI **API token** from https://pypi.org/manage/account/token/
+3. Value: a PyPI **API token** from
+   [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)
    (must start with `pypi-`; not a password; not a TestPyPI token)
 
 On `v*` tag push, the workflow configures Poetry with that token and runs
