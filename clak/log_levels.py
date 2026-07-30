@@ -26,7 +26,8 @@ CLAK_CUSTOM_LEVELS = (
 
 # coloredlogs styles for custom levels (merged into ``LOG_STYLES`` in settings).
 CLAK_CUSTOM_LEVEL_STYLES = {
-    "spam": {"color": "grey", "faint": True},
+    # humanfriendly rejects "grey"/"gray"; faint black is the muted spam look.
+    "spam": {"color": "black", "faint": True},
     "verbose": {"color": "cyan"},
     "success": {"color": "green", "bold": True},
     "notice": {"color": "green"},
