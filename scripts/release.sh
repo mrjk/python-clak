@@ -17,7 +17,7 @@ Usage: $(basename "$0") [OPTIONS] VERSION
 Update project version using poetry and create a git tag.
 
 Arguments:
-    VERSION     New version or bump rule
+    VERSION     New version or bump rule (optional leading v is stripped, e.g. v1.2.3)
 
 Version Keywords:
     major          Bump major version (1.0.0 -> 2.0.0)
@@ -39,6 +39,7 @@ Reference:
 Examples:
     # Set exact version:
     $(basename "$0") 1.2.3                    # Set to specific version
+    $(basename "$0") v1.2.3                   # Same (leading v is stripped)
     $(basename "$0") 2.0.0a0                  # Set to specific pre-release version
     
     # Release version bumps:
@@ -156,10 +157,30 @@ is_dry_run() {
     return 1
 }
 
+# Strip leading v/V prefixes from a version string (vv1.2.3 -> 1.2.3)
+# Leaves bump keywords and flags unchanged
+strip_v_prefix() {
+    local value="$1"
+    # Only strip when it looks like a version: v/V followed by a digit
+    if [[ "$value" =~ ^[vV]+[0-9] ]]; then
+        while [[ "$value" == [vV]* ]]; do
+            value="${value:1}"
+        done
+    fi
+    echo "$value"
+}
+
+# Git tag name with exactly one leading v (1.2.3 / v1.2.3 / vv1.2.3 -> v1.2.3)
+format_version_tag() {
+    local version
+    version=$(strip_v_prefix "$1")
+    echo "v$version"
+}
+
 # Update version using poetry and handle dry-run mode
 # Passes all arguments directly to poetry version command
 # Supports various version formats:
-# - Explicit versions (1.2.3)
+# - Explicit versions (1.2.3 or v1.2.3)
 # - Version parts (major, minor, patch)
 # - Pre-release versions (pre-alpha, pre-beta)
 # --dry is accepted as an alias for poetry's --dry-run
@@ -170,7 +191,8 @@ update_version() {
         if [[ "$arg" == "--dry" ]]; then
             poetry_args+=("--dry-run")
         else
-            poetry_args+=("$arg")
+            # Poetry expects bare PEP 440 versions, not git-style v1.2.3
+            poetry_args+=("$(strip_v_prefix "$arg")")
         fi
     done
 
@@ -196,8 +218,9 @@ update_version() {
 commit_and_tag() {
     echo ">>> Starting commit and tag process"
     # Get current version from poetry without extra output
-    local version
-    version=$(poetry version -s)
+    local version tag
+    version=$(strip_v_prefix "$(poetry version -s)")
+    tag=$(format_version_tag "$version")
     local pkg_dir
     pkg_dir=$(get_pkg_dir)
 
@@ -210,10 +233,10 @@ commit_and_tag() {
 
     # shellcheck disable=SC2086
     git add $targets
-    echo ">>> Committing version bump and create tag"
+    echo ">>> Committing version bump and create tag $tag"
     # shellcheck disable=SC2086
-    git commit -m "bump: version v$version" $targets
-    git tag -m "release: version v$version" "v$version"
+    git commit -m "bump: version $tag" $targets
+    git tag -m "release: version $tag" "$tag"
 }
 
 # Main execution flow
