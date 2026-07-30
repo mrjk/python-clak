@@ -49,13 +49,17 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${PYPI_TOKEN:-}" ]; then
-            echo "::error::PYPI_TOKEN is empty. Add a GitHub Actions *secret* (not a variable) named PYPI_TOKEN on the 'pypi' environment or the repository."
+            echo "::error::PYPI_TOKEN is empty. Add a GitHub Actions *secret*" \
+              "(not a variable) named PYPI_TOKEN on the 'pypi' environment" \
+              "or the repository."
             exit 1
           fi
           case "${PYPI_TOKEN}" in
             pypi-*) ;;
             *)
-              echo "::error::PYPI_TOKEN must be a PyPI API token starting with 'pypi-' (from https://pypi.org/manage/account/token/, not TestPyPI)."
+              echo "::error::PYPI_TOKEN must be a PyPI API token starting" \
+                "with 'pypi-' (from https://pypi.org/manage/account/token/," \
+                "not TestPyPI)."
               exit 1
               ;;
           esac
