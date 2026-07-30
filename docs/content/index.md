@@ -1,5 +1,9 @@
 # Clak
 
+<p align="center">
+<img src="logo/logo.svg" alt="Clak Logo" width="128">
+</p>
+
 Class-based command-line interfaces on top of Python’s `argparse`.
 
 Define apps with `Parser`, `Argument`, and `Command` — same argument syntax you
