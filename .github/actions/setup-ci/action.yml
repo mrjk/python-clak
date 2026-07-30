@@ -1,3 +1,4 @@
+---
 name: Setup CI
 description: Install mise-managed tools and Poetry dependencies
 
@@ -26,7 +27,7 @@ runs:
         sudo apt-get install -y graphviz
 
     - name: Install mise tools
-      uses: jdx/mise-action@v3
+      uses: jdx/mise-action@v4
       with:
         cache: true
       env:
