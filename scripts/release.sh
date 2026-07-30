@@ -30,7 +30,7 @@ Version Keywords:
 
 Options:
     -h, --help     Show this help message
-    --dry-run      Only show what would happen
+    --dry, --dry-run  Only show what would happen
     --next-phase   Use next phase, only for pre-release
 
 Reference:
@@ -59,7 +59,8 @@ Examples:
     $(basename "$0") prerelease --next-phase  # 1.2.3b0 -> 1.2.3
     
     # Preview changes:
-    $(basename "$0") --dry-run patch    # Show what would happen
+    $(basename "$0") --dry patch        # Show what would happen
+    $(basename "$0") --dry-run patch    # Same as --dry
 
 EOF
 
@@ -144,15 +145,37 @@ check_git_status() {
     fi
 }
 
+# True if dry-run was requested (--dry or --dry-run)
+is_dry_run() {
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == "--dry" || "$arg" == "--dry-run" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Update version using poetry and handle dry-run mode
 # Passes all arguments directly to poetry version command
 # Supports various version formats:
 # - Explicit versions (1.2.3)
 # - Version parts (major, minor, patch)
 # - Pre-release versions (pre-alpha, pre-beta)
+# --dry is accepted as an alias for poetry's --dry-run
 update_version() {
+    local -a poetry_args=()
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == "--dry" ]]; then
+            poetry_args+=("--dry-run")
+        else
+            poetry_args+=("$arg")
+        fi
+    done
+
     # Forward args to poetry version
-    poetry version "$@"
+    poetry version "${poetry_args[@]}"
     local exit_code=$?
     # Check if poetry command succeeded
     # Poetry returns non-zero exit code if version format is invalid
@@ -161,9 +184,9 @@ update_version() {
         exit $exit_code
     fi
 
-    # Exit early if --dry-run flag is present in arguments
+    # Exit early if dry-run was requested
     # This allows testing the release process without making changes
-    if [[ "$*" == *"--dry-run"* ]]; then
+    if is_dry_run "$@"; then
         echo ">>> Dry run completed"
         exit 0
     fi
