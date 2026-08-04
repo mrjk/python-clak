@@ -197,12 +197,14 @@ class App(LoggingOptMixin, Parser):
         self.logger.success("ok")   # custom levels: spam, verbose, success, notice
 
 Flags: -v/--verbose (count), --log-format default|extended|audit|debug,
-       --trace/--no-trace, --log-colors/--no-log-colors (if coloredlogs).
+       --trace/--no-trace, --log-colors/--no-log-colors (always present).
 
 Ownership: either Clak manages logging (use mixin) OR the app owns logging
 (omit mixin; do not mix both for the same process).
 
-CLAK_COLORS=0 disables coloredlogs integration.
+--log-colors default: CLAK_LOG_COLORS if set, else on when CLAK_COLORS and
+stderr is a TTY. ANSI formatting needs coloredlogs (mrjk.clak[colors]).
+CLAK_COLORS=0 is a hard kill-switch for coloredlogs / Clak color integration.
 
 ==============================================================================
 CONFIG (XDG)

@@ -1,12 +1,15 @@
 """Tests for configurable CLI logging."""
 
 import logging
+from types import SimpleNamespace
 
 import pytest
 
 from clak.comp import logging as logging_plugin
 from clak.comp.logging import LoggingOptMixin, get_app_logger
+from clak.descriptors import Argument
 from clak.exception import ClakAppError
+from clak.settings import resolve_log_colors
 
 
 @pytest.fixture
@@ -63,3 +66,40 @@ def test_colors_fall_back_when_coloredlogs_is_unavailable(monkeypatch):
     monkeypatch.setattr(logging_plugin, "coloredlogs", None)
 
     get_app_logger(colors=True)
+
+
+def test_log_colors_flag_always_declared():
+    assert isinstance(LoggingOptMixin.log_colors, Argument)
+    assert LoggingOptMixin.log_colors.kwargs.get("default") is None
+
+
+def test_resolve_log_colors_cli_overrides_env_and_tty(monkeypatch):
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", False)
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
+    stream = SimpleNamespace(isatty=lambda: False)
+
+    assert resolve_log_colors(True, stream=stream) is True
+    assert resolve_log_colors(False, stream=stream) is False
+
+
+def test_resolve_log_colors_env_overrides_tty(monkeypatch):
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    stream = SimpleNamespace(isatty=lambda: False)
+
+    assert resolve_log_colors(None, stream=stream) is True
+
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", False)
+    stream_tty = SimpleNamespace(isatty=lambda: True)
+    assert resolve_log_colors(None, stream=stream_tty) is False
+
+
+def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", None)
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+
+    assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is True
+    assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: False)) is False
+
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
+    assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is False

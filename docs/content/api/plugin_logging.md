@@ -30,8 +30,10 @@ logger name configures the root logger. The legacy `[["clak"], [""]]` form
 remains supported and expands every group into INFO and DEBUG tiers.
 `log_silent` namespaces stay at WARNING until maximum verbosity.
 
-CLI flags: `-v` / `--verbose`, `--log-format`, `--trace`, and optionally
-`--log-colors` when `coloredlogs` is installed (`pip install 'mrjk.clak[colors]'`).
+CLI flags: `-v` / `--verbose`, `--log-format`, `--trace`, and
+`--log-colors` / `--no-log-colors` (always present; ANSI needs
+`pip install 'mrjk.clak[colors]'`). Default is on for TTY, or
+`CLAK_LOG_COLORS` when set.
 
 Custom levels `spam`, `verbose`, `success`, and `notice` are registered
 automatically.

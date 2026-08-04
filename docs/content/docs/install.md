@@ -55,7 +55,10 @@ Colored log output for `LoggingOptMixin` (via `coloredlogs`):
 pip install 'mrjk.clak[colors]'
 ```
 
-Or set `CLAK_COLORS=0` to disable colors even when `coloredlogs` is installed.
+`--log-colors` / `--no-log-colors` is always available. Default is on for a
+TTY; set `CLAK_LOG_COLORS=0` (or `1`) to force the default without the flag.
+`CLAK_COLORS=0` is a hard kill-switch that skips coloredlogs integration even
+when the package is installed.
 
 ### Config / YAML
 

@@ -81,7 +81,7 @@ Hello, Ada!
 | `-v` / `--verbose` | count (`-v`, `-vv`, …) | `0` | Select cumulative `Meta.log_levels` tier |
 | `--log-format` | `default`, `extended`, `audit`, `debug` | `default` | Formatter style |
 | `--trace` / `--no-trace` | bool | `False` | Show traceback before the exception handler chain |
-| `--log-colors` / `--no-log-colors` | bool | `True` | Colored output (**only if** `coloredlogs` is installed) |
+| `--log-colors` / `--no-log-colors` | bool | auto | Colored output when on (needs `coloredlogs`; default: on for TTY) |
 
 Install colors:
 
@@ -90,7 +90,13 @@ pip install 'mrjk.clak[colors]'
 # or: pip install coloredlogs
 ```
 
-Disable colors globally with `CLAK_COLORS=0`.
+Default for `--log-colors` when the flag is omitted:
+
+1. `CLAK_LOG_COLORS` if set
+2. Else on when `CLAK_COLORS` is true and stderr is a TTY
+
+Explicit `--log-colors` / `--no-log-colors` always wins. Without `coloredlogs`,
+the flag is still present and colors fall back to plain formatting.
 
 ## Meta settings
 
@@ -162,7 +168,8 @@ Advanced: register your own with `clak.log_levels.add_logging_level` /
 | Variable | Effect |
 | --- | --- |
 | `CLAK_DEBUG=1` | Enable library debug logging early; also forces `--trace` behavior in `dispatch()` |
-| `CLAK_COLORS=0` | Disable coloredlogs integration |
+| `CLAK_LOG_COLORS=0` or `1` | Default for `--log-colors` when the flag is omitted (overrides TTY auto) |
+| `CLAK_COLORS=0` | Hard kill-switch: skip coloredlogs import and other Clak color integration |
 
 ## Common patterns
 

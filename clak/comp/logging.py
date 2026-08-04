@@ -78,6 +78,7 @@ from clak.settings import (
     CLAK_COLORS,
     LOG_FORMAT,
     apply_coloredlogs_defaults,
+    resolve_log_colors,
 )
 
 # pylint: disable=invalid-name
@@ -232,13 +233,15 @@ class LoggingOptMixin(PluginHelpers):
         help="Enable trace logging on errors",
     )
 
-    if coloredlogs:
-        log_colors = Argument(
-            "--log-colors",
-            default=True,
-            action=argparse.BooleanOptionalAction,
-            help="Enable colored logs",
-        )
+    log_colors = Argument(
+        "--log-colors",
+        default=None,
+        action=argparse.BooleanOptionalAction,
+        help=(
+            "Enable colored logs (default: on for TTY; "
+            "override with CLAK_LOG_COLORS or this flag)"
+        ),
+    )
 
     # Meta settings
     meta__config__log_prefix = MetaSetting(
@@ -371,7 +374,7 @@ class LoggingOptMixin(PluginHelpers):
             if log_default_level is None:
                 log_default_level = DEFAULT_LOG_LEVEL
             log_verbosity = ctx.args.verbosity
-            log_colors = ctx.args.get("log_colors", False)
+            log_colors = resolve_log_colors(ctx.args.get("log_colors"))
 
             log_silent = log_silent or []
             if not isinstance(log_silent, list) or not all(
