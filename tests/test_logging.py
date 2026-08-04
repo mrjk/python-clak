@@ -101,10 +101,14 @@ def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
     monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
 
     assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is True
-    assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: False)) is False
+    assert (
+        resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: False)) is False
+    )
 
     monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
-    assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is False
+    assert (
+        resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is False
+    )
 
 
 def test_resolve_log_colors_env_value_overrides_module_global(monkeypatch):
