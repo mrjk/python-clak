@@ -1,6 +1,6 @@
 [project]
 name = "mrjk.clak"
-version = "0.4.4"
+version = "0.5.0"
 description = "Command Line avec Klass"
 authors = [
     {name = "mrjk <mrjk.78@gmail.com>"}
