@@ -68,8 +68,10 @@ With log_prefix set:
 import argparse
 import logging
 import logging.config
+import os
 from types import SimpleNamespace
 
+from clak.common import to_boolean
 from clak.exception import ClakAppError
 from clak.log_levels import register_clak_log_levels
 from clak.parser import Argument, MetaSetting
@@ -80,6 +82,8 @@ from clak.settings import (
     apply_coloredlogs_defaults,
     resolve_log_colors,
 )
+
+DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 
 # pylint: disable=invalid-name
 coloredlogs = None
@@ -239,7 +243,7 @@ class LoggingOptMixin(PluginHelpers):
         action=argparse.BooleanOptionalAction,
         help=(
             "Enable colored logs (default: on for TTY; "
-            "override with CLAK_LOG_COLORS or this flag)"
+            "override with {log_colors_env} or this flag)"
         ),
     )
 
@@ -265,7 +269,35 @@ class LoggingOptMixin(PluginHelpers):
         help="List of loggers to silent, usually too verbose loggers",
     )
 
+    meta__config__log_colors_env = MetaSetting(
+        help=(
+            "Env var name for --log-colors default (help text + resolve). "
+            f"Default: {DEFAULT_LOG_COLORS_ENV}"
+        ),
+    )
+
     logger = None
+
+    def add_arguments(self, arguments: dict = None):
+        """Format ``--log-colors`` help with ``Meta.log_colors_env``, then register."""
+        arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
+        env_name = self.query_cfg_parents(
+            "log_colors_env", default=DEFAULT_LOG_COLORS_ENV, include_self=True
+        )
+        if not env_name:
+            env_name = DEFAULT_LOG_COLORS_ENV
+
+        template = getattr(type(self), "log_colors", None)
+        if isinstance(template, Argument) and "log_colors" not in arguments:
+            kwargs = dict(template.kwargs)
+            help_text = kwargs.get("help")
+            if isinstance(help_text, str) and "{log_colors_env}" in help_text:
+                kwargs["help"] = help_text.format(log_colors_env=env_name)
+            arg = Argument(*template.args, **kwargs)
+            arg.destination = "log_colors"
+            arguments["log_colors"] = arg
+
+        return super().add_arguments(arguments)
 
     @staticmethod
     def _log_level(value):
@@ -374,7 +406,20 @@ class LoggingOptMixin(PluginHelpers):
             if log_default_level is None:
                 log_default_level = DEFAULT_LOG_LEVEL
             log_verbosity = ctx.args.verbosity
-            log_colors = resolve_log_colors(ctx.args.get("log_colors"))
+            log_colors_env = self.query_cfg_parents(
+                "log_colors_env",
+                default=DEFAULT_LOG_COLORS_ENV,
+                include_self=True,
+            )
+            if not log_colors_env:
+                log_colors_env = DEFAULT_LOG_COLORS_ENV
+            raw_log_colors = os.environ.get(log_colors_env)
+            env_log_colors = (
+                to_boolean(raw_log_colors) if raw_log_colors is not None else None
+            )
+            log_colors = resolve_log_colors(
+                ctx.args.get("log_colors"), env_value=env_log_colors
+            )
 
             log_silent = log_silent or []
             if not isinstance(log_silent, list) or not all(

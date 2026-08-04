@@ -107,6 +107,21 @@ def to_boolean(value):
         raise ValueError(f"Invalid boolean value: {value}") from None
 
 
+def resolve_bool_option(cli_value=None, env_value=None, auto=False):
+    """Resolve optional boolean: explicit CLI, then env, then auto.
+
+    ``cli_value`` / ``env_value`` of ``None`` means unset.
+    ``auto`` may be a bool or a zero-arg callable returning a bool.
+    """
+    if cli_value is not None:
+        return bool(cli_value)
+    if env_value is not None:
+        return bool(env_value)
+    if callable(auto):
+        return bool(auto())
+    return bool(auto)
+
+
 class ObjectNamespace:
     """A simple attribute-based namespace."""
 

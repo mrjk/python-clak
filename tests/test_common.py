@@ -1,8 +1,29 @@
 import pytest
 
-from clak.common import deindent_docstring
+from clak.common import deindent_docstring, resolve_bool_option
 
 pytestmark = pytest.mark.tags("unit-tests")
+
+
+def test_resolve_bool_option_cli_wins():
+    assert resolve_bool_option(True, env_value=False, auto=False) is True
+    assert resolve_bool_option(False, env_value=True, auto=True) is False
+
+
+def test_resolve_bool_option_env_wins_over_auto():
+    assert resolve_bool_option(None, env_value=True, auto=False) is True
+    assert resolve_bool_option(None, env_value=False, auto=True) is False
+
+
+def test_resolve_bool_option_auto_bool():
+    assert resolve_bool_option(None, env_value=None, auto=True) is True
+    assert resolve_bool_option(None, env_value=None, auto=False) is False
+
+
+def test_resolve_bool_option_auto_callable():
+    assert resolve_bool_option(None, env_value=None, auto=lambda: True) is True
+    assert resolve_bool_option(None, env_value=None, auto=lambda: False) is False
+    assert resolve_bool_option(True, env_value=None, auto=lambda: False) is True
 
 
 def test_deindent_docstring_empty():

@@ -2,6 +2,7 @@
 
 import logging
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -9,6 +10,7 @@ from clak.comp import logging as logging_plugin
 from clak.comp.logging import LoggingOptMixin, get_app_logger
 from clak.descriptors import Argument
 from clak.exception import ClakAppError
+from clak.parser import Parser
 from clak.settings import resolve_log_colors
 
 
@@ -103,3 +105,50 @@ def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
 
     monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
     assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is False
+
+
+def test_resolve_log_colors_env_value_overrides_module_global(monkeypatch):
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    stream = SimpleNamespace(isatty=lambda: True)
+
+    assert resolve_log_colors(None, stream=stream, env_value=False) is False
+    assert resolve_log_colors(None, stream=stream, env_value=None) is True
+
+
+def test_log_colors_help_uses_meta_env_name():
+    class App(LoggingOptMixin, Parser):
+        class Meta:
+            log_colors_env = "PAASIFY__LOG_COLORS"
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "PAASIFY__LOG_COLORS" in help_text
+    assert "CLAK_LOG_COLORS" not in help_text
+
+
+def test_log_colors_hook_reads_meta_env(monkeypatch):
+    monkeypatch.setenv("PAASIFY__LOG_COLORS", "0")
+    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+
+    captured = {}
+
+    def _capture_get_app_logger(*args, **kwargs):
+        captured["colors"] = kwargs.get("colors")
+        return get_app_logger(*args, **kwargs)
+
+    class App(LoggingOptMixin, Parser):
+        class Meta:
+            log_colors_env = "PAASIFY__LOG_COLORS"
+            log_levels = [["INFO|test.branding"]]
+
+        def cli_run(self, **_):
+            return None
+
+    with patch("clak.comp.logging.get_app_logger", side_effect=_capture_get_app_logger):
+        App(parse=False, add_help=False).dispatch([])
+
+    assert captured.get("colors") is False

@@ -35,7 +35,8 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 ### API helpers
 
 - [ ] Distinct `Opt` / `Arg` helpers (optional vs positional) — today everything is `Argument`
-- [ ] Automatic mapping of environment variables to CLI options (beyond Clak’s own `CLAK_*` / XDG vars)
+- [ ] Automatic mapping of environment variables to CLI options (beyond Clak’s own `CLAK_*` / XDG vars);
+  building block: `resolve_bool_option` in `clak.common` (CLI > env > auto; used by `resolve_log_colors`)
 
 ### Completion
 

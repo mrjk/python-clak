@@ -3,7 +3,7 @@
 import os
 import sys
 
-from clak.common import to_boolean
+from clak.common import resolve_bool_option, to_boolean
 from clak.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
 
 CLAK_DEBUG = to_boolean(os.environ.get("CLAK_DEBUG", False))
@@ -25,22 +25,27 @@ LOG_STYLES = {
 }
 LOG_FORMAT = "[%(levelname)8s] %(message)s"
 
+# Sentinel so callers can pass ``env_value=None`` (unset) vs omit the arg.
+_UNSET = object()
 
-def resolve_log_colors(cli_value=None, stream=None):
+
+def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     """Resolve whether colored logs should be enabled.
 
     Precedence:
     1. Explicit CLI ``--log-colors`` / ``--no-log-colors`` (``cli_value`` not None)
-    2. ``CLAK_LOG_COLORS`` when set
+    2. ``env_value`` when not omitted (default: ``CLAK_LOG_COLORS``); ``None`` means unset
     3. Auto: ``CLAK_COLORS`` and ``stream.isatty()`` (default stream: stderr)
     """
-    if cli_value is not None:
-        return bool(cli_value)
-    if CLAK_LOG_COLORS is not None:
-        return bool(CLAK_LOG_COLORS)
     if stream is None:
         stream = sys.stderr
-    return bool(CLAK_COLORS) and stream.isatty()
+    if env_value is _UNSET:
+        env_value = CLAK_LOG_COLORS
+    return resolve_bool_option(
+        cli_value,
+        env_value=env_value,
+        auto=lambda: bool(CLAK_COLORS) and stream.isatty(),
+    )
 
 
 def apply_coloredlogs_defaults(coloredlogs_module):

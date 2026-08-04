@@ -92,11 +92,20 @@ pip install 'mrjk.clak[colors]'
 
 Default for `--log-colors` when the flag is omitted:
 
-1. `CLAK_LOG_COLORS` if set
+1. Env named by `Meta.log_colors_env` if set (default: `CLAK_LOG_COLORS`)
 2. Else on when `CLAK_COLORS` is true and stderr is a TTY
 
 Explicit `--log-colors` / `--no-log-colors` always wins. Without `coloredlogs`,
 the flag is still present and colors fall back to plain formatting.
+
+Apps that brand their own env vars (without patching Clak globals) set:
+
+```python
+class Meta:
+    log_colors_env = "PAASIFY__LOG_COLORS"
+```
+
+That updates `--help` and the resolve path together.
 
 ## Meta settings
 
@@ -107,6 +116,7 @@ the flag is still present and colors fall back to plain formatting.
 | `log_default_level` | Root logger level (`WARNING` by default). String or int. |
 | `log_levels` | List of cumulative `-v` tiers. Each tier is a list of `LEVEL\|logger` entries. |
 | `log_silent` | Logger names forced to `WARNING` until **maximum** verbosity. |
+| `log_colors_env` | Env var name for `--log-colors` default and help text (`CLAK_LOG_COLORS` by default). |
 
 ### `log_levels` syntax
 
@@ -168,7 +178,7 @@ Advanced: register your own with `clak.log_levels.add_logging_level` /
 | Variable | Effect |
 | --- | --- |
 | `CLAK_DEBUG=1` | Enable library debug logging early; also forces `--trace` behavior in `dispatch()` |
-| `CLAK_LOG_COLORS=0` or `1` | Default for `--log-colors` when the flag is omitted (overrides TTY auto) |
+| `CLAK_LOG_COLORS=0` or `1` | Default for `--log-colors` when the flag is omitted (overrides TTY auto); rename via `Meta.log_colors_env` |
 | `CLAK_COLORS=0` | Hard kill-switch: skip coloredlogs import and other Clak color integration |
 
 ## Common patterns

@@ -33,7 +33,8 @@ remains supported and expands every group into INFO and DEBUG tiers.
 CLI flags: `-v` / `--verbose`, `--log-format`, `--trace`, and
 `--log-colors` / `--no-log-colors` (always present; ANSI needs
 `pip install 'mrjk.clak[colors]'`). Default is on for TTY, or
-`CLAK_LOG_COLORS` when set.
+`CLAK_LOG_COLORS` when set (override the env name with
+`Meta.log_colors_env`).
 
 Custom levels `spam`, `verbose`, `success`, and `notice` are registered
 automatically.
