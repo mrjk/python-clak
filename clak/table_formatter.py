@@ -117,6 +117,18 @@ def resolve_sort_column_index(col, headers):
     raise TypeError(f"Sort column must be a string or int, got {type(col).__name__}")
 
 
+def _cell_sort_key(value):
+    """Sort key: numbers before strings; digit strings compare as ints."""
+    if isinstance(value, bool):
+        return (2, str(value))
+    if isinstance(value, (int, float)):
+        return (0, value)
+    text = "" if value is None else str(value)
+    if text.isdigit() or (text.startswith("-") and text[1:].isdigit()):
+        return (0, int(text))
+    return (1, text.lower())
+
+
 def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
     """Sort tabular rows by one or more header names or indexes."""
     if not sort_columns or not rows:
@@ -126,7 +138,9 @@ def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
     indexes = [resolve_sort_column_index(col, headers) for col in sort_columns]
 
     def key_fn(row):
-        return [str(row[idx]) if idx < len(row) else "" for idx in indexes]
+        return [
+            _cell_sort_key(row[idx] if idx < len(row) else "") for idx in indexes
+        ]
 
     return sorted(rows, key=key_fn, reverse=reverse)
 
