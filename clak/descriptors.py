@@ -147,8 +147,16 @@ class ArgParseItem(Fn):
 class Argument(ArgParseItem):
     """Represents an argument that can be added to an argument parser.
 
-    This class handles both positional arguments and optional flags, automatically determining
-    the appropriate type based on the argument format.
+    Handles both positional arguments and optional flags, choosing the
+    appropriate argparse form from the flag names.
+
+    Most keyword arguments are passed through to
+    :meth:`argparse.ArgumentParser.add_argument`. Clak-only kwargs (stripped
+    before argparse):
+
+    - ``group``: Optional title for a help section
+      (``parser.add_argument_group``). Arguments that share the same title
+      reuse one group. Mutually exclusive groups are not supported yet.
     """
 
     def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
@@ -160,9 +168,6 @@ class Argument(ArgParseItem):
 
         Returns:
             argparse.Action: The created argument parser action
-
-        Clak-only kwargs (stripped before argparse):
-            group: Optional argument-group title (``parser.add_argument_group``).
         """
         parser = config.parser
         args, kwargs = self.build_params(key)

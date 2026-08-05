@@ -33,6 +33,9 @@ Mix in only what you need:
 
 - Command-tree overview, `--help` / `-h`, customizable usage / description /
   epilog.
+- Named help groups: `Argument(..., group="Title")` places flags under a
+  titled section in `--help` (same title reuses one group). See
+  [Nested commands](advanced.md#named-help-groups).
 
 ### Views
 
@@ -74,5 +77,5 @@ Mix in only what you need:
 
 ## Planned
 
-See the [roadmap](../project/roadmap.md) for argparse groups, intermixed args,
-`Opt`/`Arg` helpers, env-var mapping, and runtime autocomplete.
+See the [roadmap](../project/roadmap.md) for mutually exclusive groups,
+intermixed args, `Opt`/`Arg` helpers, env-var mapping, and runtime autocomplete.

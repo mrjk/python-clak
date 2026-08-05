@@ -290,24 +290,6 @@ def test_list_view_mixin_output_options_group_in_help():
     assert help_text.index("--sort-columns", output_idx) > output_idx
 
 
-def test_argument_group_reuses_same_title():
-    class App(Parser):
-        a = Argument("--alpha", group="Custom", help="A")
-        b = Argument("--beta", group="Custom", help="B")
-        c = Argument("--gamma", help="C")
-
-        def cli_run(self, **_):
-            return None
-
-    app = App(parse=False, add_help=True)
-    groups = getattr(app.parser, "_clak_argument_groups", {})
-    assert list(groups) == ["Custom"]
-    help_text = app.parser.format_help()
-    assert help_text.count("Custom:") == 1
-    assert "--alpha" in help_text
-    assert "--beta" in help_text
-
-
 def test_list_view_mixin_view_column_names_in_help():
     class App(ListViewMixin, Parser):
         class Meta:

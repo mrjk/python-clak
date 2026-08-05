@@ -22,6 +22,7 @@ from clak.exception import ClakError, ClakParseError, ClakUserError
 from clak.parser import (
     Argument,
     Command,
+    Parser,
     ParserNode,
     SubParser,
 )
@@ -61,6 +62,49 @@ def test_argument_destination():
 
     arg = Argument("-t", "--test", help="Test argument")
     assert arg._get_best_dest() == "test"
+
+
+def test_argument_group_reuses_same_title():
+    """Same group title reuses one argparse argument group."""
+
+    class App(Parser):
+        a = Argument("--alpha", group="Custom", help="A")
+        b = Argument("--beta", group="Custom", help="B")
+        c = Argument("--gamma", help="C")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    groups = getattr(app.parser, "_clak_argument_groups", {})
+    assert list(groups) == ["Custom"]
+    help_text = app.parser.format_help()
+    assert help_text.count("Custom:") == 1
+    assert "--alpha" in help_text
+    assert "--beta" in help_text
+    assert "--gamma" in help_text
+    # Grouped flags appear under the Custom section
+    custom_idx = help_text.index("Custom:")
+    assert help_text.index("--alpha", custom_idx) > custom_idx
+    assert help_text.index("--beta", custom_idx) > custom_idx
+
+
+def test_argument_group_kwarg_not_passed_to_argparse():
+    """group= is Clak-only and must not reach add_argument."""
+
+    class App(Parser):
+        output_format = Argument(
+            "--format", group="Output options", help="Format"
+        )
+
+        def cli_run(self, **_):
+            return None
+
+    # Would raise TypeError if group leaked into argparse.add_argument
+    app = App(parse=False, add_help=True)
+    assert "Output options:" in app.parser.format_help()
+    args = app.parse_args(["--format", "x"])
+    assert args.output_format == "x"
 
 
 @patch("sys.argv", ["prog", "--help"])

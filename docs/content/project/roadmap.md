@@ -25,9 +25,10 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 ### Argparse coverage
 
-- [ ] Argument groups and mutually exclusive groups
-  ([argparse groups](https://docs.python.org/3/library/argparse.html#argument-groups),
-  [mutual exclusion](https://docs.python.org/3/library/argparse.html#mutual-exclusion))
+- [x] Named argument groups via `Argument(..., group="Title")`
+  ([argparse groups](https://docs.python.org/3/library/argparse.html#argument-groups))
+- [ ] Mutually exclusive groups
+  ([mutual exclusion](https://docs.python.org/3/library/argparse.html#mutual-exclusion))
 - [ ] Intermixed optional/positional parsing
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments))
 - [ ] Deeper use of argparse extension / plugin hooks

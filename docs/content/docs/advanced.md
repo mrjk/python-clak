@@ -34,7 +34,38 @@ class AppMain(Parser):
 For structured `-v` / `-vv` logging tiers, prefer `LoggingOptMixin`
 (see [Logging](logging.md)) instead of a hand-rolled boolean flag.
 
-### 3. Custom Help Messages
+### 3. Named help groups
+
+Pass `group=` on `Argument` to put flags under a titled section in `--help`.
+The same title reuses one argparse argument group. This is Clak-only (stripped
+before `add_argument`). Mutually exclusive groups are not supported yet.
+
+```python
+from clak import Argument, Parser
+
+class App(Parser):
+    catalog = Argument("--catalog", help="Pick a catalog")
+    format = Argument(
+        "--format",
+        choices=["view", "json"],
+        group="Output options",
+        help="Output format",
+    )
+    columns = Argument(
+        "--columns",
+        group="Output options",
+        help="Columns to show",
+    )
+
+    def cli_run(self, **_):
+        return None
+```
+
+`App(parse=False, add_help=True).parser.format_help()` shows `--catalog` under
+the default options section and `--format` / `--columns` under
+**Output options**.
+
+### 4. Custom Help Messages
 
 Override the default help behavior:
 
@@ -46,7 +77,7 @@ def cli_run(self, **_):
     self.show_help()
 ```
 
-### 4. Command Organization Best Practices
+### 5. Command Organization Best Practices
 
 1. **Logical Grouping**:
    - Group related commands under common parents
