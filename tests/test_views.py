@@ -6,7 +6,7 @@ import logging
 import pytest
 
 from clak.comp.views import ListViewMixin, PprintViewMixin, ShowViewMixin
-from clak.parser import Command, Parser, ParserNode
+from clak.parser import Argument, Command, Parser, ParserNode
 from clak.views import (
     ListView,
     PprintView,
@@ -39,7 +39,8 @@ def _option_flags(app):
 
 def test_parse_columns_comma_separated_and_ints():
     assert parse_columns("name,age") == ["name", "age"]
-    assert parse_columns("0, 2") == [0, 2]
+    assert parse_columns("1, 3") == [1, 3]
+    assert parse_columns("-1,2") == [-1, 2]
     assert parse_columns("name,,role") == ["name", "role"]
     assert parse_columns(None) is None
 
@@ -270,6 +271,89 @@ def test_list_view_mixin_help_lists_view_flags():
     assert "--format" in help_text
     assert "--sort-columns" in help_text
     assert "--sort-mode" in help_text
+
+
+def test_list_view_mixin_output_options_group_in_help():
+    class App(ListViewMixin, Parser):
+        catalog = Argument("--catalog", help="Pick a catalog")
+
+        def cli_run(self, **_):
+            return USERS
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+
+    assert "Output options:" in help_text
+    assert "--catalog" in help_text
+    # View flags sit under the Output options section
+    output_idx = help_text.index("Output options:")
+    assert help_text.index("--columns", output_idx) > output_idx
+    assert help_text.index("--sort-columns", output_idx) > output_idx
+
+
+def test_argument_group_reuses_same_title():
+    class App(Parser):
+        a = Argument("--alpha", group="Custom", help="A")
+        b = Argument("--beta", group="Custom", help="B")
+        c = Argument("--gamma", help="C")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    groups = getattr(app.parser, "_clak_argument_groups", {})
+    assert list(groups) == ["Custom"]
+    help_text = app.parser.format_help()
+    assert help_text.count("Custom:") == 1
+    assert "--alpha" in help_text
+    assert "--beta" in help_text
+
+
+def test_list_view_mixin_view_column_names_in_help():
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_column_names = ("Var", "Value", "Order")
+
+        def cli_run(self, **_):
+            return USERS
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+
+    assert "Available: Var, Value, Order" in help_text
+    # Both column flags get the Available: suffix
+    assert help_text.count("Available: Var, Value, Order") == 2
+
+
+def test_list_view_mixin_no_available_when_column_names_unset():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "Available:" not in help_text
+
+
+def test_list_view_mixin_columns_one_based_index(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(["--columns", "1"])
+
+    out = capsys.readouterr().out
+    assert "name" in out
+    assert "ada" in out
+    assert "linus" in out
+    assert "admin" not in out
+    assert "London" not in out
+
+
+def test_list_view_mixin_columns_rejects_zero_index():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    with pytest.raises(KeyError, match="index 0 is invalid"):
+        App(parse=False, add_help=False).dispatch(["--columns", "0"])
 
 
 # ---------------------------------------------------------------------------

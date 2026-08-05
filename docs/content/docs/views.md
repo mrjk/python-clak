@@ -43,19 +43,7 @@ $ python script_views.py --columns name,role
 +-------+-------+
 ```
 
-`--columns` is a **comma-separated** list (`name,role` or indexes like `0,2`).
-
-## Output format and sorting (Cliff-style)
-
-`ShowViewMixin` and `ListViewMixin` also expose Cliff-like output controls:
-
-| Flag | Values | Default | Effect |
-| --- | --- | --- | --- |
-| `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
-| `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (names, **1-based** indexes, or **negative** from end: `-1`=last) |
-| `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
-
-Index syntax for `--sort-columns`:
+`--columns` and `--sort-columns` share the same column index syntax:
 
 | Form | Meaning |
 | --- | --- |
@@ -64,6 +52,31 @@ Index syntax for `--sort-columns`:
 | `2` | second column |
 | `-1` | last column |
 | `-3` | third from last |
+
+Index `0` is invalid (use `1` for the first column). Example: `--columns name,role`
+or `--columns 1,3` or `--columns=-1`.
+
+List these names in help with `Meta.view_column_names` (full selectable set).
+`Meta.view_columns` remains the default display subset when `--columns` is unset.
+
+```python
+class App(ListViewMixin, Parser):
+    class Meta:
+        view_column_names = ("name", "role", "city")
+        view_columns = ("name", "role")
+```
+
+View flags appear under an **Output options** group in `--help`.
+
+## Output format and sorting (Cliff-style)
+
+`ShowViewMixin` and `ListViewMixin` also expose Cliff-like output controls:
+
+| Flag | Values | Default | Effect |
+| --- | --- | --- | --- |
+| `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
+| `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
+| `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
 
 Example: `--sort-columns=-1,-3,1` sorts by last column, then third-from-last, then first
 (use `=` when the value starts with `-`, so argparse does not treat it as a flag).

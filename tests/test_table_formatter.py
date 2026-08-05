@@ -9,6 +9,8 @@ import pytest
 from clak.table_formatter import (
     TableListFormatter,
     TableShowFormatter,
+    resolve_column_index,
+    resolve_column_keys,
     resolve_sort_column_index,
 )
 
@@ -108,7 +110,7 @@ from pprint import pprint
 def test_show_list_with_columns_with_indexes():
     """Test TableShowFormatter with specific columns on list"""
     output = TableShowFormatter().render(
-        data_item_list1, columns=[0, 2], add_index=True
+        data_item_list1, columns=[1, 3], add_index=True
     )
     pprint(data_item_list1)
     print(output)
@@ -122,7 +124,7 @@ def test_show_list_with_columns_with_indexes():
 def test_show_list_with_columns_without_indexes():
     """Test TableShowFormatter with specific columns on list"""
     output = TableShowFormatter().render(
-        data_item_list1, columns=[0, 2], add_index=False
+        data_item_list1, columns=[1, 3], add_index=False
     )
     pprint(data_item_list1)
     print(output)
@@ -138,7 +140,7 @@ def test_show_list_with_columns_without_indexes():
 # Matrix test parameters
 test_data = [
     ("dict", data_items_dict, ["name", "age"], ["World", "Neptune"]),
-    ("list", data_items_list, [0, 2], ["World", "Mars"]),
+    ("list", data_items_list, [1, 3], ["World", "Mars"]),
 ]
 
 
@@ -279,6 +281,20 @@ def test_resolve_sort_column_index_negative_and_one_based():
     assert resolve_sort_column_index(1, headers) == 0
     assert resolve_sort_column_index(2, headers) == 1
     assert resolve_sort_column_index("role", headers) == 1
+
+
+def test_resolve_column_index_rejects_zero():
+    headers = ["name", "role", "city"]
+
+    with pytest.raises(KeyError, match="index 0 is invalid"):
+        resolve_column_index(0, headers)
+
+
+def test_resolve_column_keys_one_based_and_names():
+    headers = ["name", "role", "city"]
+
+    assert resolve_column_keys([1, -1], headers) == ["name", "city"]
+    assert resolve_column_keys(["role", 3], headers) == ["role", "city"]
 
 
 def test_list_formatter_default_sorts_first_column():

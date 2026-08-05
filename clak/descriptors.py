@@ -160,12 +160,18 @@ class Argument(ArgParseItem):
 
         Returns:
             argparse.Action: The created argument parser action
+
+        Clak-only kwargs (stripped before argparse):
+            group: Optional argument-group title (``parser.add_argument_group``).
         """
         parser = config.parser
         args, kwargs = self.build_params(key)
+        kwargs = dict(kwargs)
         assert isinstance(
             args, tuple
         ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
+
+        group_title = kwargs.pop("group", None)
 
         # Create argument
         logger.debug(
@@ -175,7 +181,17 @@ class Argument(ArgParseItem):
             self.kwargs,
         )
 
-        parser.add_argument(*args, **kwargs)
+        target = parser
+        if group_title is not None:
+            groups = getattr(parser, "_clak_argument_groups", None)
+            if groups is None:
+                groups = {}
+                setattr(parser, "_clak_argument_groups", groups)
+            if group_title not in groups:
+                groups[group_title] = parser.add_argument_group(group_title)
+            target = groups[group_title]
+
+        target.add_argument(*args, **kwargs)
 
         return parser
 

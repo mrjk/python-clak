@@ -84,12 +84,13 @@ def normalize_sort_mode(mode, default="asc"):
     return mode == "desc"
 
 
-def resolve_sort_column_index(col, headers):
-    """Resolve a sort column to a 0-based index in *headers*.
+def resolve_column_index(col, headers):
+    """Resolve a column spec to a 0-based index in *headers*.
 
     - str: header name
     - int < 0: index from end (-1 = last column)
     - int > 0: 1-based index (1 = first column)
+    - int == 0: rejected
     """
     if isinstance(col, str):
         try:
@@ -103,7 +104,7 @@ def resolve_sort_column_index(col, headers):
     if isinstance(col, int):
         if col == 0:
             raise KeyError(
-                "Sort column index 0 is invalid; use 1 for first column or -1 for last"
+                "Column index 0 is invalid; use 1 for first column or -1 for last"
             )
         if col < 0:
             idx = len(headers) + col
@@ -111,10 +112,39 @@ def resolve_sort_column_index(col, headers):
             idx = col - 1
         if idx < 0 or idx >= len(headers):
             choices = ", ".join(str(header) for header in headers)
-            raise KeyError(f"Sort column index {col} out of range, choices: {choices}")
+            raise KeyError(f"Column index {col} out of range, choices: {choices}")
         return idx
 
-    raise TypeError(f"Sort column must be a string or int, got {type(col).__name__}")
+    raise TypeError(f"Column must be a string or int, got {type(col).__name__}")
+
+
+def resolve_sort_column_index(col, headers):
+    """Alias for :func:`resolve_column_index` (sort uses the same rules)."""
+    return resolve_column_index(col, headers)
+
+
+def resolve_column_keys(columns, headers, *, strict_names=True):
+    """Resolve column specs (names / 1-based / negatives) to header keys.
+
+    When *strict_names* is False, string names are kept as-is even if missing
+    from *headers* (list views use placeholders for heterogeneous rows).
+    Integer specs are always resolved against *headers*.
+    """
+    if columns is None:
+        return list(headers)
+    resolved = []
+    for col in columns:
+        if isinstance(col, int):
+            resolved.append(headers[resolve_column_index(col, headers)])
+        elif isinstance(col, str):
+            if strict_names:
+                resolve_column_index(col, headers)
+            resolved.append(col)
+        else:
+            raise TypeError(
+                f"Column must be a string or int, got {type(col).__name__}"
+            )
+    return resolved
 
 
 def _cell_sort_key(value):
@@ -303,6 +333,8 @@ class TableShowFormatter(_TableFormatter):
 
         if columns is None:
             columns = choices
+        else:
+            columns = resolve_column_keys(columns, choices)
 
         assert isinstance(add_index, bool), f"Got: {add_index}"
         ret = []
@@ -358,6 +390,7 @@ class TableListFormatter(_TableFormatter):
             )
 
         ret = []
+        columns_resolved = False
 
         def _process_expanded_item(idx, item, columns):
             row = [idx] if add_index else []
@@ -375,6 +408,19 @@ class TableListFormatter(_TableFormatter):
                 row.append(value)
             ret.append(row)
 
+        def _resolve_item_columns(item, cols):
+            nonlocal columns_resolved
+            if columns_resolved:
+                return cols
+            if isinstance(item, Mapping):
+                available = list(item.keys())
+            else:
+                available = list(range(0, len(item)))
+            columns_resolved = True
+            if cols is None:
+                return available
+            return resolve_column_keys(cols, available, strict_names=False)
+
         _default_columns = ["Key", "Value"]
         if isinstance(data, Mapping):
             for idx, value in data.items():
@@ -391,8 +437,7 @@ class TableListFormatter(_TableFormatter):
                                 "Value": value,
                             }
 
-                    # Grab columns from 1st item
-                    columns = list(value.keys()) if columns is None else columns
+                    columns = _resolve_item_columns(value, columns)
                     _process_expanded_item(idx, value, columns)
 
             if expand_keys and add_index:
@@ -405,14 +450,7 @@ class TableListFormatter(_TableFormatter):
                 if not expand_keys:
                     ret.append([idx, value])
                 else:
-
-                    # Grab columns from 1st item
-                    if isinstance(value, Mapping):
-                        columns = list(value.keys()) if columns is None else columns
-                    else:
-                        columns = (
-                            list(range(0, len(value))) if columns is None else columns
-                        )
+                    columns = _resolve_item_columns(value, columns)
                     _process_expanded_item(idx, value, columns)
 
             if expand_keys and add_index:

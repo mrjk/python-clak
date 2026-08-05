@@ -11,8 +11,8 @@ Example:
         class Meta:
             view_cli_options = True  # or False, or ("columns", "add_index")
             view_columns = ("name", "role")
+            view_column_names = ("name", "role", "city")
             view_sort_columns = 1
-            view_sort_mode = "asc"
 
         def cli_run(self, **_):
             return [{"name": "a"}, {"name": "b"}]
@@ -23,6 +23,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import copy
 import logging
 from typing import Any, Mapping, Set
 
@@ -53,6 +54,18 @@ _VIEW_CLI_OPTION_DESTS = frozenset(
     }
 )
 
+_OUTPUT_OPTIONS_GROUP = "Output options"
+
+_COLUMNS_HELP = (
+    "Comma-separated columns to display (names, 1-based indexes, "
+    "or negatives from end: -1=last)"
+)
+_SORT_COLUMNS_HELP = (
+    "Comma-separated columns to sort by (names, 1-based indexes, "
+    "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
+    "values start with '-'."
+)
+
 
 class _ViewMixinBase(PluginHelpers):
     """Shared view-mixin plumbing: option filtering, hook, settings collection."""
@@ -74,6 +87,14 @@ class _ViewMixinBase(PluginHelpers):
         ),
     )
     meta__view_columns = None
+
+    meta__config__view_column_names = MetaSetting(
+        help=(
+            "Full set of selectable column names shown in --columns / "
+            "--sort-columns help (view_columns remains the default display subset)"
+        ),
+    )
+    meta__view_column_names = None
 
     meta__config__view_sort_columns = MetaSetting(
         help=(
@@ -111,6 +132,19 @@ class _ViewMixinBase(PluginHelpers):
             f"got {type(configured).__name__}"
         )
 
+    def _column_flag_help(self, base_help: str) -> str:
+        """Append Available: names from Meta.view_column_names when configured."""
+        names = self.query_cfg_parents(
+            "view_column_names", default=None, include_self=True
+        )
+        if not names:
+            return base_help
+        available = ", ".join(str(name) for name in names)
+        base = base_help.rstrip()
+        if base.endswith("."):
+            return f"{base} Available: {available}"
+        return f"{base}. Available: {available}"
+
     def add_arguments(self, arguments: dict = None):
         """Like ParserNode.add_arguments, but skips disabled view CLI options."""
         arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
@@ -130,6 +164,12 @@ class _ViewMixinBase(PluginHelpers):
         arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
 
         for key, arg in arguments.items():
+            if key in ("columns", "sort_columns"):
+                arg = copy.copy(arg)
+                arg.kwargs = dict(arg.kwargs)
+                arg.kwargs["help"] = self._column_flag_help(
+                    arg.kwargs.get("help", "")
+                )
             self.add_argument(key, arg)
 
     @staticmethod
@@ -226,33 +266,34 @@ class ShowViewMixin(_ViewMixinBase):
     columns = Argument(
         "--columns",
         default=None,
-        help="Comma-separated columns (keys or indexes) to display",
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_COLUMNS_HELP,
     )
     add_index = Argument(
         "--add-index",
         action=argparse.BooleanOptionalAction,
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Include key/index column in the show table",
     )
     format = Argument(
         "--format",
         choices=["view", "yaml", "json", "csv"],
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Output format (default: view table)",
     )
     sort_columns = Argument(
         "--sort-columns",
         default=None,
-        help=(
-            "Comma-separated columns to sort by (names, 1-based indexes, "
-            "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
-            "values start with '-'."
-        ),
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_SORT_COLUMNS_HELP,
     )
     sort_mode = Argument(
         "--sort-mode",
         choices=["asc", "desc"],
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Sort direction (default: asc)",
     )
 
@@ -281,39 +322,41 @@ class ListViewMixin(_ViewMixinBase):
     columns = Argument(
         "--columns",
         default=None,
-        help="Comma-separated columns (keys or indexes) to display",
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_COLUMNS_HELP,
     )
     add_index = Argument(
         "--add-index",
         action=argparse.BooleanOptionalAction,
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Include index column in the list table",
     )
     expand_keys = Argument(
         "--expand-keys",
         action=argparse.BooleanOptionalAction,
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Expand nested dict items into table columns",
     )
     format = Argument(
         "--format",
         choices=["view", "yaml", "json", "csv"],
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Output format (default: view table)",
     )
     sort_columns = Argument(
         "--sort-columns",
         default=None,
-        help=(
-            "Comma-separated columns to sort by (names, 1-based indexes, "
-            "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
-            "values start with '-'."
-        ),
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_SORT_COLUMNS_HELP,
     )
     sort_mode = Argument(
         "--sort-mode",
         choices=["asc", "desc"],
         default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
         help="Sort direction (default: asc)",
     )
 

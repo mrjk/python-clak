@@ -65,6 +65,7 @@ from clak.table_formatter import (
     TableShowFormatter,
     format_structured,
     require_yaml,
+    resolve_column_keys,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,7 +137,11 @@ def merge_view_settings(existing=None, cli_settings=None):
 
 
 def parse_columns(value):
-    """Parse a comma-separated --columns value into a list of keys/indexes."""
+    """Parse a comma-separated --columns value into a list of keys/indexes.
+
+    Integer tokens use the same rules as --sort-columns: 1-based indexes
+    (1=first), negatives from end (-1=last). Index 0 is rejected at resolve.
+    """
     if value is None:
         return None
     if not isinstance(value, str):
@@ -220,10 +225,14 @@ def normalize_sort_columns(value):
 def _project_item_columns(item, columns):
     """Keep original values while projecting selected columns on one row."""
     if isinstance(item, Mapping):
-        return {key: item[key] for key in columns if key in item}
+        keys = resolve_column_keys(
+            columns, list(item.keys()), strict_names=False
+        )
+        return {key: item[key] for key in keys if key in item}
     if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
+        keys = resolve_column_keys(columns, list(range(len(item))))
         return [
-            item[key] for key in columns if isinstance(key, int) and key < len(item)
+            item[key] for key in keys if isinstance(key, int) and key < len(item)
         ]
     return item
 
