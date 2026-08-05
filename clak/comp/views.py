@@ -10,6 +10,9 @@ Example:
     class App(ListViewMixin, Parser):
         class Meta:
             view_cli_options = True  # or False, or ("columns", "add_index")
+            view_columns = ("name", "role")
+            view_sort_columns = 1
+            view_sort_mode = "asc"
 
         def cli_run(self, **_):
             return [{"name": "a"}, {"name": "b"}]
@@ -29,6 +32,7 @@ from clak.views import (
     ListView,
     PprintView,
     ShowView,
+    normalize_columns,
     normalize_sort_columns,
     parse_columns,
     parse_sort_columns,
@@ -63,8 +67,19 @@ class _ViewMixinBase(PluginHelpers):
     )
     meta__view_cli_options = True
 
+    meta__config__view_columns = MetaSetting(
+        help=(
+            "Default columns when --columns is unset "
+            "(string, int index, or sequence; same syntax as --columns)"
+        ),
+    )
+    meta__view_columns = None
+
     meta__config__view_sort_columns = MetaSetting(
-        help="Default sort columns (same syntax as --sort-columns)",
+        help=(
+            "Default sort columns when --sort-columns is unset "
+            "(string, int index, or sequence; same syntax as --sort-columns)"
+        ),
     )
     meta__view_sort_columns = None
 
@@ -163,6 +178,13 @@ class _ViewMixinBase(PluginHelpers):
             value = self._args_get(args, "sort_mode", None)
             if value is not None:
                 settings["sort_mode"] = value
+
+        if "columns" not in settings:
+            meta_columns = self.query_cfg_parents(
+                "view_columns", default=None, include_self=True
+            )
+            if meta_columns is not None:
+                settings["columns"] = normalize_columns(meta_columns)
 
         if "sort_columns" not in settings:
             meta_sort = self.query_cfg_parents(

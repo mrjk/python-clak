@@ -60,6 +60,16 @@ def test_normalize_sort_columns_accepts_sequence():
 
     assert normalize_sort_columns(["name", -1]) == ["name", -1]
     assert normalize_sort_columns("role,-1") == ["role", -1]
+    assert normalize_sort_columns(1) == [1]
+
+
+def test_normalize_columns_accepts_sequence():
+    from clak.views import normalize_columns
+
+    assert normalize_columns(["name", "role"]) == ["name", "role"]
+    assert normalize_columns("name,role") == ["name", "role"]
+    assert normalize_columns(1) == [1]
+    assert normalize_columns(None) is None
 
 
 def test_merge_view_settings_warns_on_override(caplog):
@@ -403,6 +413,41 @@ def test_list_view_mixin_meta_view_sort_columns(capsys):
 
     out = capsys.readouterr().out
     assert out.index("grace") < out.index("ada") < out.index("linus")
+
+
+def test_list_view_mixin_meta_view_columns(capsys):
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_columns = ("name", "city")
+            view_sort_columns = 1
+
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch([])
+
+    out = capsys.readouterr().out
+    assert "name" in out
+    assert "city" in out
+    assert "role" not in out.split("\n")[0]
+    # sort by column 1 (name): ada, grace, linus
+    assert out.index("ada") < out.index("grace") < out.index("linus")
+
+
+def test_list_view_mixin_columns_cli_overrides_meta(capsys):
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_columns = ("name", "city")
+
+        def cli_run(self, **_):
+            return USERS
+
+    App(parse=False, add_help=False).dispatch(["--columns", "name,role"])
+
+    out = capsys.readouterr().out
+    assert "role" in out
+    assert "admin" in out
+    assert "London" not in out
 
 
 def test_list_view_mixin_sort_columns_negative_indexes(capsys):

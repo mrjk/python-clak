@@ -153,6 +153,27 @@ def parse_columns(value):
     return cols
 
 
+def normalize_columns(value):
+    """Normalize Meta.view_columns (string, int index, or sequence) for render."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise TypeError(
+            "view_columns must be a string, int, or sequence, "
+            f"got {type(value).__name__}"
+        )
+    if isinstance(value, int):
+        return [value]
+    if isinstance(value, str):
+        return parse_columns(value)
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    raise TypeError(
+        "view_columns must be a string, int, or sequence, "
+        f"got {type(value).__name__}"
+    )
+
+
 def parse_sort_columns(value):
     """Parse --sort-columns: names, 1-based indexes (1=first), or negatives from end."""
     if value is None:
@@ -176,15 +197,23 @@ def parse_sort_columns(value):
 
 
 def normalize_sort_columns(value):
-    """Normalize Meta.view_sort_columns (string or sequence) for render settings."""
+    """Normalize Meta.view_sort_columns (string, int index, or sequence)."""
     if value is None:
         return None
+    if isinstance(value, bool):
+        raise TypeError(
+            "view_sort_columns must be a string, int, or sequence, "
+            f"got {type(value).__name__}"
+        )
+    if isinstance(value, int):
+        return [value]
     if isinstance(value, str):
         return parse_sort_columns(value)
     if isinstance(value, (list, tuple)):
         return list(value)
     raise TypeError(
-        "view_sort_columns must be a string or sequence, " f"got {type(value).__name__}"
+        "view_sort_columns must be a string, int, or sequence, "
+        f"got {type(value).__name__}"
     )
 
 
