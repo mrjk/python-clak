@@ -13,7 +13,7 @@ from clak.views.base import (
     TEXT_FORMATS,
     ClakView,
     pformat_truncated,
-    resolve_line_length,
+    resolve_wrap_budget,
 )
 
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
@@ -33,11 +33,7 @@ def _wrap_text(
     text: str, line_length=None, term_width=None, stdout_tty=None, **_
 ) -> str:
     """Optionally wrap plain text to the resolved line length."""
-    wrap, budget = resolve_line_length(
-        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
-        term_width=term_width,
-        stdout_tty=stdout_tty,
-    )
+    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
     if not wrap or budget is None:
         return text
     return textwrap.fill(text, width=budget, replace_whitespace=False)
@@ -46,15 +42,15 @@ def _wrap_text(
 def require_rich():
     """Import rich for markdown terminal rendering, or raise ClakUserError."""
     try:
-        import rich.console  # noqa: F401
-        import rich.markdown  # noqa: F401
+        import rich.console  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
+        import rich.markdown  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
     except ImportError as err:
         raise ClakUserError(
             "Markdown rendering requires the rich package",
             advice=f"Install with: {_RICH_INSTALL_HINT}",
         ) from err
-    import rich.console as rich_console
-    import rich.markdown as rich_markdown
+    import rich.console as rich_console  # pylint: disable=import-outside-toplevel
+    import rich.markdown as rich_markdown  # pylint: disable=import-outside-toplevel
 
     return rich_console, rich_markdown
 
@@ -62,13 +58,13 @@ def require_rich():
 def require_docutils():
     """Import docutils for RST rendering, or raise ClakUserError."""
     try:
-        import docutils.core  # noqa: F401
+        import docutils.core  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
     except ImportError as err:
         raise ClakUserError(
             "RST rendering requires the docutils package",
             advice=f"Install with: {_DOCUTILS_INSTALL_HINT}",
         ) from err
-    import docutils.core as docutils_core
+    import docutils.core as docutils_core  # pylint: disable=import-outside-toplevel
 
     return docutils_core
 
@@ -78,11 +74,7 @@ def render_markdown_text(
 ):
     """Render markdown source to terminal text via rich."""
     rich_console, rich_markdown = require_rich()
-    wrap, budget = resolve_line_length(
-        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
-        term_width=term_width,
-        stdout_tty=stdout_tty,
-    )
+    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
     console_kwargs = {"force_terminal": True, "soft_wrap": True}
     if wrap and budget is not None:
         console_kwargs["width"] = budget
@@ -95,11 +87,7 @@ def render_markdown_text(
 def render_rst_text(text: str, line_length=None, term_width=None, stdout_tty=None, **_):
     """Render reStructuredText source to plain text via docutils."""
     docutils_core = require_docutils()
-    wrap, budget = resolve_line_length(
-        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
-        term_width=term_width,
-        stdout_tty=stdout_tty,
-    )
+    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
     parts = docutils_core.publish_parts(
         source=text,
         writer="html",

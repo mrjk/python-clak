@@ -125,15 +125,16 @@ _LINE_LENGTH_HELP = (
 _FORMAT_HELP = "Output format (default: view table)"
 _TEXT_FORMAT_HELP = "Output format: view (rendered) or raw (source). Default: view"
 _DATA_FORMAT_HELP = (
-    "Output format: json or yaml. Default: yaml when PyYAML is installed, " "else json"
+    "Output format: json or yaml. Default: yaml when PyYAML is installed, else json"
 )
 _COMPACT_HELP = "Compact JSON (single line). Ignored for YAML. Default: off"
 _COLOR_HELP = (
     "Colorize JSON/YAML with rich when available. Default: on for TTY "
-    "when CLAK_COLORS is enabled"
+    + "when CLAK_COLORS is enabled"
 )
 _ANCHORS_HELP = (
-    "Allow YAML anchors/aliases for shared references. Ignored for JSON. " "Default: on"
+    "Allow YAML anchors/aliases for shared references. Ignored for JSON. "
+    + "Default: on"
 )
 _SORT_MODE_HELP = "Sort direction (default: asc)"
 _ADD_INDEX_HELP = "Include key/index column in the table"

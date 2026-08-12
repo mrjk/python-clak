@@ -1,5 +1,7 @@
 """Base view class and shared width / settings helpers."""
 
+# pylint: disable=too-few-public-methods
+
 from __future__ import annotations
 
 import logging
@@ -199,13 +201,18 @@ def resolve_line_length(
     return True, min(term, int(parsed))
 
 
-def pformat_truncated(data, line_length=None, term_width=None, stdout_tty=None, **_):
-    """Pretty-print *data*, optionally wrapping to the resolved line length."""
-    wrap, budget = resolve_line_length(
+def resolve_wrap_budget(line_length=None, term_width=None, stdout_tty=None):
+    """Resolve wrap flag and column budget with DEFAULT_LINE_LENGTH fallback."""
+    return resolve_line_length(
         line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
         term_width=term_width,
         stdout_tty=stdout_tty,
     )
+
+
+def pformat_truncated(data, line_length=None, term_width=None, stdout_tty=None, **_):
+    """Pretty-print *data*, optionally wrapping to the resolved line length."""
+    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
     if not wrap or budget is None:
         return pformat(data)
 

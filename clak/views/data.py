@@ -41,8 +41,8 @@ def require_yaml_for_data():
 def require_rich_for_data():
     """Import rich syntax helpers or raise ClakUserError."""
     try:
-        import rich.console  # noqa: F401  # pylint: disable=import-outside-toplevel
-        import rich.syntax  # noqa: F401  # pylint: disable=import-outside-toplevel
+        import rich.console  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
+        import rich.syntax  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
     except ImportError as err:
         raise ClakUserError(
             "Colored data output requires the rich package",
@@ -77,6 +77,7 @@ def _yaml_dumper(yaml, *, anchors: bool):
 
     class _NoAliasDumper(yaml.SafeDumper):
         def ignore_aliases(self, _data):  # pylint: disable=unused-argument
+            """Always expand aliases instead of emitting anchors."""
             return True
 
     return _NoAliasDumper

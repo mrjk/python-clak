@@ -132,12 +132,12 @@ def test_merge_view_settings_no_warning_when_unset(caplog):
 
 
 def test_resolve_view_width_modes():
-    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
-        "min",
+    assert resolve_view_width(width="content", term_width=80, stdout_tty=True) == (
+        "content",
         None,
     )
-    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
-        "auto",
+    assert resolve_view_width(width="fit", term_width=80, stdout_tty=True) == (
+        "fit",
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=True) == (
@@ -145,12 +145,21 @@ def test_resolve_view_width_modes():
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=False) == (
-        "min",
+        "content",
         None,
     )
-    assert resolve_view_width(width="auto", term_width=None, stdout_tty=True) == (
-        "min",
+    assert resolve_view_width(width="fit", term_width=None, stdout_tty=True) == (
+        "content",
         None,
+    )
+    # Legacy aliases
+    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
+        "content",
+        None,
+    )
+    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
+        "fit",
+        80,
     )
 
 
@@ -253,7 +262,7 @@ def test_pprint_view_mixin_auto_renders(capsys):
         def cli_run(self, **_):
             return {"name": "ada", "nested": {"a": 1}}
 
-    App(parse=False, add_help=False).dispatch(["--width", "min"])
+    App(parse=False, add_help=False).dispatch(["--line-length", "nowrap"])
 
     assert "ada" in capsys.readouterr().out
 
@@ -265,9 +274,9 @@ def test_list_view_mixin_width_cli_option():
 
     app = App(parse=False, add_help=False)
     assert "--width" in _option_flags(app)
-    app.dispatch(["--width", "auto"])
+    app.dispatch(["--width", "fit"])
     settings = getattr(app, "_clak_view_settings", {})
-    assert settings.get("width") == "auto"
+    assert settings.get("width") == "fit"
     assert "term_width" in settings
     assert "stdout_tty" in settings
 
@@ -275,14 +284,14 @@ def test_list_view_mixin_width_cli_option():
 def test_list_view_mixin_meta_view_width():
     class App(ListViewMixin, Parser):
         class Meta:
-            view_width = "min"
+            view_width = "min"  # alias for content
 
         def cli_run(self, **_):
             return USERS
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("width") == "min"
+    assert getattr(app, "_clak_view_settings", {}).get("width") == "content"
 
 
 def test_list_view_mixin_wrap_cli_option():
@@ -458,8 +467,8 @@ def test_list_view_mixin_view_column_names_in_help():
     help_text = App(parse=False, add_help=True).parser.format_help()
 
     assert "Available: Var, Value, Order" in help_text
-    # Both column flags get the Available: suffix
-    assert help_text.count("Available: Var, Value, Order") == 2
+    # --columns, --sort-columns, and --wrap get the Available: suffix
+    assert help_text.count("Available: Var, Value, Order") == 3
 
 
 def test_list_view_mixin_no_available_when_column_names_unset():
@@ -778,13 +787,14 @@ def test_show_view_mixin_exposes_table_options_not_expand_keys():
     assert "--expand-keys" not in flags
 
 
-def test_pprint_view_mixin_exposes_only_width():
+def test_pprint_view_mixin_exposes_only_line_length():
     class App(PprintViewMixin, Parser):
         def cli_run(self, **_):
             return USERS
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--width" in flags
+    assert "--line-length" in flags
+    assert "--width" not in flags
     assert "--columns" not in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
@@ -975,13 +985,14 @@ def test_raw_view_mixin_prints_text(capsys):
     assert capsys.readouterr().out.strip() == "plain text line"
 
 
-def test_raw_view_mixin_exposes_only_width():
+def test_raw_view_mixin_exposes_only_line_length():
     class App(RawViewMixin, Parser):
         def cli_run(self, **_):
             return "x"
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--width" in flags
+    assert "--line-length" in flags
+    assert "--width" not in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
     assert "--columns" not in flags
@@ -1076,8 +1087,10 @@ def test_markdown_view_missing_rich_raises(monkeypatch):
 
     with pytest.raises(ClakUserError) as exc:
         MarkdownView("# hi").render(stdout=False)
+    # Undo block before assertions so pytest-clarity can import rich for diffs
+    monkeypatch.undo()
     assert "rich" in str(exc.value.message).lower()
-    assert "pip install rich" in (exc.value.advice or "")
+    assert "mrjk.clak[markdown]" in (exc.value.advice or "")
 
 
 def test_rst_view_missing_docutils_raises(monkeypatch):
@@ -1094,8 +1107,9 @@ def test_rst_view_missing_docutils_raises(monkeypatch):
 
     with pytest.raises(ClakUserError) as exc:
         RstView("Title\n=====\n").render(stdout=False)
+    monkeypatch.undo()
     assert "docutils" in str(exc.value.message).lower()
-    assert "pip install docutils" in (exc.value.advice or "")
+    assert "mrjk.clak[rst]" in (exc.value.advice or "")
 
 
 def test_markdown_view_meta_view_format_raw(capsys):

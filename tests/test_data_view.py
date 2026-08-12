@@ -114,7 +114,9 @@ def test_data_view_explicit_yaml_missing_raises(monkeypatch):
     _block_import(monkeypatch, "yaml")
     with pytest.raises(ClakUserError) as exc:
         DataView(PAYLOAD, format="yaml", color=False).render(stdout=False)
-    assert "PyYAML" in str(exc.value.message) or "yaml" in str(exc.value.message).lower()
+    assert (
+        "PyYAML" in str(exc.value.message) or "yaml" in str(exc.value.message).lower()
+    )
 
 
 def test_data_view_color_auto_off_without_tty():

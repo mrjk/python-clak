@@ -169,8 +169,8 @@ def default_sort_columns(headers):
 def format_structured(rows, headers, fmt):
     """Render tabular rows as yaml, json, or csv."""
     # Late import: OUTPUT_FORMATS lives in clak.views.base (avoids circular import)
-    from clak.views.base import (
-        OUTPUT_FORMATS,  # pylint: disable=import-outside-toplevel
+    from clak.views.base import (  # pylint: disable=import-outside-toplevel
+        OUTPUT_FORMATS,
     )
 
     if fmt not in OUTPUT_FORMATS - {"view"}:

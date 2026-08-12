@@ -38,26 +38,25 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 Section = Tuple[str, ClakView, dict]
 
+_SECTION_KINDS = (
+    (ListView, "list"),
+    (ShowView, "show"),
+    (MarkdownView, "markdown"),
+    (RstView, "rst"),
+    (RawView, "raw"),
+    (PprintView, "pprint"),
+    (DataView, "data"),
+)
+
 
 def _strip_ansi(text: str) -> str:
     return _ANSI_RE.sub("", text)
 
 
 def _section_kind(view: ClakView) -> str:
-    if isinstance(view, ListView):
-        return "list"
-    if isinstance(view, ShowView):
-        return "show"
-    if isinstance(view, MarkdownView):
-        return "markdown"
-    if isinstance(view, RstView):
-        return "rst"
-    if isinstance(view, RawView):
-        return "raw"
-    if isinstance(view, PprintView):
-        return "pprint"
-    if isinstance(view, DataView):
-        return "data"
+    for cls, kind in _SECTION_KINDS:
+        if isinstance(view, cls):
+            return kind
     return "view"
 
 
@@ -180,7 +179,7 @@ class CompositeView(ClakView):
 
         if scope == "first":
             child_kw = self._settings_for_child(
-                primary_view, settings, is_primary=True, format=fmt
+                primary_view, settings, is_primary=True, fmt=fmt
             )
             return primary_view.render(stdout=stdout, **child_kw)
 
@@ -199,11 +198,11 @@ class CompositeView(ClakView):
         )
 
     @staticmethod
-    def _settings_for_child(view, settings, *, is_primary, format=None):
+    def _settings_for_child(view, settings, *, is_primary, fmt=None):
         """Build kwargs for a child render; table CLI opts apply to primary only."""
         child = {key: settings[key] for key in _SHARED_SETTINGS if key in settings}
-        if format is not None:
-            child["format"] = format
+        if fmt is not None:
+            child["format"] = fmt
         if is_primary and isinstance(view, FeatureFullViewer):
             for key in _PRIMARY_TABLE_SETTINGS:
                 if key not in settings:
@@ -236,7 +235,7 @@ class CompositeView(ClakView):
                 view,
                 child_settings,
                 is_primary=(name == primary_name),
-                format="view",
+                fmt="view",
             )
             body = view.render(stdout=False, **child_kw) or ""
             header = _format_section_header(meta)
@@ -247,6 +246,23 @@ class CompositeView(ClakView):
             elif body:
                 parts.append(body)
         return "\n\n".join(parts)
+
+    def _natural_table_widths(self, tables, settings, primary_name):
+        """Render each table at min width and return outer border widths."""
+        measure_settings = dict(settings)
+        measure_settings["width"] = "min"
+        naturals = []
+        for name, view in tables:
+            child_kw = self._settings_for_child(
+                view,
+                measure_settings,
+                is_primary=(name == primary_name),
+                fmt="view",
+            )
+            text = view.render(stdout=False, **child_kw) or ""
+            first = text.splitlines()[0] if text else ""
+            naturals.append(len(_strip_ansi(first)))
+        return naturals
 
     def _equalize_table_width_settings(self, sections, settings, primary_name):
         """Force table sections to share one outer border width."""
@@ -268,20 +284,7 @@ class CompositeView(ClakView):
             # Already a shared budget for every table child.
             return settings
 
-        measure_settings = dict(settings)
-        measure_settings["width"] = "min"
-        naturals = []
-        for name, view in tables:
-            child_kw = self._settings_for_child(
-                view,
-                measure_settings,
-                is_primary=(name == primary_name),
-                format="view",
-            )
-            text = view.render(stdout=False, **child_kw) or ""
-            first = text.splitlines()[0] if text else ""
-            naturals.append(len(_strip_ansi(first)))
-
+        naturals = self._natural_table_widths(tables, settings, primary_name)
         if not naturals:
             return settings
 
@@ -351,7 +354,7 @@ class CompositeView(ClakView):
                     view,
                     settings,
                     is_primary=(name == primary_name),
-                    format="csv",
+                    fmt="csv",
                 )
                 blocks.append(view.render(stdout=False, **child_kw).rstrip("\n"))
             else:
