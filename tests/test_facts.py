@@ -70,7 +70,9 @@ def test_fqdn_logs_info(monkeypatch, caplog):
     facts = detect_facts(timeout=-1)
     with caplog.at_level(logging.INFO, logger="clak.facts"):
         _ = facts.fqdn
-    assert any("FQDN" in record.message or "DNS" in record.message for record in caplog.records)
+    assert any(
+        "FQDN" in record.message or "DNS" in record.message for record in caplog.records
+    )
 
 
 def test_facts_timeout_zero_skips_blocking(monkeypatch):
@@ -101,11 +103,11 @@ def test_facts_timeout_soft_fallback(monkeypatch):
 def test_parse_os_release(tmp_path):
     path = tmp_path / "os-release"
     path.write_text(
-        "NAME=\"Manjaro Linux\"\n"
+        'NAME="Manjaro Linux"\n'
         "ID=manjaro\n"
-        "ID_LIKE=\"arch\"\n"
+        'ID_LIKE="arch"\n'
         "VERSION_ID=24.0\n"
-        "PRETTY_NAME=\"Manjaro Linux\"\n",
+        'PRETTY_NAME="Manjaro Linux"\n',
         encoding="utf-8",
     )
     data = parse_os_release(str(path))

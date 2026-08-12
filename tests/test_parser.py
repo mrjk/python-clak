@@ -93,9 +93,7 @@ def test_argument_group_kwarg_not_passed_to_argparse():
     """group= is Clak-only and must not reach add_argument."""
 
     class App(Parser):
-        output_format = Argument(
-            "--format", group="Output options", help="Format"
-        )
+        output_format = Argument("--format", group="Output options", help="Format")
 
         def cli_run(self, **_):
             return None

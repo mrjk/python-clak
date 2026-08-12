@@ -167,9 +167,7 @@ class _ViewMixinBase(PluginHelpers):
             if key in ("columns", "sort_columns"):
                 arg = copy.copy(arg)
                 arg.kwargs = dict(arg.kwargs)
-                arg.kwargs["help"] = self._column_flag_help(
-                    arg.kwargs.get("help", "")
-                )
+                arg.kwargs["help"] = self._column_flag_help(arg.kwargs.get("help", ""))
             self.add_argument(key, arg)
 
     @staticmethod

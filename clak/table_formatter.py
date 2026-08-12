@@ -141,9 +141,7 @@ def resolve_column_keys(columns, headers, *, strict_names=True):
                 resolve_column_index(col, headers)
             resolved.append(col)
         else:
-            raise TypeError(
-                f"Column must be a string or int, got {type(col).__name__}"
-            )
+            raise TypeError(f"Column must be a string or int, got {type(col).__name__}")
     return resolved
 
 
@@ -168,9 +166,7 @@ def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
     indexes = [resolve_sort_column_index(col, headers) for col in sort_columns]
 
     def key_fn(row):
-        return [
-            _cell_sort_key(row[idx] if idx < len(row) else "") for idx in indexes
-        ]
+        return [_cell_sort_key(row[idx] if idx < len(row) else "") for idx in indexes]
 
     return sorted(rows, key=key_fn, reverse=reverse)
 

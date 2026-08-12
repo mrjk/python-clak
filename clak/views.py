@@ -225,15 +225,11 @@ def normalize_sort_columns(value):
 def _project_item_columns(item, columns):
     """Keep original values while projecting selected columns on one row."""
     if isinstance(item, Mapping):
-        keys = resolve_column_keys(
-            columns, list(item.keys()), strict_names=False
-        )
+        keys = resolve_column_keys(columns, list(item.keys()), strict_names=False)
         return {key: item[key] for key in keys if key in item}
     if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
         keys = resolve_column_keys(columns, list(range(len(item))))
-        return [
-            item[key] for key in keys if isinstance(key, int) and key < len(item)
-        ]
+        return [item[key] for key in keys if isinstance(key, int) and key < len(item)]
     return item
 
 

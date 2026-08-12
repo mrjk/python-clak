@@ -316,7 +316,11 @@ class FactsInfo:
     def _build_identity(self, *, effective: bool) -> IdentityInfo:
         if not hasattr(os, "getuid"):
             return IdentityInfo(
-                self, uid=-1, gid=-1, group_ids=[], label="effective" if effective else "real"
+                self,
+                uid=-1,
+                gid=-1,
+                group_ids=[],
+                label="effective" if effective else "real",
             )
         if effective:
             uid = os.geteuid()

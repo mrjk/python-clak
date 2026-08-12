@@ -189,9 +189,7 @@ def test_ctx_runtime_attached_on_dispatch(monkeypatch):
     monkeypatch.setattr("clak.runtime.sys.stderr", _tty(True))
     monkeypatch.setattr("clak.runtime._detect_ctty", lambda: "/dev/pts/9")
     monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: "/bin/zsh -l")
-    monkeypatch.setattr(
-        "clak.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/zsh"
-    )
+    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/zsh")
 
     seen = {}
 
