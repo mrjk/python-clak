@@ -40,14 +40,11 @@ Poetry and Task come from mise after `mise install` — you do **not** need a sy
 # 1) Activate mise in this shell (skip if direnv already loaded .envrc)
 eval "$(mise activate bash)"   # or: eval "$(mise activate zsh)"
 
-# 2) Install pinned tools (python 3.12, poetry, task)
-mise install
-mise which poetry              # should print a path under ~/.local/share/mise/...
-
-# 3) Create/update project .venv
-poetry env use "$(mise which python)"
-poetry install --with dev
+# 2) Install pinned tools + project .venv (dev + docs)
+task setup
 ```
+
+`task setup` runs `scripts/setup_workspace.sh`: `mise install`, points Poetry at the mise Python, then `poetry install --with dev,docs`. That includes `pytest-tagging`, which provides the `--tags` flag used by `task test_pytest`.
 
 After bootstrap, run Task as usual — Python tools are invoked via `poetry run`
 (see `PY` in the root Taskfile), so you do **not** need to activate `.venv`:
@@ -57,12 +54,13 @@ task test
 task fix_lint
 ```
 
-`poetry` itself must be on your PATH (from `mise activate` / `.envrc`).
+`mise` (and thus `poetry` / `task`) must be on your PATH (from `mise activate` / `.envrc`).
 
 Useful subsets:
 
 | Task | What it runs |
 |------|----------------|
+| `task setup` | Bootstrap mise tools + `.venv` (`--with dev,docs`) |
 | `task test_pytest` | Unit + example unit/regression tags |
 | `task test_regressions` | Example regressions (incl. CLI; `CLAK_COLORS=false`) |
 | `task test_lint_full` | Lint + docs checks |
@@ -88,9 +86,7 @@ Then bootstrap again:
 
 ```bash
 eval "$(mise activate bash)"   # if needed
-mise install
-poetry env use "$(mise which python)"
-poetry install --with dev
+task setup
 ```
 
 ## Local Python matrix

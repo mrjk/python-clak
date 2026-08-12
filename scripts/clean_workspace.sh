@@ -32,6 +32,4 @@ rm -rf docs/site .cache
 echo "Done. Source and lockfiles were kept."
 echo "Re-bootstrap:"
 echo "  eval \"\$(mise activate bash)\"   # if needed"
-echo "  mise install"
-echo "  poetry env use \"\$(mise which python)\""
-echo "  poetry install --with dev"
+echo "  task setup"
