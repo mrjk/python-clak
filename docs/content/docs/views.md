@@ -351,6 +351,30 @@ class App(CompositeViewMixin, Parser):
         )
 ```
 
+Optional per-section `title` and plain-text `description` (third-item dict).
+The section name stays the machine id (`primary=`, envelope); titles are
+opt-in and are not inferred from the name:
+
+```python
+CompositeView(
+    [
+        (
+            "users",
+            ListView([{"name": "ada", "role": "admin"}]),
+            {
+                "title": "Users",
+                "description": "People with access to this project.",
+            },
+        ),
+        ("notes", MarkdownView("## Notes\nMore detail."), {"title": "Notes"}),
+        ("related", ListView([{"name": "linus"}])),
+    ]
+)
+```
+
+Human view prints `=== Users ===`, then the description, then the child view.
+Untitled sections keep the previous look (blank line only).
+
 Human (`--format view`) output prints sections in order, separated by a blank
 line. Table sections share the same outer width (equalized under `--width content`
 / `fit`; shared terminal budget under `--width terminal`). Text sections follow
@@ -384,14 +408,16 @@ CLI `--format-scope first|all` overrides Meta. Envelope shape for json/yaml:
 ```json
 {
   "sections": [
-    {"name": "users", "kind": "list", "data": [ ... ]},
+    {"name": "users", "kind": "list", "title": "Users", "data": [ ... ]},
     {"name": "notes", "kind": "markdown", "data": "## Notes\n..."}
   ]
 }
 ```
 
-CSV with `--format-scope all` emits sequential blocks separated by a blank line,
-each starting with `# section: <name>`.
+`title` and `description` appear in the envelope only when set. CSV with
+`--format-scope all` emits sequential blocks separated by a blank line, each
+starting with `# section: <name>` and optional `# title:` / `# description:`
+comments.
 
 ## CLI overrides
 

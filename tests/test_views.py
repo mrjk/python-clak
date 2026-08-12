@@ -2,7 +2,6 @@
 
 import json
 import logging
-import re
 
 import pytest
 
@@ -25,9 +24,7 @@ from clak.views import (
     ShowView,
     merge_view_settings,
     parse_columns,
-    parse_line_length,
     parse_sort_columns,
-    resolve_line_length,
     resolve_view_width,
 )
 
@@ -110,12 +107,12 @@ def test_merge_view_settings_no_warning_when_unset(caplog):
 
 
 def test_resolve_view_width_modes():
-    assert resolve_view_width(width="content", term_width=80, stdout_tty=True) == (
-        "content",
+    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
+        "min",
         None,
     )
-    assert resolve_view_width(width="fit", term_width=80, stdout_tty=True) == (
-        "fit",
+    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
+        "auto",
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=True) == (
@@ -123,52 +120,13 @@ def test_resolve_view_width_modes():
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=False) == (
-        "content",
+        "min",
         None,
     )
-    assert resolve_view_width(width="fit", term_width=None, stdout_tty=True) == (
-        "content",
+    assert resolve_view_width(width="auto", term_width=None, stdout_tty=True) == (
+        "min",
         None,
     )
-
-
-def test_resolve_view_width_aliases_min_auto():
-    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
-        "content",
-        None,
-    )
-    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
-        "fit",
-        80,
-    )
-
-
-def test_resolve_line_length_default_caps_at_120():
-    assert resolve_line_length(
-        line_length=120, term_width=200, stdout_tty=True
-    ) == (True, 120)
-    assert resolve_line_length(
-        line_length=120, term_width=80, stdout_tty=True
-    ) == (True, 80)
-
-
-def test_resolve_line_length_terminal_nowrap_and_nontty():
-    assert resolve_line_length(
-        line_length="terminal", term_width=200, stdout_tty=True
-    ) == (True, 200)
-    assert resolve_line_length(
-        line_length="nowrap", term_width=200, stdout_tty=True
-    ) == (False, None)
-    assert resolve_line_length(
-        line_length=80, term_width=200, stdout_tty=False
-    ) == (False, None)
-
-
-def test_parse_line_length_rejects_zero():
-    with pytest.raises(ValueError, match="nowrap"):
-        parse_line_length(0)
-    with pytest.raises(ValueError, match="nowrap"):
-        parse_line_length("0")
 
 
 # ---------------------------------------------------------------------------
@@ -270,7 +228,7 @@ def test_pprint_view_mixin_auto_renders(capsys):
         def cli_run(self, **_):
             return {"name": "ada", "nested": {"a": 1}}
 
-    App(parse=False, add_help=False).dispatch(["--line-length", "nowrap"])
+    App(parse=False, add_help=False).dispatch(["--width", "min"])
 
     assert "ada" in capsys.readouterr().out
 
@@ -282,9 +240,9 @@ def test_list_view_mixin_width_cli_option():
 
     app = App(parse=False, add_help=False)
     assert "--width" in _option_flags(app)
-    app.dispatch(["--width", "fit"])
+    app.dispatch(["--width", "auto"])
     settings = getattr(app, "_clak_view_settings", {})
-    assert settings.get("width") == "fit"
+    assert settings.get("width") == "auto"
     assert "term_width" in settings
     assert "stdout_tty" in settings
 
@@ -299,7 +257,7 @@ def test_list_view_mixin_meta_view_width():
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("width") == "content"
+    assert getattr(app, "_clak_view_settings", {}).get("width") == "min"
 
 
 def test_list_view_mixin_wrap_cli_option():
@@ -758,17 +716,15 @@ def test_show_view_mixin_exposes_table_options_not_expand_keys():
     assert "--width" in flags
     assert "--wrap" in flags
     assert "--expand-keys" not in flags
-    assert "--line-length" not in flags
 
 
-def test_pprint_view_mixin_exposes_only_line_length():
+def test_pprint_view_mixin_exposes_only_width():
     class App(PprintViewMixin, Parser):
         def cli_run(self, **_):
             return USERS
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--line-length" in flags
-    assert "--width" not in flags
+    assert "--width" in flags
     assert "--columns" not in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
@@ -959,14 +915,13 @@ def test_raw_view_mixin_prints_text(capsys):
     assert capsys.readouterr().out.strip() == "plain text line"
 
 
-def test_raw_view_mixin_exposes_only_line_length():
+def test_raw_view_mixin_exposes_only_width():
     class App(RawViewMixin, Parser):
         def cli_run(self, **_):
             return "x"
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--line-length" in flags
-    assert "--width" not in flags
+    assert "--width" in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
     assert "--columns" not in flags
@@ -1006,8 +961,6 @@ def test_markdown_view_mixin_format_choices_are_text_only():
     assert "yaml" not in help_text
     assert "csv" not in help_text
     assert "--wrap" not in help_text
-    assert "--line-length" in help_text
-    assert "--width" not in help_text
 
 
 def test_list_view_mixin_format_choices_remain_table():
@@ -1020,8 +973,6 @@ def test_list_view_mixin_format_choices_remain_table():
         "yaml" in help_text and "json" in help_text and "csv" in help_text
     )
     assert "raw" not in help_text.split("--format")[1].split("\n")[0]
-    assert "--width" in help_text
-    assert "--line-length" not in help_text
 
 
 def test_markdown_view_renders_with_rich(capsys):
@@ -1066,7 +1017,7 @@ def test_markdown_view_missing_rich_raises(monkeypatch):
     with pytest.raises(ClakUserError) as exc:
         MarkdownView("# hi").render(stdout=False)
     assert "rich" in str(exc.value.message).lower()
-    assert "mrjk.clak[markdown]" in (exc.value.advice or "")
+    assert "pip install rich" in (exc.value.advice or "")
 
 
 def test_rst_view_missing_docutils_raises(monkeypatch):
@@ -1084,7 +1035,7 @@ def test_rst_view_missing_docutils_raises(monkeypatch):
     with pytest.raises(ClakUserError) as exc:
         RstView("Title\n=====\n").render(stdout=False)
     assert "docutils" in str(exc.value.message).lower()
-    assert "mrjk.clak[rst]" in (exc.value.advice or "")
+    assert "pip install docutils" in (exc.value.advice or "")
 
 
 def test_markdown_view_meta_view_format_raw(capsys):
@@ -1226,44 +1177,51 @@ def test_composite_show_view_primary_with_markdown():
         ],
         width="min",
     ).render(stdout=False)
-    assert "App" in out
     assert "demo:web" in out
     assert "Long body." in out
     assert "=== Docs ===" not in out
 
 
-def test_composite_list_primary_uses_child_expand_keys_default():
+def test_composite_section_title_and_description():
     from clak.views import CompositeView
 
     out = CompositeView(
-        [("users", ListView([{"name": "ada", "role": "admin"}]))],
+        [
+            (
+                "users",
+                ListView([{"name": "ada"}]),
+                {
+                    "title": "Users",
+                    "description": "People with access.",
+                },
+            ),
+            ("notes", RawView("hello notes"), {"title": "Notes"}),
+        ],
         width="min",
     ).render(stdout=False)
-    assert "name" in out
-    assert "role" in out
-    assert "ada" in out
-    assert "{'name'" not in out
+    assert out.startswith("=== Users ===\nPeople with access.\n\n")
+    assert "=== Notes ===\n\nhello notes" in out
 
 
-def test_composite_show_primary_expand_keys_cli_does_not_crash(capsys):
-    from clak import CompositeViewMixin
+def test_composite_section_meta_in_envelope_json():
     from clak.views import CompositeView
 
-    class App(CompositeViewMixin, Parser):
-        def cli_run(self, **_):
-            return CompositeView(
-                [
-                    ("summary", ShowView({"App": "demo:web", "Name": "Demo"})),
-                    ("notes", RawView("extra")),
-                ],
-                width="min",
-            )
-
-    App(parse=False, add_help=False).dispatch(["--expand-keys"])
-    out = capsys.readouterr().out
-    assert "App" in out
-    assert "demo:web" in out
-    assert "extra" in out
+    out = CompositeView(
+        [
+            (
+                "users",
+                ListView([{"name": "ada"}]),
+                {"title": "Users", "description": "People with access."},
+            ),
+            ("notes", RawView("skip")),
+        ],
+        format="json",
+        format_scope="all",
+    ).render(stdout=False)
+    payload = json.loads(out)
+    assert payload["sections"][0]["title"] == "Users"
+    assert payload["sections"][0]["description"] == "People with access."
+    assert "title" not in payload["sections"][1]
 
 
 def test_composite_view_mixin_format_scope_cli(capsys):
@@ -1316,27 +1274,7 @@ def test_composite_view_mixin_exposes_format_scope_flag():
         def cli_run(self, **_):
             return None
 
-    flags = _option_flags(App(parse=False, add_help=False))
-    assert "--format-scope" in flags
-    assert "--expand-keys" in flags
-    assert "--width" in flags
-    assert "--line-length" in flags
-
-
-def test_composite_view_mixin_can_hide_expand_keys():
-    from clak import CompositeViewMixin
-
-    class App(CompositeViewMixin, Parser):
-        class Meta:
-            view_cli_options = ("width", "format", "format_scope", "add_index")
-
-        def cli_run(self, **_):
-            return None
-
-    flags = _option_flags(App(parse=False, add_help=False))
-    assert "--expand-keys" not in flags
-    assert "--format-scope" in flags
-    assert "--add-index" in flags
+    assert "--format-scope" in _option_flags(App(parse=False, add_help=False))
 
 
 def test_composite_unknown_primary_raises():
@@ -1347,137 +1285,3 @@ def test_composite_unknown_primary_raises():
             [("users", ListView([{"name": "ada"}]))],
             primary="missing",
         ).render(stdout=False)
-
-
-def _max_plain_line(text: str) -> int:
-    plain = re.sub(r"\x1b\[[0-9;]*m", "", text)
-    lines = plain.splitlines() or [""]
-    return max(len(line) for line in lines)
-
-
-LONG_PROSE = "word " * 50
-
-
-def test_raw_view_default_line_length_caps_at_120():
-    out = RawView(LONG_PROSE).render(
-        stdout=False, term_width=200, stdout_tty=True
-    )
-    assert _max_plain_line(out) <= 120
-
-
-def test_raw_view_line_length_follows_narrow_terminal():
-    out = RawView(LONG_PROSE).render(
-        stdout=False, term_width=80, stdout_tty=True
-    )
-    assert _max_plain_line(out) <= 80
-
-
-def test_raw_view_line_length_terminal_uses_full_term():
-    out = RawView(LONG_PROSE).render(
-        stdout=False,
-        line_length="terminal",
-        term_width=200,
-        stdout_tty=True,
-    )
-    assert _max_plain_line(out) <= 200
-    assert _max_plain_line(out) > 120
-
-
-def test_raw_view_line_length_nowrap_does_not_wrap():
-    out = RawView(LONG_PROSE).render(
-        stdout=False,
-        line_length="nowrap",
-        term_width=40,
-        stdout_tty=True,
-    )
-    assert LONG_PROSE.strip() in out
-    assert _max_plain_line(out) > 120
-
-
-def test_raw_view_line_length_80_caps():
-    out = RawView(LONG_PROSE).render(
-        stdout=False, line_length=80, term_width=200, stdout_tty=True
-    )
-    assert _max_plain_line(out) <= 80
-
-
-def test_list_view_width_terminal_uses_full_term():
-    rows = [{"name": "ada", "role": "admin", "city": "London"}]
-    out = ListView(rows).render(
-        stdout=False, width="terminal", term_width=80, stdout_tty=True
-    )
-    first = re.sub(r"\x1b\[[0-9;]*m", "", out.splitlines()[0])
-    assert len(first) == 80
-
-
-def test_list_view_width_content_is_content_sized():
-    rows = [{"name": "ada"}]
-    out = ListView(rows).render(
-        stdout=False, width="content", term_width=80, stdout_tty=True
-    )
-    first = re.sub(r"\x1b\[[0-9;]*m", "", out.splitlines()[0])
-    assert len(first) < 80
-
-
-def test_markdown_view_mixin_line_length_cli():
-    class App(MarkdownViewMixin, Parser):
-        def cli_run(self, **_):
-            return LONG_PROSE
-
-    app = App(parse=False, add_help=False)
-    app.dispatch(["--format", "raw", "--line-length", "80"])
-    settings = getattr(app, "_clak_view_settings", {})
-    assert settings.get("line_length") == 80
-
-
-def test_markdown_view_meta_line_length_nowrap():
-    class App(MarkdownViewMixin, Parser):
-        class Meta:
-            view_line_length = "nowrap"
-            view_format = "raw"
-
-        def cli_run(self, **_):
-            return LONG_PROSE
-
-    app = App(parse=False, add_help=False)
-    app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("line_length") == "nowrap"
-
-
-def test_parent_view_width_does_not_apply_to_markdown():
-    class Docs(MarkdownViewMixin, Parser):
-        def cli_run(self, **_):
-            return "x"
-
-    class Root(Parser):
-        class Meta:
-            view_width = "content"
-
-        docs = Command(Docs)
-
-    root = Root(parse=False, add_help=False)
-    root.dispatch(["docs"])
-    settings = getattr(root, "_clak_view_settings", {})
-    assert "width" not in settings
-    assert "--width" not in _option_flags(Docs(parse=False, add_help=False))
-
-
-def test_composite_line_length_does_not_shrink_tables():
-    from clak.views import CompositeView
-
-    long_note = "word " * 40
-    out = CompositeView(
-        [
-            ("users", ListView([{"name": "ada", "role": "admin"}])),
-            ("notes", RawView(long_note)),
-        ],
-        width="terminal",
-        line_length=40,
-        term_width=80,
-        stdout_tty=True,
-    ).render(stdout=False)
-    blocks = [b for b in out.split("\n\n") if b.strip()]
-    table_width = _max_plain_line(blocks[0].splitlines()[0])
-    note_width = _max_plain_line(blocks[1])
-    assert table_width == 80
-    assert note_width <= 40

@@ -203,8 +203,10 @@ yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
 Markdown render needs mrjk.clak[markdown] (rich); RST render needs
 mrjk.clak[rst] (docutils). --format raw needs no extra package.
 Composite --format is table-scoped (view|yaml|json|csv); markdown source is
-in --format-scope all envelopes. Hide --expand-keys with view_cli_options
-when the composite primary is ShowView.
+in --format-scope all envelopes. Optional section meta:
+  (name, view, {title, description}) -> human === Title === plus plain
+  description; envelope fields only when set. Hide --expand-keys with
+  view_cli_options when the composite primary is ShowView.
 
 Without a mixin / returned ClakView / Meta.cli_view, return values are not printed.
 
