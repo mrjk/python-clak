@@ -51,7 +51,7 @@ Examples:
 
 """
 
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,cyclic-import
 
 from __future__ import annotations
 

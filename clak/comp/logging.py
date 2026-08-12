@@ -379,7 +379,7 @@ class LoggingOptMixin(PluginHelpers):
             level=req,
         )
 
-    def cli_hook__logging(  # pylint: disable=too-many-locals,too-many-branches
+    def cli_hook__logging(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         self, instance, ctx, **_
     ):
         "Inject or create logger into instance"

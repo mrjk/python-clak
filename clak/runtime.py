@@ -122,9 +122,11 @@ def _from_shell(parent_exe: Optional[str]) -> bool:
 
 
 def _stdout_encoding() -> str:
-    encoding = getattr(sys.stdout, "encoding", None) or ""
-    encoding = encoding.strip() or "utf-8"
-    return encoding
+    raw = getattr(sys.stdout, "encoding", None)
+    if raw is None:
+        return "utf-8"
+    encoding = str(raw).strip()
+    return encoding or "utf-8"
 
 
 def _unicode_support(encoding: str) -> bool:
@@ -149,7 +151,9 @@ def _force_color_level() -> Optional[str]:
     return None
 
 
-def _detect_color_level(stdout_tty: bool) -> str:
+def _detect_color_level(  # pylint: disable=too-many-return-statements
+    stdout_tty: bool,
+) -> str:
     if os.environ.get("NO_COLOR"):
         return COLOR_NONE
 
@@ -182,7 +186,9 @@ def _detect_color_level(stdout_tty: bool) -> str:
     return COLOR_16
 
 
-def _hyperlinks_support(stdout_tty: bool) -> bool:
+def _hyperlinks_support(  # pylint: disable=too-many-return-statements
+    stdout_tty: bool,
+) -> bool:
     if not stdout_tty:
         return False
     term = (os.environ.get("TERM") or "").lower()
@@ -217,7 +223,7 @@ def _resolve_pager() -> Optional[str]:
     return None
 
 
-class RuntimeInfo:
+class RuntimeInfo:  # pylint: disable=too-many-instance-attributes
     """Eager CLI/session snapshot attached as ``ctx.runtime``."""
 
     __slots__ = (
@@ -242,7 +248,7 @@ class RuntimeInfo:
         "is_narrow",
     )
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         *,
         stdin_tty: bool,

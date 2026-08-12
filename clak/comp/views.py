@@ -1,8 +1,10 @@
 """View mixins for automatic CLI rendering and view options.
 
 Mix in one of:
-- ShowViewMixin  → ShowView + --columns / --add-index / --format / --sort-columns / --width
-- ListViewMixin  → ListView + --columns / --add-index / --expand-keys / --format / --sort-columns / --width
+- ShowViewMixin → ShowView + --columns / --add-index / --format /
+  --sort-columns / --width
+- ListViewMixin → ListView + --columns / --add-index / --expand-keys /
+  --format / --sort-columns / --width
 - PprintViewMixin → PprintView + --width
 
 Example:

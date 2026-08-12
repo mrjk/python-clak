@@ -104,7 +104,7 @@ def _groups_map(gids: List[int]) -> Dict[str, int]:
     return out
 
 
-class IdentityInfo:
+class IdentityInfo:  # pylint: disable=too-many-instance-attributes
     """Real or effective process identity (numeric eager-on-bundle, names lazy)."""
 
     __slots__ = (
@@ -119,7 +119,7 @@ class IdentityInfo:
         "_label",
     )
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         facts: "FactsInfo",
         *,
@@ -150,7 +150,7 @@ class IdentityInfo:
                 _groups_map(self.group_ids),
             )
 
-        result = self._facts._run_blocking(
+        result = self._facts.run_blocking(
             f"NSS identity resolve ({self._label})",
             resolve,
             fallback=(None, None, {}),
@@ -159,22 +159,26 @@ class IdentityInfo:
 
     @property
     def user_name(self) -> Optional[str]:
+        """Resolved user name for ``uid``, or None."""
         self._ensure_names()
         return None if self._user_name is _UNSET else self._user_name  # type: ignore
 
     @property
     def group_name(self) -> Optional[str]:
+        """Resolved primary group name for ``gid``, or None."""
         self._ensure_names()
         return None if self._group_name is _UNSET else self._group_name  # type: ignore
 
     @property
     def groups(self) -> Dict[str, int]:
+        """Map of supplemental group name to gid."""
         self._ensure_names()
         if self._groups is _UNSET:
             return {}
         return dict(self._groups)  # type: ignore
 
     def clear_names(self) -> None:
+        """Drop cached NSS name lookups."""
         self._user_name = _UNSET
         self._group_name = _UNSET
         self._groups = _UNSET
@@ -221,12 +225,13 @@ class FactsInfo:
         self._identity = _UNSET
         self._running = _UNSET
 
-    def _run_blocking(
+    def run_blocking(
         self,
         what: str,
         fn: Callable[[], T],
         fallback: T,
     ) -> T:
+        """Run *fn* with timeout; return *fallback* on skip, timeout, or error."""
         timeout = self._timeout
         logger.info("%s starting", what)
         if timeout == 0:
@@ -257,6 +262,7 @@ class FactsInfo:
 
     @property
     def hostname(self) -> str:
+        """Short hostname from ``socket.gethostname``."""
         if self._hostname is _UNSET:
             try:
                 self._hostname = socket.gethostname()
@@ -268,7 +274,7 @@ class FactsInfo:
         if self._fqdn is not _UNSET:
             return
         host = self.hostname
-        fqdn = self._run_blocking(
+        fqdn = self.run_blocking(
             f"DNS / FQDN resolution for hostname={host!r}",
             socket.getfqdn,
             fallback=host,
@@ -278,11 +284,13 @@ class FactsInfo:
 
     @property
     def fqdn(self) -> str:
+        """Fully qualified domain name (lazy DNS)."""
         self._ensure_fqdn()
         return self._fqdn  # type: ignore
 
     @property
     def domain(self) -> Optional[str]:
+        """Domain portion of ``fqdn``, or None."""
         self._ensure_fqdn()
         return self._domain  # type: ignore
 
@@ -293,24 +301,29 @@ class FactsInfo:
 
     @property
     def distro(self) -> Dict[str, str]:
+        """Copy of parsed ``/etc/os-release`` fields."""
         return dict(self._ensure_distro())
 
     @property
     def distro_id(self) -> Optional[str]:
+        """``ID`` from os-release."""
         return self._ensure_distro().get("ID")
 
     @property
     def distro_name(self) -> Optional[str]:
+        """Pretty or short distro name from os-release."""
         data = self._ensure_distro()
         return data.get("PRETTY_NAME") or data.get("NAME")
 
     @property
     def distro_version(self) -> Optional[str]:
+        """Version id or version string from os-release."""
         data = self._ensure_distro()
         return data.get("VERSION_ID") or data.get("VERSION")
 
     @property
     def distro_like(self) -> Optional[str]:
+        """``ID_LIKE`` from os-release."""
         return self._ensure_distro().get("ID_LIKE")
 
     def _build_identity(self, *, effective: bool) -> IdentityInfo:
@@ -351,30 +364,37 @@ class FactsInfo:
 
     @property
     def uid(self) -> int:
+        """Real user id."""
         return self._ensure_identity().uid
 
     @property
     def gid(self) -> int:
+        """Real group id."""
         return self._ensure_identity().gid
 
     @property
     def group_ids(self) -> List[int]:
+        """Real supplemental group ids."""
         return list(self._ensure_identity().group_ids)
 
     @property
     def user_name(self) -> Optional[str]:
+        """Real user name (lazy NSS)."""
         return self._ensure_identity().user_name
 
     @property
     def group_name(self) -> Optional[str]:
+        """Real primary group name (lazy NSS)."""
         return self._ensure_identity().group_name
 
     @property
     def groups(self) -> Dict[str, int]:
+        """Real supplemental groups map (lazy NSS)."""
         return self._ensure_identity().groups
 
     @property
     def running(self) -> IdentityInfo:
+        """Effective (euid/egid) identity bundle."""
         return self._ensure_running()
 
     def __repr__(self) -> str:

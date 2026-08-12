@@ -399,7 +399,7 @@ class TableListFormatter(_TableFormatter):
         "width": "terminal",
     }
 
-    # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments
+    # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments,too-many-statements
     def process_table(
         self, data, columns=None, add_index=None, expand_keys=False, remove_tabs=True
     ):
