@@ -306,3 +306,75 @@ def test_list_formatter_default_sorts_first_column():
     output = TableListFormatter().render(data, expand_keys=True)
 
     assert output.index("ada") < output.index("linus")
+
+
+def _plain_table(output: str) -> str:
+    """Strip ANSI color codes from ColorTable output."""
+    import re
+
+    return re.sub(r"\x1b\[[0-9;]*m", "", output)
+
+
+def test_table_width_min_keeps_content_size():
+    long_val = "x" * 60
+    data = [{"name": "a", "note": long_val}]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="min",
+            term_width=40,
+            stdout_tty=True,
+        )
+    )
+    lines = [line for line in output.splitlines() if line.startswith("+")]
+    assert lines
+    assert len(lines[0]) > 40
+
+
+def test_table_width_auto_wraps_when_wider_than_terminal():
+    long_val = "word " * 20
+    data = [{"name": "a", "note": long_val}]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            term_width=40,
+            stdout_tty=True,
+        )
+    )
+    lines = output.splitlines()
+    assert max(len(line) for line in lines) <= 41
+
+
+def test_table_width_terminal_uses_full_term_width():
+    data = [{"name": "a", "note": "hi"}]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="terminal",
+            term_width=50,
+            stdout_tty=True,
+        )
+    )
+    border = next(line for line in output.splitlines() if line.startswith("+"))
+    assert len(border) == 50
+
+
+def test_table_width_no_wrap_when_not_tty():
+    long_val = "x" * 60
+    data = [{"name": "a", "note": long_val}]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="terminal",
+            term_width=40,
+            stdout_tty=False,
+        )
+    )
+    lines = [line for line in output.splitlines() if line.startswith("+")]
+    assert lines
+    assert len(lines[0]) > 40

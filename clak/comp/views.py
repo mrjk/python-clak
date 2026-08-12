@@ -1,8 +1,8 @@
 """View mixins for automatic CLI rendering and view options.
 
 Mix in one of:
-- ShowViewMixin  → ShowView + --columns / --add-index / --format / --sort-columns
-- ListViewMixin  → ListView + --columns / --add-index / --expand-keys / --format / --sort-columns
+- ShowViewMixin  → ShowView + --columns / --add-index / --format / --sort-columns / --width
+- ListViewMixin  → ListView + --columns / --add-index / --expand-keys / --format / --sort-columns / --width
 - PprintViewMixin → PprintView + --width
 
 Example:
@@ -13,6 +13,7 @@ Example:
             view_columns = ("name", "role")
             view_column_names = ("name", "role", "city")
             view_sort_columns = 1
+            view_width = "terminal"
 
         def cli_run(self, **_):
             return [{"name": "a"}, {"name": "b"}]
@@ -30,6 +31,7 @@ from typing import Any, Mapping, Set
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.views import (
+    WIDTH_MODES,
     ListView,
     PprintView,
     ShowView,
@@ -64,6 +66,11 @@ _SORT_COLUMNS_HELP = (
     "Comma-separated columns to sort by (names, 1-based indexes, "
     "or negatives from end: -1=last). Use --sort-columns=-1,1 when "
     "values start with '-'."
+)
+_WIDTH_HELP = (
+    "View width mode: min (content-sized), auto (wrap if wider than "
+    "terminal), terminal (always terminal width). No wrap when stdout "
+    "is not a TTY."
 )
 
 
@@ -108,6 +115,19 @@ class _ViewMixinBase(PluginHelpers):
         help="Default sort mode: asc or desc",
     )
     meta__view_sort_mode = None
+
+    meta__config__view_width = MetaSetting(
+        help="Default view width mode: min, auto, or terminal",
+    )
+    meta__view_width = None
+
+    width = Argument(
+        "--width",
+        choices=sorted(WIDTH_MODES),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_WIDTH_HELP,
+    )
 
     def _enabled_view_options(self) -> Set[str]:
         available = set(self._view_cli_option_names)
@@ -238,11 +258,23 @@ class _ViewMixinBase(PluginHelpers):
             if meta_mode is not None:
                 settings["sort_mode"] = meta_mode
 
+        if "width" not in settings:
+            meta_width = self.query_cfg_parents(
+                "view_width", default=None, include_self=True
+            )
+            if meta_width is not None:
+                settings["width"] = meta_width
+
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
         "Collect view CLI options into ctx.plugins and stash on root for dispatch."
         settings = self.collect_view_settings(ctx.args)
+        runtime = getattr(ctx, "runtime", None)
+        if runtime is not None:
+            runtime.get_size()
+            settings["term_width"] = runtime.term_width
+            settings["stdout_tty"] = runtime.stdout_tty
         ctx.plugins["view_settings"] = settings
         setattr(ctx.cli_root, "_clak_view_settings", settings)
         logger.debug("View settings for %s: %s", instance, settings)
@@ -252,12 +284,12 @@ class ShowViewMixin(_ViewMixinBase):
     """Auto-render command results with :class:`~clak.views.ShowView`.
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
-    ``--format``, ``--sort-columns``, and ``--sort-mode``.
+    ``--format``, ``--sort-columns``, ``--sort-mode``, and ``--width``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
     _view_cli_option_names = frozenset(
-        {"columns", "add_index", "format", "sort_columns", "sort_mode"}
+        {"columns", "add_index", "format", "sort_columns", "sort_mode", "width"}
     )
     meta__cli_view = ShowView
 
@@ -301,7 +333,7 @@ class ListViewMixin(_ViewMixinBase):
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
     ``--expand-keys`` / ``--no-expand-keys``, ``--format``,
-    ``--sort-columns``, and ``--sort-mode``.
+    ``--sort-columns``, ``--sort-mode``, and ``--width``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
@@ -313,6 +345,7 @@ class ListViewMixin(_ViewMixinBase):
             "format",
             "sort_columns",
             "sort_mode",
+            "width",
         }
     )
     meta__cli_view = ListView
@@ -367,10 +400,3 @@ class PprintViewMixin(_ViewMixinBase):
 
     _view_cli_option_names = frozenset({"width"})
     meta__cli_view = PprintView
-
-    width = Argument(
-        "--width",
-        type=int,
-        default=None,
-        help="Maximum width for pretty-printed output",
-    )

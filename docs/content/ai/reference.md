@@ -179,7 +179,9 @@ PprintViewMixin — pprint; --width
 
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
-  --format view|yaml|json|csv, --sort-columns, --sort-mode
+  --format view|yaml|json|csv, --sort-columns, --sort-mode,
+  --width min|auto|terminal (default terminal; no wrap when non-TTY)
+Meta.view_width sets the default width mode.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
 
 Without a mixin / returned ClakView / Meta.cli_view, return values are not printed.

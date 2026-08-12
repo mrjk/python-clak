@@ -36,4 +36,6 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - parse_sort_columns
         - normalize_sort_columns
         - format_show_payload
+        - resolve_view_width
         - OUTPUT_FORMATS
+        - WIDTH_MODES

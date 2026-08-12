@@ -10,8 +10,8 @@ matching CLI flags:
 
 | Mixin | View | Typical data | CLI options |
 | --- | --- | --- | --- |
-| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode` |
-| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode` |
+| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width` |
+| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width` |
 | `PprintViewMixin` | `PprintView` | any payload | `--width` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
@@ -79,6 +79,28 @@ View flags appear under an **Output options** group in `--help` (same
 | `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
 | `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
+| `--width` | `min`, `auto`, `terminal` | `terminal` | View width mode (see below) |
+
+### View width (`--width`)
+
+Shared by show, list, and pprint backends (when they implement it):
+
+| Mode | Effect on TTY | Non-TTY |
+| --- | --- | --- |
+| `min` | Content-sized (no wrap) | Same |
+| `auto` | Content-sized; wrap if wider than the terminal | No wrap (`min`) |
+| `terminal` | Always use terminal width (tables expand/wrap) | No wrap (`min`) |
+
+Terminal size comes from `ctx.runtime` (`term_width`, honors `CLAK_COLUMNS`).
+Default Meta override:
+
+```python
+class App(ListViewMixin, Parser):
+    class Meta:
+        view_width = "auto"  # or "min" / "terminal"
+```
+
+CLI `--width` overrides `Meta.view_width`.
 
 Example: `--sort-columns=-1,-3,1` sorts by last column, then third-from-last, then first
 (use `=` when the value starts with `-`, so argparse does not treat it as a flag).
@@ -237,6 +259,6 @@ class App(ListViewMixin, Parser):
 
 - **Show** — one record as key/value (or index/value) rows.
 - **List** — many records as a multi-column table (`expand_keys` flattens nested dicts).
-- **Pprint** — `pprint`-style dump with optional `--width`.
+- **Pprint** — `pprint`-style dump with shared `--width` modes.
 
 API details: [Views component](../api/plugin_views.md).

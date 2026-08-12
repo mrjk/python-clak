@@ -204,6 +204,23 @@ def format_structured(rows, headers, fmt):
     raise ValueError(f"Unsupported format {fmt!r}")
 
 
+def _apply_prettytable_width(table, width="terminal", term_width=None, stdout_tty=None):
+    """Apply min/auto/terminal width modes to a PrettyTable instance."""
+    # Late import avoids circular dependency with clak.views
+    from clak.views import resolve_view_width  # pylint: disable=import-outside-toplevel
+
+    mode, columns = resolve_view_width(
+        width=width, term_width=term_width, stdout_tty=stdout_tty
+    )
+    if mode == "min" or columns is None:
+        return
+    if mode == "auto":
+        table.max_table_width = columns
+    elif mode == "terminal":
+        table.min_table_width = columns
+        table.max_table_width = columns
+
+
 class _TableFormatter(ABC):
     "Table view"
 
@@ -212,6 +229,7 @@ class _TableFormatter(ABC):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
+        "width": "terminal",
     }
 
     def __init__(self, data=None, columns=None, **view_options):
@@ -246,6 +264,9 @@ class _TableFormatter(ABC):
         fmt = _view_options.pop("format", "view") or "view"
         sort_columns = _view_options.pop("sort_columns", None)
         sort_mode = _view_options.pop("sort_mode", "asc") or "asc"
+        width = _view_options.pop("width", "terminal")
+        term_width = _view_options.pop("term_width", None)
+        stdout_tty = _view_options.pop("stdout_tty", None)
 
         data_table, headers = self.process_table(data, **_view_options)
         self.validate_table_data(data_table)
@@ -270,6 +291,10 @@ class _TableFormatter(ABC):
         table.align = "l"
         for line in data_table:
             table.add_row(line)
+
+        _apply_prettytable_width(
+            table, width=width, term_width=term_width, stdout_tty=stdout_tty
+        )
 
         # Report output
         return table.get_string()
@@ -313,6 +338,7 @@ class TableShowFormatter(_TableFormatter):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
+        "width": "terminal",
     }
 
     def process_table(self, data, columns=None, add_index=True, remove_tabs=True):
@@ -370,6 +396,7 @@ class TableListFormatter(_TableFormatter):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
+        "width": "terminal",
     }
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments

@@ -53,12 +53,14 @@ Examples:
 
 # pylint: disable=too-few-public-methods
 
+from __future__ import annotations
+
 import json
 import logging
-import os
 import textwrap
 from collections.abc import Mapping, Sequence
 from pprint import pformat
+from typing import Any, Optional, Tuple
 
 from clak.table_formatter import (
     TableListFormatter,
@@ -71,14 +73,8 @@ from clak.table_formatter import (
 logger = logging.getLogger(__name__)
 
 OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
-
-# MAX_WIDTH = 120
-MAX_WIDTH = 80
-try:
-    CURR_WIDTH = os.get_terminal_size().columns
-    MAX_WIDTH = MAX_WIDTH if CURR_WIDTH > MAX_WIDTH else CURR_WIDTH
-except OSError:
-    CURR_WIDTH = MAX_WIDTH
+WIDTH_MODES = frozenset({"min", "auto", "terminal"})
+DEFAULT_WIDTH_MODE = "terminal"
 
 
 class ClakView:
@@ -293,13 +289,57 @@ def format_list_payload(payload, fmt, columns=None):
     return _dump_structured_payload(_project_list_columns(payload, columns), fmt)
 
 
-def pformat_truncated(data, width=MAX_WIDTH):
-    "Truncate a text to max lenght and replace by txt"
-    data = pformat(data, width=width)
+def resolve_view_width(
+    settings: Optional[Mapping[str, Any]] = None,
+    *,
+    width: Optional[str] = None,
+    term_width: Optional[int] = None,
+    stdout_tty: Optional[bool] = None,
+) -> Tuple[str, Optional[int]]:
+    """Resolve effective width mode and optional column budget.
 
-    # Wrap text to max width
-    wrapped = textwrap.fill(data, width=width)
-    return wrapped
+    Non-TTY stdout forces ``auto`` / ``terminal`` down to ``min`` (no wrap).
+    Returns ``(effective_mode, columns_or_none)``.
+    """
+    settings = dict(settings or {})
+    if width is None:
+        width = settings.get("width", DEFAULT_WIDTH_MODE)
+    if term_width is None:
+        term_width = settings.get("term_width")
+    if stdout_tty is None:
+        stdout_tty = settings.get("stdout_tty")
+
+    mode = width if width is not None else DEFAULT_WIDTH_MODE
+    if not isinstance(mode, str):
+        raise TypeError(f"width must be a string, got {type(mode).__name__}")
+    mode = mode.lower()
+    if mode not in WIDTH_MODES:
+        raise ValueError(f"width must be one of {sorted(WIDTH_MODES)}, got {mode!r}")
+
+    if mode != "min" and not stdout_tty:
+        mode = "min"
+
+    if mode == "min":
+        return mode, None
+
+    if term_width is None:
+        return "min", None
+
+    return mode, int(term_width)
+
+
+def pformat_truncated(data, width=None, term_width=None, stdout_tty=None, **_):
+    """Pretty-print *data*, optionally wrapping to the resolved view width."""
+    mode, columns = resolve_view_width(
+        width=width if width is not None else DEFAULT_WIDTH_MODE,
+        term_width=term_width,
+        stdout_tty=stdout_tty,
+    )
+    if mode == "min" or columns is None:
+        return pformat(data)
+
+    formatted = pformat(data, width=columns)
+    return textwrap.fill(formatted, width=columns)
 
 
 # Helpers views
@@ -308,6 +348,10 @@ def pformat_truncated(data, width=MAX_WIDTH):
 
 class PprintView(ClakView):
     "Render list data"
+
+    settings_default = {
+        "width": DEFAULT_WIDTH_MODE,
+    }
 
     def render(self, *args, stdout=True, **kwargs):
         "Render data"
@@ -326,6 +370,7 @@ class FeatureFullViewier(ClakView):
 
     settings_default = {
         "columns": None,
+        "width": DEFAULT_WIDTH_MODE,
     }
 
 

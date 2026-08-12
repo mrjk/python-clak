@@ -14,6 +14,7 @@ from clak.views import (
     merge_view_settings,
     parse_columns,
     parse_sort_columns,
+    resolve_view_width,
 )
 
 USERS = [
@@ -90,6 +91,29 @@ def test_merge_view_settings_no_warning_when_unset(caplog):
 
     assert merged == {"columns": ["name"]}
     assert "overrides view setting" not in caplog.text
+
+
+def test_resolve_view_width_modes():
+    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
+        "min",
+        None,
+    )
+    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
+        "auto",
+        80,
+    )
+    assert resolve_view_width(width="terminal", term_width=80, stdout_tty=True) == (
+        "terminal",
+        80,
+    )
+    assert resolve_view_width(width="terminal", term_width=80, stdout_tty=False) == (
+        "min",
+        None,
+    )
+    assert resolve_view_width(width="auto", term_width=None, stdout_tty=True) == (
+        "min",
+        None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -191,9 +215,36 @@ def test_pprint_view_mixin_auto_renders(capsys):
         def cli_run(self, **_):
             return {"name": "ada", "nested": {"a": 1}}
 
-    App(parse=False, add_help=False).dispatch(["--width", "40"])
+    App(parse=False, add_help=False).dispatch(["--width", "min"])
 
     assert "ada" in capsys.readouterr().out
+
+
+def test_list_view_mixin_width_cli_option():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    assert "--width" in _option_flags(app)
+    app.dispatch(["--width", "auto"])
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings.get("width") == "auto"
+    assert "term_width" in settings
+    assert "stdout_tty" in settings
+
+
+def test_list_view_mixin_meta_view_width():
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_width = "min"
+
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    app.dispatch([])
+    assert getattr(app, "_clak_view_settings", {}).get("width") == "min"
 
 
 def test_view_cli_options_false_still_auto_renders(capsys):
@@ -559,10 +610,11 @@ def test_subcommand_list_view_mixin_format_json(capsys):
     app = Root(parse=False, add_help=False)
     app.dispatch(["vars", "--format", "json", "--columns", "name,role"])
 
-    assert getattr(app, "_clak_view_settings", None) == {
-        "format": "json",
-        "columns": ["name", "role"],
-    }
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings["format"] == "json"
+    assert settings["columns"] == ["name", "role"]
+    assert "term_width" in settings
+    assert "stdout_tty" in settings
     records = json.loads(capsys.readouterr().out)
     assert len(records) == 2
     assert set(records[0]) == {"name", "role"}
@@ -588,7 +640,10 @@ def test_subcommand_list_view_mixin_columns(capsys):
     app = Root(parse=False, add_help=False)
     app.dispatch(["vars", "--columns", "name,role"])
 
-    assert getattr(app, "_clak_view_settings", None) == {"columns": ["name", "role"]}
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings["columns"] == ["name", "role"]
+    assert "term_width" in settings
+    assert "stdout_tty" in settings
     out = capsys.readouterr().out
     assert "ada" in out
     assert "admin" in out
