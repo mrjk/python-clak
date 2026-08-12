@@ -304,11 +304,17 @@ def main():
 # myapp = "mypkg.cli:main"
 
 ==============================================================================
-HELP GROUPS (shipped)
+HELP GROUPS AND EXCLUSIVE GROUPS (shipped)
 ==============================================================================
 
-Argument(..., group="Title") places the flag under a titled --help section.
-Same title reuses one group. View mixins use group="Output options".
+Argument(..., option_group="Title") or argument_group="Title" places the flag
+under a titled --help section. Same title reuses one section (do not set both
+kwargs on one Argument). View mixins use option_group="Output options".
+
+Argument(..., exclusive_group="key") maps to add_mutually_exclusive_group
+(at most one member; required=False). May combine with a help-group kwarg.
+
+Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 
 ==============================================================================
 NOT SHIPPED (do not invent APIs)
@@ -316,7 +322,6 @@ NOT SHIPPED (do not invent APIs)
 
 - Opt / Arg split helpers
 - Automatic env-var → option mapping (beyond CLAK_* and XDG_*)
-- Mutually exclusive argument groups
 - Intermixed optional/positional helpers
 - Decorator-first Click/Typer style primary API
 - from clak import ListView  (use clak.views or mixins)

@@ -66,12 +66,12 @@ def test_argument_destination():
     assert arg._get_best_dest() == "test"
 
 
-def test_argument_group_reuses_same_title():
-    """Same group title reuses one argparse argument group."""
+def test_option_group_reuses_same_title():
+    """Same option_group title reuses one argparse argument group."""
 
     class App(Parser):
-        a = Argument("--alpha", group="Custom", help="A")
-        b = Argument("--beta", group="Custom", help="B")
+        a = Argument("--alpha", option_group="Custom", help="A")
+        b = Argument("--beta", option_group="Custom", help="B")
         c = Argument("--gamma", help="C")
 
         def cli_run(self, **_):
@@ -85,26 +85,130 @@ def test_argument_group_reuses_same_title():
     assert "--alpha" in help_text
     assert "--beta" in help_text
     assert "--gamma" in help_text
-    # Grouped flags appear under the Custom section
     custom_idx = help_text.index("Custom:")
     assert help_text.index("--alpha", custom_idx) > custom_idx
     assert help_text.index("--beta", custom_idx) > custom_idx
 
 
-def test_argument_group_kwarg_not_passed_to_argparse():
-    """group= is Clak-only and must not reach add_argument."""
+def test_argument_group_and_option_group_share_title_cache():
+    """argument_group and option_group with the same title reuse one section."""
 
     class App(Parser):
-        output_format = Argument("--format", group="Output options", help="Format")
+        path = Argument("path", argument_group="Shared", help="Path")
+        flag = Argument("--flag", option_group="Shared", help="Flag")
 
         def cli_run(self, **_):
             return None
 
-    # Would raise TypeError if group leaked into argparse.add_argument
+    app = App(parse=False, add_help=True)
+    groups = getattr(app.parser, "_clak_argument_groups", {})
+    assert list(groups) == ["Shared"]
+    assert app.parser.format_help().count("Shared:") == 1
+
+
+def test_argument_group_and_option_group_both_set_raises():
+    """Setting both help-group kwargs on one Argument is an error."""
+
+    class App(Parser):
+        bad = Argument(
+            "--bad",
+            argument_group="A",
+            option_group="B",
+            help="Nope",
+        )
+
+        def cli_run(self, **_):
+            return None
+
+    with pytest.raises(
+        ValueError, match="cannot set both argument_group and option_group"
+    ):
+        App(parse=False, add_help=True)
+
+
+def test_option_group_kwarg_not_passed_to_argparse():
+    """option_group= is Clak-only and must not reach add_argument."""
+
+    class App(Parser):
+        output_format = Argument(
+            "--format", option_group="Output options", help="Format"
+        )
+
+        def cli_run(self, **_):
+            return None
+
+    # Would raise TypeError if option_group leaked into argparse.add_argument
     app = App(parse=False, add_help=True)
     assert "Output options:" in app.parser.format_help()
     args = app.parse_args(["--format", "x"])
     assert args.output_format == "x"
+
+
+def test_exclusive_group_rejects_both_flags():
+    """Same exclusive_group key enforces argparse mutual exclusion."""
+
+    class App(Parser):
+        json = Argument("--json", action="store_true", exclusive_group="format")
+        yaml = Argument("--yaml", action="store_true", exclusive_group="format")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    args = app.parse_args(["--json"])
+    assert args.json is True
+    assert args.yaml is False
+
+    with pytest.raises(argparse.ArgumentError, match="not allowed with argument"):
+        app.parse_args(["--json", "--yaml"])
+
+
+def test_exclusive_group_kwarg_not_passed_to_argparse():
+    """exclusive_group= is Clak-only and must not reach add_argument."""
+
+    class App(Parser):
+        quiet = Argument("--quiet", action="store_true", exclusive_group="v")
+        verbose = Argument("--verbose", action="store_true", exclusive_group="v")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    args = app.parse_args(["--quiet"])
+    assert args.quiet is True
+
+
+def test_exclusive_group_nests_under_option_group():
+    """exclusive_group under option_group still appears in the help section."""
+
+    class App(Parser):
+        quiet = Argument(
+            "--quiet",
+            action="store_true",
+            option_group="Output options",
+            exclusive_group="verbosity",
+        )
+        verbose = Argument(
+            "--verbose",
+            action="store_true",
+            option_group="Output options",
+            exclusive_group="verbosity",
+        )
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    groups = getattr(app.parser, "_clak_argument_groups", {})
+    assert list(groups) == ["Output options"]
+    help_text = app.parser.format_help()
+    assert "Output options:" in help_text
+    output_idx = help_text.index("Output options:")
+    assert help_text.index("--quiet", output_idx) > output_idx
+    assert help_text.index("--verbose", output_idx) > output_idx
+
+    with pytest.raises(argparse.ArgumentError, match="not allowed with argument"):
+        app.parse_args(["--quiet", "--verbose"])
 
 
 @patch("sys.argv", ["prog", "--help"])

@@ -95,8 +95,8 @@ class App(ListViewMixin, Parser):
 ```
 
 View flags appear under an **Output options** group in `--help` (same
-`Argument(..., group=...)` API as any other flag; see
-[Named help groups](advanced.md#named-help-groups)).
+`Argument(..., option_group=...)` API as any other flag; see
+[Named help groups](advanced.md#named-help-groups-and-exclusive-groups)).
 
 ## Output format and sorting (Cliff-style)
 

@@ -34,11 +34,21 @@ class AppMain(Parser):
 For structured `-v` / `-vv` logging tiers, prefer `LoggingOptMixin`
 (see [Logging](logging.md)) instead of a hand-rolled boolean flag.
 
-### 3. Named help groups
+### 3. Named help groups and exclusive groups
 
-Pass `group=` on `Argument` to put flags under a titled section in `--help`.
-The same title reuses one argparse argument group. This is Clak-only (stripped
-before `add_argument`). Mutually exclusive groups are not supported yet.
+Clak-only kwargs on `Argument` (stripped before `add_argument`):
+
+| Key | Role |
+| --- | --- |
+| `option_group="Title"` | Help section (typical for options) |
+| `argument_group="Title"` | Help section (typical for positionals) |
+| `exclusive_group="key"` | At most one member may be set (argparse mutual exclusion) |
+
+`option_group` and `argument_group` are the same feature under two names: the same
+title string reuses one `add_argument_group`. Do not set both on one Argument.
+`exclusive_group` enforces XOR at parse time (`required=False`); it does not
+create a titled help section by itself, but may nest under a help group when
+both are set.
 
 ```python
 from clak import Argument, Parser
@@ -48,14 +58,16 @@ class App(Parser):
     format = Argument(
         "--format",
         choices=["view", "json"],
-        group="Output options",
+        option_group="Output options",
         help="Output format",
     )
     columns = Argument(
         "--columns",
-        group="Output options",
+        option_group="Output options",
         help="Columns to show",
     )
+    json = Argument("--json", action="store_true", exclusive_group="fmt")
+    yaml = Argument("--yaml", action="store_true", exclusive_group="fmt")
 
     def cli_run(self, **_):
         return None
@@ -63,7 +75,7 @@ class App(Parser):
 
 `App(parse=False, add_help=True).parser.format_help()` shows `--catalog` under
 the default options section and `--format` / `--columns` under
-**Output options**.
+**Output options**. Passing both `--json` and `--yaml` is a parse error.
 
 ### 4. Custom Help Messages
 

@@ -341,7 +341,7 @@ class TableViewOptMixin(ClakViewOptMixin):
         "--width",
         choices=sorted(WIDTH_MODES),
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_WIDTH_HELP,
     )
 
@@ -403,41 +403,41 @@ class TableViewOptMixin(ClakViewOptMixin):
     columns = Argument(
         "--columns",
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_COLUMNS_HELP,
     )
     add_index = Argument(
         "--add-index",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_ADD_INDEX_HELP,
     )
     format = Argument(
         "--format",
         choices=["view", "yaml", "json", "csv"],
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_FORMAT_HELP,
     )
     sort_columns = Argument(
         "--sort-columns",
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_SORT_COLUMNS_HELP,
     )
     sort_mode = Argument(
         "--sort-mode",
         choices=["asc", "desc"],
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_SORT_MODE_HELP,
     )
     wrap = Argument(
         "--wrap",
         default=None,
         metavar="MODE|COL,...",
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_WRAP_HELP,
     )
 
@@ -476,7 +476,7 @@ class ListViewMixin(TableViewOptMixin):
         "--expand-keys",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_EXPAND_KEYS_HELP,
     )
 
@@ -496,7 +496,7 @@ class TextLayoutOptMixin(ClakViewOptMixin):
         type=parse_line_length,
         default=None,
         metavar="N|terminal|nowrap",
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_LINE_LENGTH_HELP,
     )
 
@@ -525,7 +525,7 @@ class TextViewOptMixin(TextLayoutOptMixin):
         "--format",
         choices=sorted(TEXT_FORMATS),
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_TEXT_FORMAT_HELP,
     )
 
@@ -597,7 +597,7 @@ class DataViewMixin(_ViewMixinBase):
         "--format",
         choices=sorted(DATA_FORMATS),
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_DATA_FORMAT_HELP,
     )
 
@@ -605,7 +605,7 @@ class DataViewMixin(_ViewMixinBase):
         "--compact",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_COMPACT_HELP,
     )
 
@@ -613,7 +613,7 @@ class DataViewMixin(_ViewMixinBase):
         "--color",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_COLOR_HELP,
     )
 
@@ -621,7 +621,7 @@ class DataViewMixin(_ViewMixinBase):
         "--anchors",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_ANCHORS_HELP,
     )
 
@@ -660,13 +660,13 @@ class CompositeViewMixin(TextLayoutOptMixin, TableViewOptMixin):
         "--expand-keys",
         action=argparse.BooleanOptionalAction,
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_EXPAND_KEYS_HELP,
     )
     format_scope = Argument(
         "--format-scope",
         choices=sorted(FORMAT_SCOPES),
         default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
+        option_group=_OUTPUT_OPTIONS_GROUP,
         help=_FORMAT_SCOPE_HELP,
     )

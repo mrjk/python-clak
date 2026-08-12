@@ -26,9 +26,11 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 ### Argparse coverage
 
-- [x] Named argument groups via `Argument(..., group="Title")`
+- [x] Named help groups via `Argument(..., option_group="Title")` /
+  `argument_group="Title"`
   ([argparse groups](https://docs.python.org/3/library/argparse.html#argument-groups))
-- [ ] Mutually exclusive groups
+  (breaking rename from the old `group=` kwarg)
+- [x] Exclusive groups via `Argument(..., exclusive_group="key")`
   ([mutual exclusion](https://docs.python.org/3/library/argparse.html#mutual-exclusion))
 - [ ] Intermixed optional/positional parsing
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments))

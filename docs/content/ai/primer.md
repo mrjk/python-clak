@@ -119,8 +119,9 @@ Completion: generates argcomplete shellcode; runtime autocomplete during parse i
   Prefer mixins: from clak import ListViewMixin
 - Calling .dispatch() after App() unless you used parse=False
 - Hand-rolled argparse.ArgumentParser alongside Clak for the same CLI
-- Claiming mutually exclusive groups / intermixed args are built-in helpers
-  (planned, not shipped). Named help groups are shipped: Argument(..., group="Title")
+- Using Argument(..., group="Title") (removed; use option_group= /
+  argument_group=). Exclusive XOR: exclusive_group="key" (shipped).
+  Intermixed args remain planned, not shipped.
 
 ## When this file is not enough
 

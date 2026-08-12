@@ -155,9 +155,13 @@ class Argument(ArgParseItem):
     :meth:`argparse.ArgumentParser.add_argument`. Clak-only kwargs (stripped
     before argparse):
 
-    - ``group``: Optional title for a help section
-      (``parser.add_argument_group``). Arguments that share the same title
-      reuse one group. Mutually exclusive groups are not supported yet.
+    - ``argument_group`` / ``option_group``: Optional title for a help section
+      (``parser.add_argument_group``). Same title reuses one section; pick the
+      name that matches what you are grouping. Do not set both on one Argument.
+    - ``exclusive_group``: Shared key for argparse mutual exclusion
+      (``add_mutually_exclusive_group``). Same key reuses one XOR set
+      (``required=False``). May nest under a help section when a help-group
+      kwarg is also set.
     """
 
     def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
@@ -178,7 +182,21 @@ class Argument(ArgParseItem):
                 f"Args must be a tuple for {self.__class__.__name__}: {type(args)}"
             )
 
-        group_title = kwargs.pop("group", None)
+        argument_group_title = kwargs.pop("argument_group", None)
+        option_group_title = kwargs.pop("option_group", None)
+        exclusive_key = kwargs.pop("exclusive_group", None)
+
+        if argument_group_title is not None and option_group_title is not None:
+            raise ValueError(
+                f"Argument {key!r} cannot set both argument_group and "
+                f"option_group (got {argument_group_title!r} and "
+                f"{option_group_title!r})"
+            )
+        help_group_title = (
+            argument_group_title
+            if argument_group_title is not None
+            else option_group_title
+        )
 
         # Create argument
         logger.debug(
@@ -189,14 +207,28 @@ class Argument(ArgParseItem):
         )
 
         target = parser
-        if group_title is not None:
+        if help_group_title is not None:
             groups = getattr(parser, "_clak_argument_groups", None)
             if groups is None:
                 groups = {}
                 setattr(parser, "_clak_argument_groups", groups)
-            if group_title not in groups:
-                groups[group_title] = parser.add_argument_group(group_title)
-            target = groups[group_title]
+            if help_group_title not in groups:
+                groups[help_group_title] = parser.add_argument_group(help_group_title)
+            target = groups[help_group_title]
+
+        if exclusive_key is not None:
+            exclusive_groups = getattr(parser, "_clak_exclusive_groups", None)
+            if exclusive_groups is None:
+                exclusive_groups = {}
+                setattr(parser, "_clak_exclusive_groups", exclusive_groups)
+            # Nest under the help section when present; key by (parent id, name)
+            # so the same exclusive name can exist under different help titles.
+            exclusive_cache_key = (id(target), exclusive_key)
+            if exclusive_cache_key not in exclusive_groups:
+                exclusive_groups[exclusive_cache_key] = (
+                    target.add_mutually_exclusive_group()
+                )
+            target = exclusive_groups[exclusive_cache_key]
 
         target.add_argument(*args, **kwargs)
 
