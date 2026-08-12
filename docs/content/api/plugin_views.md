@@ -39,3 +39,4 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - resolve_view_width
         - OUTPUT_FORMATS
         - WIDTH_MODES
+        - WRAP_MODES

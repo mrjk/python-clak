@@ -378,3 +378,54 @@ def test_table_width_no_wrap_when_not_tty():
     lines = [line for line in output.splitlines() if line.startswith("+")]
     assert lines
     assert len(lines[0]) > 40
+
+
+def test_table_wrap_last_keeps_left_columns():
+    data = [
+        {
+            "name": "ada",
+            "role": "admin",
+            "note": "word " * 20,
+        }
+    ]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap="last",
+            term_width=50,
+            stdout_tty=True,
+        )
+    )
+    header = next(line for line in output.splitlines() if "name" in line)
+    assert "name" in header
+    assert "role" in header
+    # Left headers should not be truncated like "na" / "ro"
+    assert "| name " in header or "| name |" in header
+    assert "| role " in header or "| role |" in header
+    assert max(len(line) for line in output.splitlines()) <= 51
+
+
+def test_table_wrap_all_may_shrink_left_columns():
+    data = [
+        {
+            "name": "ada",
+            "role": "admin",
+            "note": "word " * 20,
+        }
+    ]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap="all",
+            term_width=50,
+            stdout_tty=True,
+        )
+    )
+    header = next(line for line in output.splitlines() if "n" in line.lower())
+    # PrettyTable max_table_width may shrink left headers
+    assert max(len(line) for line in output.splitlines()) <= 51
+    assert "note" in header or "no" in header

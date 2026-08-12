@@ -181,8 +181,10 @@ PprintViewMixin — pprint; --width
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
   --format view|yaml|json|csv, --sort-columns, --sort-mode,
-  --width min|auto|terminal (default terminal; no wrap when non-TTY)
+  --width min|auto|terminal (default terminal; no wrap when non-TTY),
+  --wrap last|all (tables only; default last; only when fitting to terminal)
 Meta.view_width sets the default width mode.
+Meta.view_wrap sets the default table wrap mode.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
 
 Without a mixin / returned ClakView / Meta.cli_view, return values are not printed.

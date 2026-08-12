@@ -75,6 +75,8 @@ logger = logging.getLogger(__name__)
 OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
 WIDTH_MODES = frozenset({"min", "auto", "terminal"})
 DEFAULT_WIDTH_MODE = "terminal"
+WRAP_MODES = frozenset({"last", "all"})
+DEFAULT_WRAP_MODE = "last"
 
 
 class ClakView:
@@ -371,6 +373,7 @@ class FeatureFullViewier(ClakView):
     settings_default = {
         "columns": None,
         "width": DEFAULT_WIDTH_MODE,
+        "wrap": DEFAULT_WRAP_MODE,
     }
 
 

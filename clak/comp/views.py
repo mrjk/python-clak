@@ -2,9 +2,9 @@
 
 Mix in one of:
 - ShowViewMixin → ShowView + --columns / --add-index / --format /
-  --sort-columns / --width
+  --sort-columns / --width / --wrap
 - ListViewMixin → ListView + --columns / --add-index / --expand-keys /
-  --format / --sort-columns / --width
+  --format / --sort-columns / --width / --wrap
 - PprintViewMixin → PprintView + --width
 
 Example:
@@ -16,6 +16,7 @@ Example:
             view_column_names = ("name", "role", "city")
             view_sort_columns = 1
             view_width = "terminal"
+            view_wrap = "last"
 
         def cli_run(self, **_):
             return [{"name": "a"}, {"name": "b"}]
@@ -34,6 +35,7 @@ from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.views import (
     WIDTH_MODES,
+    WRAP_MODES,
     ListView,
     PprintView,
     ShowView,
@@ -52,6 +54,7 @@ _VIEW_CLI_OPTION_DESTS = frozenset(
         "add_index",
         "expand_keys",
         "width",
+        "wrap",
         "format",
         "sort_columns",
         "sort_mode",
@@ -73,6 +76,11 @@ _WIDTH_HELP = (
     "View width mode: min (content-sized), auto (wrap if wider than "
     "terminal), terminal (always terminal width). No wrap when stdout "
     "is not a TTY."
+)
+_WRAP_HELP = (
+    "Table column wrap when fitting to terminal: last (rightmost "
+    "column only), all (any column). Ignored when width is min or "
+    "stdout is not a TTY."
 )
 
 
@@ -123,12 +131,24 @@ class _ViewMixinBase(PluginHelpers):
     )
     meta__view_width = None
 
+    meta__config__view_wrap = MetaSetting(
+        help="Default table wrap mode: last or all",
+    )
+    meta__view_wrap = None
+
     width = Argument(
         "--width",
         choices=sorted(WIDTH_MODES),
         default=None,
         group=_OUTPUT_OPTIONS_GROUP,
         help=_WIDTH_HELP,
+    )
+    wrap = Argument(
+        "--wrap",
+        choices=sorted(WRAP_MODES),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_WRAP_HELP,
     )
 
     def _enabled_view_options(self) -> Set[str]:
@@ -198,10 +218,8 @@ class _ViewMixinBase(PluginHelpers):
             return args.get(key, default)
         return getattr(args, key, default)
 
-    # pylint: disable-next=too-many-branches
-    def collect_view_settings(self, args: Any) -> dict:
-        """Build view render kwargs from parsed CLI args (only set flags)."""
-        enabled = self._enabled_view_options()
+    def _collect_enabled_cli_settings(self, args: Any, enabled: Set[str]) -> dict:
+        """Collect set CLI view flags into a settings dict."""
         settings: dict = {}
 
         if "columns" in enabled:
@@ -209,64 +227,42 @@ class _ViewMixinBase(PluginHelpers):
             if raw is not None:
                 settings["columns"] = parse_columns(raw)
 
-        if "add_index" in enabled:
-            value = self._args_get(args, "add_index", None)
+        for key in ("add_index", "expand_keys", "width", "wrap", "format", "sort_mode"):
+            if key not in enabled:
+                continue
+            value = self._args_get(args, key, None)
             if value is not None:
-                settings["add_index"] = value
-
-        if "expand_keys" in enabled:
-            value = self._args_get(args, "expand_keys", None)
-            if value is not None:
-                settings["expand_keys"] = value
-
-        if "width" in enabled:
-            value = self._args_get(args, "width", None)
-            if value is not None:
-                settings["width"] = value
-
-        if "format" in enabled:
-            value = self._args_get(args, "format", None)
-            if value is not None:
-                settings["format"] = value
+                settings[key] = value
 
         if "sort_columns" in enabled:
             raw = self._args_get(args, "sort_columns", None)
             if raw is not None:
                 settings["sort_columns"] = parse_sort_columns(raw)
 
-        if "sort_mode" in enabled:
-            value = self._args_get(args, "sort_mode", None)
-            if value is not None:
-                settings["sort_mode"] = value
+        return settings
 
-        if "columns" not in settings:
-            meta_columns = self.query_cfg_parents(
-                "view_columns", default=None, include_self=True
-            )
-            if meta_columns is not None:
-                settings["columns"] = normalize_columns(meta_columns)
+    def _apply_meta_view_defaults(self, settings: dict) -> None:
+        """Fill unset settings from Meta.view_* defaults."""
+        meta_defaults = (
+            ("columns", "view_columns", normalize_columns),
+            ("sort_columns", "view_sort_columns", normalize_sort_columns),
+            ("sort_mode", "view_sort_mode", None),
+            ("width", "view_width", None),
+            ("wrap", "view_wrap", None),
+        )
+        for key, meta_name, normalizer in meta_defaults:
+            if key in settings:
+                continue
+            value = self.query_cfg_parents(meta_name, default=None, include_self=True)
+            if value is None:
+                continue
+            settings[key] = normalizer(value) if normalizer else value
 
-        if "sort_columns" not in settings:
-            meta_sort = self.query_cfg_parents(
-                "view_sort_columns", default=None, include_self=True
-            )
-            if meta_sort is not None:
-                settings["sort_columns"] = normalize_sort_columns(meta_sort)
-
-        if "sort_mode" not in settings:
-            meta_mode = self.query_cfg_parents(
-                "view_sort_mode", default=None, include_self=True
-            )
-            if meta_mode is not None:
-                settings["sort_mode"] = meta_mode
-
-        if "width" not in settings:
-            meta_width = self.query_cfg_parents(
-                "view_width", default=None, include_self=True
-            )
-            if meta_width is not None:
-                settings["width"] = meta_width
-
+    def collect_view_settings(self, args: Any) -> dict:
+        """Build view render kwargs from parsed CLI args (only set flags)."""
+        enabled = self._enabled_view_options()
+        settings = self._collect_enabled_cli_settings(args, enabled)
+        self._apply_meta_view_defaults(settings)
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
@@ -286,12 +282,21 @@ class ShowViewMixin(_ViewMixinBase):
     """Auto-render command results with :class:`~clak.views.ShowView`.
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
-    ``--format``, ``--sort-columns``, ``--sort-mode``, and ``--width``.
+    ``--format``, ``--sort-columns``, ``--sort-mode``, ``--width``,
+    and ``--wrap``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
     _view_cli_option_names = frozenset(
-        {"columns", "add_index", "format", "sort_columns", "sort_mode", "width"}
+        {
+            "columns",
+            "add_index",
+            "format",
+            "sort_columns",
+            "sort_mode",
+            "width",
+            "wrap",
+        }
     )
     meta__cli_view = ShowView
 
@@ -335,7 +340,7 @@ class ListViewMixin(_ViewMixinBase):
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
     ``--expand-keys`` / ``--no-expand-keys``, ``--format``,
-    ``--sort-columns``, ``--sort-mode``, and ``--width``.
+    ``--sort-columns``, ``--sort-mode``, ``--width``, and ``--wrap``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
@@ -348,6 +353,7 @@ class ListViewMixin(_ViewMixinBase):
             "sort_columns",
             "sort_mode",
             "width",
+            "wrap",
         }
     )
     meta__cli_view = ListView

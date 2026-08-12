@@ -15,6 +15,7 @@ Classes:
 import csv
 import io
 import json
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
@@ -204,21 +205,85 @@ def format_structured(rows, headers, fmt):
     raise ValueError(f"Unsupported format {fmt!r}")
 
 
-def _apply_prettytable_width(table, width="terminal", term_width=None, stdout_tty=None):
+def _apply_prettytable_width(
+    table,
+    width="terminal",
+    term_width=None,
+    stdout_tty=None,
+    wrap="last",
+):
     """Apply min/auto/terminal width modes to a PrettyTable instance."""
     # Late import avoids circular dependency with clak.views
-    from clak.views import resolve_view_width  # pylint: disable=import-outside-toplevel
+    from clak.views import (  # pylint: disable=import-outside-toplevel
+        DEFAULT_WRAP_MODE,
+        WRAP_MODES,
+        resolve_view_width,
+    )
 
     mode, columns = resolve_view_width(
         width=width, term_width=term_width, stdout_tty=stdout_tty
     )
     if mode == "min" or columns is None:
         return
-    if mode == "auto":
-        table.max_table_width = columns
-    elif mode == "terminal":
-        table.min_table_width = columns
-        table.max_table_width = columns
+
+    wrap_mode = wrap if wrap is not None else DEFAULT_WRAP_MODE
+    if not isinstance(wrap_mode, str):
+        raise TypeError(f"wrap must be a string, got {type(wrap_mode).__name__}")
+    wrap_mode = wrap_mode.lower()
+    if wrap_mode not in WRAP_MODES:
+        raise ValueError(f"wrap must be one of {sorted(WRAP_MODES)}, got {wrap_mode!r}")
+
+    if wrap_mode == "all":
+        if mode == "auto":
+            table.max_table_width = columns
+        elif mode == "terminal":
+            table.min_table_width = columns
+            table.max_table_width = columns
+        return
+
+    _apply_last_column_wrap(table, mode=mode, term_width=columns)
+
+
+def _strip_ansi(text):
+    """Remove ANSI color codes for width measurements."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
+def _apply_last_column_wrap(table, mode, term_width):
+    """Fit table by wrapping only the rightmost column."""
+    if not table.field_names:
+        return
+
+    measured = table.get_string()
+    natural_widths = list(table._widths)  # pylint: disable=protected-access
+    if not natural_widths:
+        return
+
+    plain = _strip_ansi(measured)
+    border_line = plain.splitlines()[0] if plain else ""
+    natural_border = len(border_line)
+    last_width = natural_widths[-1]
+    last_field = table.field_names[-1]
+
+    if mode == "auto" and natural_border <= term_width:
+        return
+
+    budget = max(1, term_width - (natural_border - last_width))
+
+    min_width = {}
+    max_width = {}
+    for field, col_width in zip(table.field_names[:-1], natural_widths[:-1]):
+        min_width[field] = col_width
+        max_width[field] = col_width
+
+    max_width[last_field] = budget
+    if mode == "terminal":
+        min_width[last_field] = budget
+        table.min_table_width = term_width
+        table.max_table_width = term_width
+
+    table.min_width = min_width
+    table.max_width = max_width
 
 
 class _TableFormatter(ABC):
@@ -230,6 +295,7 @@ class _TableFormatter(ABC):
         "sort_columns": None,
         "sort_mode": "asc",
         "width": "terminal",
+        "wrap": "last",
     }
 
     def __init__(self, data=None, columns=None, **view_options):
@@ -265,6 +331,7 @@ class _TableFormatter(ABC):
         sort_columns = _view_options.pop("sort_columns", None)
         sort_mode = _view_options.pop("sort_mode", "asc") or "asc"
         width = _view_options.pop("width", "terminal")
+        wrap = _view_options.pop("wrap", "last")
         term_width = _view_options.pop("term_width", None)
         stdout_tty = _view_options.pop("stdout_tty", None)
 
@@ -293,7 +360,11 @@ class _TableFormatter(ABC):
             table.add_row(line)
 
         _apply_prettytable_width(
-            table, width=width, term_width=term_width, stdout_tty=stdout_tty
+            table,
+            width=width,
+            term_width=term_width,
+            stdout_tty=stdout_tty,
+            wrap=wrap,
         )
 
         # Report output
@@ -339,6 +410,7 @@ class TableShowFormatter(_TableFormatter):
         "sort_columns": None,
         "sort_mode": "asc",
         "width": "terminal",
+        "wrap": "last",
     }
 
     def process_table(self, data, columns=None, add_index=True, remove_tabs=True):
@@ -397,6 +469,7 @@ class TableListFormatter(_TableFormatter):
         "sort_columns": None,
         "sort_mode": "asc",
         "width": "terminal",
+        "wrap": "last",
     }
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments,too-many-statements

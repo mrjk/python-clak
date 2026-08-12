@@ -10,8 +10,8 @@ matching CLI flags:
 
 | Mixin | View | Typical data | CLI options |
 | --- | --- | --- | --- |
-| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width` |
-| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width` |
+| `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
+| `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `PprintViewMixin` | `PprintView` | any payload | `--width` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
@@ -80,6 +80,7 @@ View flags appear under an **Output options** group in `--help` (same
 | `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
 | `--width` | `min`, `auto`, `terminal` | `terminal` | View width mode (see below) |
+| `--wrap` | `last`, `all` | `last` | Table column wrap when fitting (see below) |
 
 ### View width (`--width`)
 
@@ -101,6 +102,24 @@ class App(ListViewMixin, Parser):
 ```
 
 CLI `--width` overrides `Meta.view_width`.
+
+### Table wrap (`--wrap`)
+
+Table backends only (`ShowView` / `ListView`). Ignored by pprint, and ignored
+when width does not fit to the terminal (`min`, or non-TTY):
+
+| Mode | Effect |
+| --- | --- |
+| `last` | Keep left columns content-sized; only the rightmost column wraps (default) |
+| `all` | Allow any column to shrink/wrap (PrettyTable table-width redistribution) |
+
+```python
+class App(ListViewMixin, Parser):
+    class Meta:
+        view_wrap = "all"  # or "last"
+```
+
+CLI `--wrap` overrides `Meta.view_wrap`.
 
 Example: `--sort-columns=-1,-3,1` sorts by last column, then third-from-last, then first
 (use `=` when the value starts with `-`, so argparse does not treat it as a flag).
@@ -185,7 +204,7 @@ Use `Meta.view_cli_options`:
 | `("columns", "add_index")` | Expose a subset (`list` / `tuple` / `set` also work) |
 
 Option names are destinations: `columns`, `add_index`, `expand_keys`, `width`,
-`format`, `sort_columns`, `sort_mode`.
+`wrap`, `format`, `sort_columns`, `sort_mode`.
 Unknown names raise `ValueError`.
 
 ```python

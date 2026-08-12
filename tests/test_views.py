@@ -247,6 +247,39 @@ def test_list_view_mixin_meta_view_width():
     assert getattr(app, "_clak_view_settings", {}).get("width") == "min"
 
 
+def test_list_view_mixin_wrap_cli_option():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    assert "--wrap" in _option_flags(app)
+    app.dispatch(["--wrap", "all"])
+    assert getattr(app, "_clak_view_settings", {}).get("wrap") == "all"
+
+
+def test_list_view_mixin_meta_view_wrap():
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_wrap = "all"
+
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    app.dispatch([])
+    assert getattr(app, "_clak_view_settings", {}).get("wrap") == "all"
+
+
+def test_pprint_view_mixin_has_no_wrap_flag():
+    class App(PprintViewMixin, Parser):
+        def cli_run(self, **_):
+            return {"name": "ada"}
+
+    app = App(parse=False, add_help=False)
+    assert "--wrap" not in _option_flags(app)
+
+
 def test_view_cli_options_false_still_auto_renders(capsys):
     class App(ListViewMixin, Parser):
         class Meta:
