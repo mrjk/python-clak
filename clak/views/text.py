@@ -92,9 +92,7 @@ def render_markdown_text(
     return capture.get().rstrip("\n")
 
 
-def render_rst_text(
-    text: str, line_length=None, term_width=None, stdout_tty=None, **_
-):
+def render_rst_text(text: str, line_length=None, term_width=None, stdout_tty=None, **_):
     """Render reStructuredText source to plain text via docutils."""
     docutils_core = require_docutils()
     wrap, budget = resolve_line_length(

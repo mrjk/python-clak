@@ -26,6 +26,7 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - ShowViewMixin
         - ListViewMixin
         - PprintViewMixin
+        - DataViewMixin
         - RawViewMixin
         - MarkdownViewMixin
         - RstViewMixin
@@ -38,6 +39,7 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - ShowView
         - ListView
         - PprintView
+        - DataView
         - RawView
         - MarkdownView
         - RstView
@@ -53,12 +55,15 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - normalize_wrap_min
         - normalize_sections
         - format_show_payload
+        - format_data_payload
         - resolve_view_width
         - resolve_line_length
+        - resolve_data_format
         - parse_line_length
         - normalize_width_mode
         - OUTPUT_FORMATS
         - TEXT_FORMATS
+        - DATA_FORMATS
         - FORMAT_SCOPES
         - WIDTH_MODES
         - WRAP_MODES

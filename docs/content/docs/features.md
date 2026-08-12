@@ -41,13 +41,16 @@ Mix in only what you need:
 
 - Turn return values into tables or pretty-prints.
 - Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`,
-  `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`, `CompositeViewMixin`.
+  `DataViewMixin`, `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`,
+  `CompositeViewMixin`.
 - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
   `--sort-mode`, `--width content|fit|terminal`. Text uses `--line-length`
   (`N`/`terminal`/`nowrap`, default 120). Markdown/rst also use
-  `--format view|raw`. Composite uses `--format-scope first|all` for
-  multi-section machine export.
-- Markdown render: `mrjk.clak[markdown]`; RST render: `mrjk.clak[rst]`.
+  `--format view|raw`. Data uses `--format json|yaml` (auto yaml/json),
+  `--compact`, `--color`, `--anchors`. Composite uses `--format-scope
+  first|all` for multi-section machine export.
+- Markdown/data color: `mrjk.clak[markdown]`; YAML: `mrjk.clak[config]`;
+  RST: `mrjk.clak[rst]`.
 - Guide: [Views](views.md).
 
 ### Error handling

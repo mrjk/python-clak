@@ -24,7 +24,7 @@ from clak import (
     Parser, Argument, Command,          # core
     ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
     LoggingOptMixin,
-    ShowViewMixin, ListViewMixin, PprintViewMixin,
+    ShowViewMixin, ListViewMixin, PprintViewMixin, DataViewMixin,
     RawViewMixin, MarkdownViewMixin, RstViewMixin, CompositeViewMixin,
     XDGConfigMixin,
     CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin,
@@ -34,7 +34,7 @@ from clak.exception import (
     ClakError, ClakUserError, ClakParseError, ClakExitError,
     ClakAppError, ClakNotImplementedError, ClakBugError,
 )
-from clak.views import ListView, ShowView, PprintView, RawView, MarkdownView, RstView, CompositeView, ClakView  # not re-exported at clak top-level
+from clak.views import ListView, ShowView, PprintView, DataView, RawView, MarkdownView, RstView, CompositeView, ClakView  # not re-exported at clak top-level
 
 # Package layout (implementation): clak.core, clak.runtime, clak.views, clak.comp.
 # Prefer top-level ``from clak import ...``. Old deep paths (clak.parser, clak.nodes,
@@ -182,6 +182,8 @@ class App(ListViewMixin, Parser):
 ShowViewMixin  — one record
 ListViewMixin  — many rows
 PprintViewMixin — pprint; --line-length
+DataViewMixin — JSON/YAML dump; --format json|yaml (auto: yaml if PyYAML else json),
+                --compact/--no-compact, --color/--no-color, --anchors/--no-anchors
 RawViewMixin — plain text; --line-length
 MarkdownViewMixin — markdown text; --format view|raw, --line-length
 RstViewMixin — reStructuredText; --format view|raw, --line-length

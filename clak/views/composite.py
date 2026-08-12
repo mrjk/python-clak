@@ -18,6 +18,7 @@ from clak.views.base import (
     ClakView,
     resolve_view_width,
 )
+from clak.views.data import DataView
 from clak.views.table import (
     FeatureFullViewer,
     ListView,
@@ -55,6 +56,8 @@ def _section_kind(view: ClakView) -> str:
         return "raw"
     if isinstance(view, PprintView):
         return "pprint"
+    if isinstance(view, DataView):
+        return "data"
     return "view"
 
 
@@ -64,8 +67,7 @@ def _as_section_meta(raw) -> dict:
         return {}
     if not isinstance(raw, Mapping):
         raise TypeError(
-            "CompositeView section meta must be a mapping, "
-            f"got {type(raw).__name__}"
+            "CompositeView section meta must be a mapping, " f"got {type(raw).__name__}"
         )
     meta = {}
     for key in ("title", "description"):

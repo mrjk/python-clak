@@ -10,7 +10,9 @@ Option layers (mirror ClakView hierarchy):
 5. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
    plus ``line_length``
 6. PprintViewMixin / RawViewMixin — ``line_length`` only
-7. CompositeViewMixin — table opts + ``expand_keys`` + ``format_scope`` +
+7. DataViewMixin — structured dump: ``format``, ``compact``, ``color``,
+   ``anchors``
+8. CompositeViewMixin — table opts + ``expand_keys`` + ``format_scope`` +
    ``line_length`` (return a ``CompositeView``; no auto ``cli_view``)
 
 Example:
@@ -41,9 +43,11 @@ from typing import Any, Mapping, Set
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.views import (
+    DATA_FORMATS,
     FORMAT_SCOPES,
     TEXT_FORMATS,
     WIDTH_MODES,
+    DataView,
     ListView,
     MarkdownView,
     PprintView,
@@ -78,6 +82,7 @@ _LAYER_TABLE_DESTS = frozenset(
 _LAYER_LIST_DESTS = frozenset({"expand_keys"})
 _LAYER_TEXT_LAYOUT_DESTS = frozenset({"line_length"})
 _LAYER_TEXT_DESTS = frozenset({"format"})
+_LAYER_DATA_DESTS = frozenset({"format", "compact", "color", "anchors"})
 _LAYER_COMPOSITE_DESTS = frozenset({"format_scope"})
 
 # All known view CLI dests (used to filter Argument collection)
@@ -86,6 +91,7 @@ _VIEW_CLI_OPTION_DESTS = (
     | _LAYER_LIST_DESTS
     | _LAYER_TEXT_LAYOUT_DESTS
     | _LAYER_TEXT_DESTS
+    | _LAYER_DATA_DESTS
     | _LAYER_COMPOSITE_DESTS
 )
 
@@ -118,6 +124,17 @@ _LINE_LENGTH_HELP = (
 )
 _FORMAT_HELP = "Output format (default: view table)"
 _TEXT_FORMAT_HELP = "Output format: view (rendered) or raw (source). Default: view"
+_DATA_FORMAT_HELP = (
+    "Output format: json or yaml. Default: yaml when PyYAML is installed, " "else json"
+)
+_COMPACT_HELP = "Compact JSON (single line). Ignored for YAML. Default: off"
+_COLOR_HELP = (
+    "Colorize JSON/YAML with rich when available. Default: on for TTY "
+    "when CLAK_COLORS is enabled"
+)
+_ANCHORS_HELP = (
+    "Allow YAML anchors/aliases for shared references. Ignored for JSON. " "Default: on"
+)
 _SORT_MODE_HELP = "Sort direction (default: asc)"
 _ADD_INDEX_HELP = "Include key/index column in the table"
 _EXPAND_KEYS_HELP = "Expand nested dict items into table columns"
@@ -225,6 +242,9 @@ class _ViewMixinBase(PluginHelpers):
             "format_scope",
             "sort_mode",
             "line_length",
+            "compact",
+            "color",
+            "anchors",
         ):
             if key not in enabled:
                 continue
@@ -259,6 +279,9 @@ class _ViewMixinBase(PluginHelpers):
             ("format_scope", "view_format_scope", None),
             ("add_index", "view_add_index", None),
             ("expand_keys", "view_expand_keys", None),
+            ("compact", "view_compact", None),
+            ("color", "view_color", None),
+            ("anchors", "view_anchors", None),
         )
         for key, meta_name, normalizer in meta_defaults:
             if enabled is not None and key not in enabled:
@@ -536,6 +559,70 @@ class RstViewMixin(TextViewOptMixin):
 
     _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS | _LAYER_TEXT_DESTS
     meta__cli_view = RstView
+
+
+class DataViewMixin(_ViewMixinBase):
+    """Auto-render command results with :class:`~clak.views.DataView`.
+
+    Adds ``--format`` (``json`` / ``yaml``), ``--compact`` / ``--no-compact``,
+    ``--color`` / ``--no-color``, and ``--anchors`` / ``--no-anchors``.
+    Configure exposed flags with ``Meta.view_cli_options``.
+    """
+
+    _view_cli_option_names = _LAYER_DATA_DESTS
+    meta__cli_view = DataView
+
+    meta__config__view_format = MetaSetting(
+        help="Default data format: json, yaml, or unset for auto",
+    )
+    meta__view_format = None
+
+    meta__config__view_compact = MetaSetting(
+        help="Default for --compact / --no-compact (JSON only)",
+    )
+    meta__view_compact = None
+
+    meta__config__view_color = MetaSetting(
+        help="Default for --color / --no-color",
+    )
+    meta__view_color = None
+
+    meta__config__view_anchors = MetaSetting(
+        help="Default for --anchors / --no-anchors (YAML only)",
+    )
+    meta__view_anchors = None
+
+    format = Argument(
+        "--format",
+        choices=sorted(DATA_FORMATS),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_DATA_FORMAT_HELP,
+    )
+
+    compact = Argument(
+        "--compact",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_COMPACT_HELP,
+    )
+
+    color = Argument(
+        "--color",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_COLOR_HELP,
+    )
+
+    anchors = Argument(
+        "--anchors",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_ANCHORS_HELP,
+    )
 
 
 class CompositeViewMixin(TextLayoutOptMixin, TableViewOptMixin):

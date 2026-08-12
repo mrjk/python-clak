@@ -99,7 +99,7 @@ class Meta:
 
 | Need | Use |
 | --- | --- |
-| Tables / json/csv/yaml from return value | ListViewMixin / ShowViewMixin / PprintViewMixin |
+| Tables / json/csv/yaml from return value | ListViewMixin / ShowViewMixin / PprintViewMixin / DataViewMixin |
 | Plain / markdown / rst text | RawViewMixin / MarkdownViewMixin / RstViewMixin |
 | Primary table + extras | CompositeViewMixin + return CompositeView(...) |
 | -v logging + self.logger | LoggingOptMixin |

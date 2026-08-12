@@ -329,7 +329,9 @@ def _pin_column_widths(field_names, natural_widths, widths, wrap_fields):
     return min_width, max_width
 
 
-def _apply_column_wrap(table, mode, term_width, wrap_fields, wrap_min):  # pylint: disable=too-many-locals
+def _apply_column_wrap(
+    table, mode, term_width, wrap_fields, wrap_min
+):  # pylint: disable=too-many-locals
     """Fit table by shrinking wrap columns in order, then dumping leftover."""
     if not table.field_names or not wrap_fields:
         return
@@ -348,9 +350,7 @@ def _apply_column_wrap(table, mode, term_width, wrap_fields, wrap_min):  # pylin
 
     widths = dict(zip(table.field_names, natural_widths))
     min_map = _resolve_wrap_min_map(wrap_min, list(table.field_names))
-    _shrink_wrap_widths(
-        widths, wrap_fields, min_map, natural_border - term_width
-    )
+    _shrink_wrap_widths(widths, wrap_fields, min_map, natural_border - term_width)
     min_width, max_width = _pin_column_widths(
         table.field_names, natural_widths, widths, wrap_fields
     )
@@ -409,7 +409,9 @@ class _TableFormatter(ABC):
             print(out)
         return out
 
-    def table_render_show(self, data, **view_options):  # pylint: disable=too-many-locals
+    def table_render_show(
+        self, data, **view_options
+    ):  # pylint: disable=too-many-locals
         "Create a PrettyTable instance, configure it and print it"
 
         _view_options = dict(self.view_options)
@@ -504,9 +506,7 @@ class TableShowFormatter(_TableFormatter):
         "wrap_min": None,
     }
 
-    def process_table(
-        self, data, columns=None, add_index=True, remove_tabs=True, **_
-    ):
+    def process_table(self, data, columns=None, add_index=True, remove_tabs=True, **_):
         "Restructure data to fit to item view"
 
         choices = None

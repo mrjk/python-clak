@@ -172,8 +172,7 @@ def normalize_wrap(value):
             raise ValueError("wrap column list must not be empty")
         return specs
     raise TypeError(
-        "view_wrap must be a string, int, or sequence, "
-        f"got {type(value).__name__}"
+        "view_wrap must be a string, int, or sequence, " f"got {type(value).__name__}"
     )
 
 
@@ -183,8 +182,7 @@ def normalize_wrap_min(value):
         return None
     if isinstance(value, bool):
         raise TypeError(
-            "wrap_min must be a positive int or mapping, "
-            f"got {type(value).__name__}"
+            "wrap_min must be a positive int or mapping, " f"got {type(value).__name__}"
         )
     if isinstance(value, int):
         if value <= 0:
@@ -205,8 +203,7 @@ def normalize_wrap_min(value):
             out[key] = val
         return out
     raise TypeError(
-        "wrap_min must be a positive int or mapping, "
-        f"got {type(value).__name__}"
+        "wrap_min must be a positive int or mapping, " f"got {type(value).__name__}"
     )
 
 

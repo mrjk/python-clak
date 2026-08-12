@@ -107,9 +107,7 @@ def parse_line_length(value: Any = None):
         raise TypeError("line_length must be an int, 'terminal', or 'nowrap'")
     if isinstance(value, int):
         if value <= 0:
-            raise ValueError(
-                "line_length must be > 0, 'terminal', or 'nowrap' (not 0)"
-            )
+            raise ValueError("line_length must be > 0, 'terminal', or 'nowrap' (not 0)")
         return value
     if isinstance(value, str):
         lowered = value.lower().strip()
@@ -122,9 +120,7 @@ def parse_line_length(value: Any = None):
                 "line_length must be a positive int, 'terminal', or 'nowrap'"
             ) from err
         if parsed <= 0:
-            raise ValueError(
-                "line_length must be > 0, 'terminal', or 'nowrap' (not 0)"
-            )
+            raise ValueError("line_length must be > 0, 'terminal', or 'nowrap' (not 0)")
         return parsed
     raise TypeError(
         "line_length must be an int, 'terminal', or 'nowrap', "
@@ -203,9 +199,7 @@ def resolve_line_length(
     return True, min(term, int(parsed))
 
 
-def pformat_truncated(
-    data, line_length=None, term_width=None, stdout_tty=None, **_
-):
+def pformat_truncated(data, line_length=None, term_width=None, stdout_tty=None, **_):
     """Pretty-print *data*, optionally wrapping to the resolved line length."""
     wrap, budget = resolve_line_length(
         line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,

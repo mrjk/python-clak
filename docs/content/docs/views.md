@@ -15,13 +15,15 @@ names are stable; each option is defined once and inherited.
 | List-only | `--expand-keys` / `--no-expand-keys` | List, Composite |
 | Text layout | `--line-length` (`N`/`terminal`/`nowrap`) | Raw, Pprint, Markdown, Rst, Composite |
 | Text (Markdown + Rst) | `--format` (`view`/`raw`) | Markdown, Rst |
+| Data | `--format` (`json`/`yaml`), `--compact` / `--no-compact`, `--color` / `--no-color`, `--anchors` / `--no-anchors` | Data |
 | Composite | `--format-scope` (`first`/`all`) | Composite |
 
 Matching `Meta.view_*` defaults exist for every option (`view_width`,
 `view_line_length`, `view_format`, `view_format_scope`, `view_columns`,
 `view_sort_columns`, `view_sort_mode`, `view_wrap`, `view_wrap_min`,
-`view_add_index`, `view_expand_keys`, plus `view_column_names` for help text
-and `view_cli_options` to filter flags).
+`view_add_index`, `view_expand_keys`, `view_compact`, `view_color`,
+`view_anchors`, plus `view_column_names` for help text and
+`view_cli_options` to filter flags).
 
 ## Pick a mixin
 
@@ -33,6 +35,7 @@ matching CLI flags:
 | `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `PprintViewMixin` | `PprintView` | any payload | `--line-length` |
+| `DataViewMixin` | `DataView` | any structured payload | `--format`, `--compact` / `--no-compact`, `--color` / `--no-color`, `--anchors` / `--no-anchors` |
 | `RawViewMixin` | `RawView` | plain text | `--line-length` |
 | `MarkdownViewMixin` | `MarkdownView` | markdown source text | `--format`, `--line-length` |
 | `RstViewMixin` | `RstView` | reStructuredText source | `--format`, `--line-length` |
@@ -448,12 +451,26 @@ class App(ListViewMixin, Parser):
         return ListView(rows, columns=["name", "role"])
 ```
 
-## Show vs list vs pprint vs composite
+## Show vs list vs pprint vs data vs composite
 
 - **Show** — one record as key/value (or index/value) rows.
 - **List** — many records as a multi-column table (`expand_keys` flattens nested dicts).
-- **Pprint** — `pprint`-style dump with `--line-length`.
+- **Pprint** — `pprint`-style dump with `--line-length` (debug-oriented).
+- **Data** — structured JSON/YAML dump of any payload (see below).
 - **Composite** — ordered sections (tables and/or text) with shared table width,
   `--line-length` for prose, and optional machine envelope via `--format-scope`.
+
+### DataView options
+
+`DataViewMixin` serializes the command return value as JSON or YAML:
+
+| Flag | Default | Notes |
+| --- | --- | --- |
+| `--format json\|yaml` | auto | YAML when PyYAML is installed, else JSON. Explicit `yaml` without PyYAML fails with install advice. |
+| `--compact` / `--no-compact` | off | JSON only: single-line vs indented. |
+| `--color` / `--no-color` | auto | Colorize with rich when `CLAK_COLORS`, TTY, and rich are available. Explicit `--color` without rich fails. |
+| `--anchors` / `--no-anchors` | on | YAML only: keep or disable anchors/aliases for shared references. |
+
+Extras: `mrjk.clak[config]` for YAML, `mrjk.clak[markdown]` for rich colors.
 
 API details: [Views component](../api/plugin_views.md).
