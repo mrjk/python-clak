@@ -19,9 +19,9 @@ names are stable; each option is defined once and inherited.
 
 Matching `Meta.view_*` defaults exist for every option (`view_width`,
 `view_line_length`, `view_format`, `view_format_scope`, `view_columns`,
-`view_sort_columns`, `view_sort_mode`, `view_wrap`, `view_add_index`,
-`view_expand_keys`, plus `view_column_names` for help text and
-`view_cli_options` to filter flags).
+`view_sort_columns`, `view_sort_mode`, `view_wrap`, `view_wrap_min`,
+`view_add_index`, `view_expand_keys`, plus `view_column_names` for help text
+and `view_cli_options` to filter flags).
 
 ## Pick a mixin
 
@@ -105,7 +105,7 @@ View flags appear under an **Output options** group in `--help` (same
 | `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
 | `--width` | `content`, `fit`, `terminal` | `terminal` | Table width mode (see below) |
-| `--wrap` | `last`, `all` | `last` | Table column wrap when fitting (see below) |
+| `--wrap` | `last`, `first`, `all`, or `COL,...` | `last` | Which columns are flexible (see below) |
 
 ### Table width (`--width`)
 
@@ -135,20 +135,35 @@ CLI `--width` overrides `Meta.view_width`.
 ### Table wrap (`--wrap`)
 
 Table backends only (`ShowView` / `ListView`). Ignored by pprint and text
-views, and ignored when width does not fit to the terminal (`content`, or non-TTY):
+views, and ignored when width does not fit to the terminal (`content`, or non-TTY).
 
-| Mode | Effect |
+`--wrap` names the **flexible columns**: they expand or reduce to match the
+available terminal space. Every other column stays at its natural content width.
+
+- Too wide: flexible columns shrink, in listed order, until the table fits.
+- Spare space (`width=terminal`): the first flexible column grows to fill it.
+
+| Value | Flexible columns |
 | --- | --- |
-| `last` | Keep left columns content-sized; only the rightmost column wraps (default) |
-| `all` | Allow any column to shrink/wrap (PrettyTable table-width redistribution) |
+| `last` | Rightmost column only (default) |
+| `first` | Leftmost column only |
+| `all` | Any column (PrettyTable redistributes; short cells may wrap) |
+| `Path,Src` | Those columns, in order (same names / 1-based / negatives as `--columns`) |
+
+`Meta.view_wrap_min` (or constructor `wrap_min`) is the shrink floor: a positive
+int for every flexible column, or a `{column: int}` map. Default floor is the
+header length. There is no CLI flag for min width. If the terminal is still too
+narrow, leftover dumps onto the last flexible column (down to 1 character).
 
 ```python
 class App(ListViewMixin, Parser):
     class Meta:
-        view_wrap = "all"  # or "last"
+        view_wrap = ("Path", "Src")  # Path flexes first, then Src
+        view_wrap_min = {"Path": 24, "Src": 12}
 ```
 
-CLI `--wrap` overrides `Meta.view_wrap`.
+CLI `--wrap Path,Src` overrides `Meta.view_wrap`. Use `--wrap=-1` when the value
+starts with `-`.
 
 ### Text views (raw / markdown / rst)
 

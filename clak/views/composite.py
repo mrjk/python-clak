@@ -28,7 +28,7 @@ from clak.views.table import (
 from clak.views.table_formatter import require_yaml
 from clak.views.text import MarkdownView, PprintView, RawView, RstView
 
-_SHARED_SETTINGS = frozenset({"width", "wrap", "term_width", "stdout_tty"})
+_SHARED_SETTINGS = frozenset({"width", "wrap", "wrap_min", "term_width", "stdout_tty"})
 _PRIMARY_TABLE_SETTINGS = frozenset(
     {"columns", "sort_columns", "sort_mode", "add_index"}
 )
@@ -135,6 +135,7 @@ class CompositeView(ClakView):
     settings_default = {
         "width": DEFAULT_WIDTH_MODE,
         "wrap": DEFAULT_WRAP_MODE,
+        "wrap_min": None,
         "format": "view",
         "format_scope": DEFAULT_FORMAT_SCOPE,
         "columns": None,

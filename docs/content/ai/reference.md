@@ -191,13 +191,15 @@ Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
   --format view|yaml|json|csv, --sort-columns, --sort-mode,
   --width content|fit|terminal (default terminal; no wrap when non-TTY),
-  --wrap last|all (tables only; default last; only when fitting to terminal)
+  --wrap last|first|all|COL,... (tables only; default last; flexible columns
+  expand or shrink to the terminal; ignored when width is content or non-TTY)
 Flags (markdown/rst/raw/pprint): --line-length N|terminal|nowrap (default 120)
 Flags (markdown/rst): --format view|raw (view=rendered, raw=source)
 Flags (composite): table flags + --line-length + --format-scope first|all
 Meta.view_width sets the default table width mode.
 Meta.view_line_length sets the default text wrap (int, terminal, or nowrap).
-Meta.view_wrap sets the default table wrap mode.
+Meta.view_wrap names the flexible table columns (last, first, all, or column list).
+Meta.view_wrap_min sets shrink floors for those columns (positive int or column-spec map).
 Meta.view_format_scope sets CompositeView machine export scope.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
 Markdown render needs mrjk.clak[markdown] (rich); RST render needs

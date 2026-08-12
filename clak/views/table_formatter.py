@@ -197,19 +197,23 @@ def format_structured(rows, headers, fmt):
     raise ValueError(f"Unsupported format {fmt!r}")
 
 
-def _apply_prettytable_width(
+def _apply_prettytable_width(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     table,
     width="terminal",
     term_width=None,
     stdout_tty=None,
     wrap="last",
+    wrap_min=None,
 ):
     """Apply content/fit/terminal width modes to a PrettyTable instance."""
     # Late import avoids circular dependency with clak.views.table
     from clak.views.base import (  # pylint: disable=import-outside-toplevel
         DEFAULT_WRAP_MODE,
-        WRAP_MODES,
         resolve_view_width,
+    )
+    from clak.views.table import (  # pylint: disable=import-outside-toplevel
+        normalize_wrap,
+        normalize_wrap_min,
     )
 
     mode, term_budget = resolve_view_width(
@@ -218,14 +222,12 @@ def _apply_prettytable_width(
     if mode == "content" or term_budget is None:
         return
 
-    wrap_mode = wrap if wrap is not None else DEFAULT_WRAP_MODE
-    if not isinstance(wrap_mode, str):
-        raise TypeError(f"wrap must be a string, got {type(wrap_mode).__name__}")
-    wrap_mode = wrap_mode.lower()
-    if wrap_mode not in WRAP_MODES:
-        raise ValueError(f"wrap must be one of {sorted(WRAP_MODES)}, got {wrap_mode!r}")
+    wrap_spec = normalize_wrap(wrap if wrap is not None else DEFAULT_WRAP_MODE)
+    if wrap_spec is None:
+        wrap_spec = DEFAULT_WRAP_MODE
+    wrap_min = normalize_wrap_min(wrap_min)
 
-    if wrap_mode == "all":
+    if isinstance(wrap_spec, str) and wrap_spec == "all":
         if mode == "fit":
             table.max_table_width = term_budget
         elif mode == "terminal":
@@ -233,7 +235,14 @@ def _apply_prettytable_width(
             table.max_table_width = term_budget
         return
 
-    _apply_last_column_wrap(table, mode=mode, term_width=term_budget)
+    wrap_fields = _resolve_wrap_fields(wrap_spec, list(table.field_names))
+    _apply_column_wrap(
+        table,
+        mode=mode,
+        term_width=term_budget,
+        wrap_fields=wrap_fields,
+        wrap_min=wrap_min,
+    )
 
 
 def _strip_ansi(text):
@@ -241,9 +250,88 @@ def _strip_ansi(text):
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
-def _apply_last_column_wrap(table, mode, term_width):
-    """Fit table by wrapping only the rightmost column."""
-    if not table.field_names:
+def _resolve_wrap_fields(wrap_spec, headers):
+    """Resolve wrap keyword or column specs to displayed header names."""
+    if not headers:
+        return []
+    if isinstance(wrap_spec, str):
+        key = wrap_spec.lower()
+        if key == "last":
+            return [headers[-1]]
+        if key == "first":
+            return [headers[0]]
+        raise ValueError(
+            f"wrap must be last, first, all, or column specs, got {wrap_spec!r}"
+        )
+
+    fields = []
+    seen = set()
+    for col in wrap_spec:
+        field = headers[resolve_column_index(col, headers)]
+        if field in seen:
+            continue
+        seen.add(field)
+        fields.append(field)
+    return fields
+
+
+def _resolve_wrap_min_map(wrap_min, headers):
+    """Resolve wrap_min to a field-name map, or a global int, or None."""
+    if wrap_min is None or isinstance(wrap_min, int):
+        return wrap_min
+    resolved = {}
+    for key, val in wrap_min.items():
+        field = headers[resolve_column_index(key, headers)]
+        resolved[field] = val
+    return resolved
+
+
+def _wrap_column_floor(field, natural_width, wrap_min):
+    """Sequential-shrink floor: max(header, wrap_min, 1), capped at natural."""
+    header_len = len(str(field))
+    requested = None
+    if isinstance(wrap_min, int):
+        requested = wrap_min
+    elif isinstance(wrap_min, Mapping):
+        requested = wrap_min.get(field)
+    floor = max(header_len, requested if requested is not None else 0, 1)
+    return min(floor, natural_width)
+
+
+def _shrink_wrap_widths(widths, wrap_fields, wrap_min, overflow):
+    """Shrink wrap columns in order down to floor, then dump leftover."""
+    if overflow <= 0:
+        return
+    for field in wrap_fields:
+        if overflow <= 0:
+            break
+        floor = _wrap_column_floor(field, widths[field], wrap_min)
+        reducible = widths[field] - floor
+        if reducible <= 0:
+            continue
+        take = min(overflow, reducible)
+        widths[field] -= take
+        overflow -= take
+    if overflow > 0:
+        last = wrap_fields[-1]
+        widths[last] = max(1, widths[last] - overflow)
+
+
+def _pin_column_widths(field_names, natural_widths, widths, wrap_fields):
+    """Build PrettyTable min/max maps: wrap cols use computed width, others frozen."""
+    wrap_set = set(wrap_fields)
+    min_width = {}
+    max_width = {}
+    for field, col_width in zip(field_names, natural_widths):
+        pinned = widths[field] if field in wrap_set else col_width
+        min_width[field] = pinned
+        max_width[field] = pinned
+    return min_width, max_width
+
+
+def _apply_column_wrap(table, mode, term_width, wrap_fields, wrap_min):  # pylint: disable=too-many-locals
+    """Fit table by shrinking wrap columns in order, then dumping leftover."""
+    if not table.field_names or not wrap_fields:
         return
 
     measured = table.get_string()
@@ -254,23 +342,28 @@ def _apply_last_column_wrap(table, mode, term_width):
     plain = _strip_ansi(measured)
     border_line = plain.splitlines()[0] if plain else ""
     natural_border = len(border_line)
-    last_width = natural_widths[-1]
-    last_field = table.field_names[-1]
 
     if mode == "fit" and natural_border <= term_width:
         return
 
-    budget = max(1, term_width - (natural_border - last_width))
+    widths = dict(zip(table.field_names, natural_widths))
+    min_map = _resolve_wrap_min_map(wrap_min, list(table.field_names))
+    _shrink_wrap_widths(
+        widths, wrap_fields, min_map, natural_border - term_width
+    )
+    min_width, max_width = _pin_column_widths(
+        table.field_names, natural_widths, widths, wrap_fields
+    )
 
-    min_width = {}
-    max_width = {}
-    for field, col_width in zip(table.field_names[:-1], natural_widths[:-1]):
-        min_width[field] = col_width
-        max_width[field] = col_width
-
-    max_width[last_field] = budget
     if mode == "terminal":
-        min_width[last_field] = budget
+        decorations = natural_border - sum(natural_widths)
+        current = decorations + sum(widths[field] for field in table.field_names)
+        pad = term_width - current
+        if pad > 0:
+            first = wrap_fields[0]
+            widths[first] += pad
+            min_width[first] = widths[first]
+            max_width[first] = widths[first]
         table.min_table_width = term_width
         table.max_table_width = term_width
 
@@ -290,6 +383,7 @@ class _TableFormatter(ABC):
         "sort_mode": "asc",
         "width": "terminal",
         "wrap": "last",
+        "wrap_min": None,
     }
 
     def __init__(self, data=None, columns=None, **view_options):
@@ -315,7 +409,7 @@ class _TableFormatter(ABC):
             print(out)
         return out
 
-    def table_render_show(self, data, **view_options):
+    def table_render_show(self, data, **view_options):  # pylint: disable=too-many-locals
         "Create a PrettyTable instance, configure it and print it"
 
         _view_options = dict(self.view_options)
@@ -326,6 +420,7 @@ class _TableFormatter(ABC):
         sort_mode = _view_options.pop("sort_mode", "asc") or "asc"
         width = _view_options.pop("width", "terminal")
         wrap = _view_options.pop("wrap", "last")
+        wrap_min = _view_options.pop("wrap_min", None)
         term_width = _view_options.pop("term_width", None)
         stdout_tty = _view_options.pop("stdout_tty", None)
 
@@ -359,6 +454,7 @@ class _TableFormatter(ABC):
             term_width=term_width,
             stdout_tty=stdout_tty,
             wrap=wrap,
+            wrap_min=wrap_min,
         )
 
         # Report output
@@ -405,6 +501,7 @@ class TableShowFormatter(_TableFormatter):
         "sort_mode": "asc",
         "width": "terminal",
         "wrap": "last",
+        "wrap_min": None,
     }
 
     def process_table(
@@ -467,6 +564,7 @@ class TableListFormatter(_TableFormatter):
         "sort_mode": "asc",
         "width": "terminal",
         "wrap": "last",
+        "wrap_min": None,
     }
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments,too-many-statements

@@ -47,7 +47,10 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - merge_view_settings
         - parse_columns
         - parse_sort_columns
+        - parse_wrap
         - normalize_sort_columns
+        - normalize_wrap
+        - normalize_wrap_min
         - normalize_sections
         - format_show_payload
         - resolve_view_width

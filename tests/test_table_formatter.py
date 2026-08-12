@@ -437,3 +437,174 @@ def test_table_wrap_all_may_shrink_left_columns():
     # PrettyTable max_table_width may shrink left headers
     assert max(len(line) for line in output.splitlines()) <= 51
     assert "note" in header or "no" in header
+
+
+def _border_segments(output: str):
+    border = next(line for line in output.splitlines() if line.startswith("+"))
+    return [len(part) for part in border.strip("+").split("+")]
+
+
+def _wrap_data(first="ada", middle="admin", last=None):
+    return [
+        {
+            "name": first,
+            "role": middle,
+            "note": last if last is not None else "word " * 20,
+        }
+    ]
+
+
+def test_table_wrap_first_keeps_right_columns():
+    data = [{"note": "word " * 20, "name": "ada", "role": "admin"}]
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap="first",
+            term_width=50,
+            stdout_tty=True,
+        )
+    )
+    header = next(line for line in output.splitlines() if "name" in line)
+    assert "| name " in header or "| name |" in header
+    assert "| role " in header or "| role |" in header
+    assert max(len(line) for line in output.splitlines()) <= 51
+
+
+def test_table_wrap_named_column_keeps_neighbors():
+    output = _plain_table(
+        TableListFormatter().render(
+            _wrap_data(),
+            expand_keys=True,
+            width="auto",
+            wrap="note",
+            term_width=50,
+            stdout_tty=True,
+        )
+    )
+    header = next(line for line in output.splitlines() if "name" in line)
+    assert "| name " in header or "| name |" in header
+    assert "| role " in header or "| role |" in header
+    assert max(len(line) for line in output.splitlines()) <= 51
+
+
+def test_table_wrap_negative_index_equals_last():
+    kwargs = dict(
+        expand_keys=True,
+        width="auto",
+        term_width=50,
+        stdout_tty=True,
+    )
+    last = _plain_table(
+        TableListFormatter().render(_wrap_data(), wrap="last", **kwargs)
+    )
+    by_index = _plain_table(
+        TableListFormatter().render(_wrap_data(), wrap=-1, **kwargs)
+    )
+    assert last == by_index
+
+
+def test_table_wrap_priority_shrinks_first_listed_before_second():
+    data = _wrap_data(first="abcdefghijklmnop", last="x" * 80)
+    natural = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="content",
+            stdout_tty=True,
+        )
+    )
+    nat_segs = _border_segments(natural)
+    overflow = 20
+    term_width = len(natural.splitlines()[0]) - overflow
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap=["note", "name"],
+            term_width=term_width,
+            stdout_tty=True,
+        )
+    )
+    segs = _border_segments(output)
+    assert segs[0] == nat_segs[0]
+    assert segs[1] == nat_segs[1]
+    assert segs[2] < nat_segs[2]
+    assert max(len(line) for line in output.splitlines()) <= term_width + 1
+
+
+def test_table_wrap_min_stops_first_column_then_shrinks_next():
+    data = _wrap_data(first="abcdefghijklmnop", last="x" * 80)
+    natural = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="content",
+            stdout_tty=True,
+        )
+    )
+    nat_segs = _border_segments(natural)
+    note_content = nat_segs[2] - 2
+    wrap_min_note = 30
+    overflow = (note_content - wrap_min_note) + 10
+    term_width = len(natural.splitlines()[0]) - overflow
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap=["note", "name"],
+            wrap_min={"note": wrap_min_note},
+            term_width=term_width,
+            stdout_tty=True,
+        )
+    )
+    segs = _border_segments(output)
+    assert segs[2] - 2 >= wrap_min_note
+    assert segs[0] < nat_segs[0]
+    assert segs[1] == nat_segs[1]
+
+
+def test_table_wrap_min_dump_can_go_below_min_on_tiny_terminal():
+    data = _wrap_data(last="x" * 80)
+    output = _plain_table(
+        TableListFormatter().render(
+            data,
+            expand_keys=True,
+            width="auto",
+            wrap="note",
+            wrap_min={"note": 40},
+            term_width=25,
+            stdout_tty=True,
+        )
+    )
+    segs = _border_segments(output)
+    assert segs[2] - 2 < 40
+    assert max(len(line) for line in output.splitlines()) <= 26
+
+
+def test_table_wrap_unknown_column_raises():
+    with pytest.raises(KeyError, match="nope"):
+        TableListFormatter().render(
+            _wrap_data(),
+            expand_keys=True,
+            width="auto",
+            wrap="nope",
+            term_width=50,
+            stdout_tty=True,
+        )
+
+
+def test_table_wrap_min_unknown_column_raises():
+    with pytest.raises(KeyError, match="nope"):
+        TableListFormatter().render(
+            _wrap_data(),
+            expand_keys=True,
+            width="auto",
+            wrap="note",
+            wrap_min={"nope": 10},
+            term_width=50,
+            stdout_tty=True,
+        )

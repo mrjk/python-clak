@@ -44,7 +44,6 @@ from clak.views import (
     FORMAT_SCOPES,
     TEXT_FORMATS,
     WIDTH_MODES,
-    WRAP_MODES,
     ListView,
     MarkdownView,
     PprintView,
@@ -54,9 +53,12 @@ from clak.views import (
     normalize_columns,
     normalize_sort_columns,
     normalize_width_mode,
+    normalize_wrap,
+    normalize_wrap_min,
     parse_columns,
     parse_line_length,
     parse_sort_columns,
+    parse_wrap,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,8 +106,10 @@ _WIDTH_HELP = (
     "is not a TTY."
 )
 _WRAP_HELP = (
-    "Table column wrap when fitting to terminal: last (rightmost "
-    "column only), all (any column). Ignored when width is content or "
+    "Flexible table columns: they expand or shrink to the terminal. "
+    "last (rightmost), first (leftmost), all (any column), or "
+    "comma-separated names/indexes in priority order. Use --wrap=-1 "
+    "when the value starts with '-'. Ignored when width is content or "
     "stdout is not a TTY."
 )
 _LINE_LENGTH_HELP = (
@@ -192,7 +196,7 @@ class _ViewMixinBase(PluginHelpers):
         arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
 
         for key, arg in arguments.items():
-            if key in ("columns", "sort_columns"):
+            if key in ("columns", "sort_columns", "wrap"):
                 arg = copy.copy(arg)
                 arg.kwargs = dict(arg.kwargs)
                 arg.kwargs["help"] = self._column_flag_help(arg.kwargs.get("help", ""))
@@ -217,7 +221,6 @@ class _ViewMixinBase(PluginHelpers):
             "add_index",
             "expand_keys",
             "width",
-            "wrap",
             "format",
             "format_scope",
             "sort_mode",
@@ -228,6 +231,11 @@ class _ViewMixinBase(PluginHelpers):
             value = self._args_get(args, key, None)
             if value is not None:
                 settings[key] = value
+
+        if "wrap" in enabled:
+            raw = self._args_get(args, "wrap", None)
+            if raw is not None:
+                settings["wrap"] = parse_wrap(raw)
 
         if "sort_columns" in enabled:
             raw = self._args_get(args, "sort_columns", None)
@@ -246,7 +254,7 @@ class _ViewMixinBase(PluginHelpers):
             ("sort_mode", "view_sort_mode", None),
             ("width", "view_width", normalize_width_mode),
             ("line_length", "view_line_length", parse_line_length),
-            ("wrap", "view_wrap", None),
+            ("wrap", "view_wrap", normalize_wrap),
             ("format", "view_format", None),
             ("format_scope", "view_format_scope", None),
             ("add_index", "view_add_index", None),
@@ -261,6 +269,13 @@ class _ViewMixinBase(PluginHelpers):
             if value is None:
                 continue
             settings[key] = normalizer(value) if normalizer else value
+
+        if "wrap" in self._view_cli_option_names and "wrap_min" not in settings:
+            value = self.query_cfg_parents(
+                "view_wrap_min", default=None, include_self=True
+            )
+            if value is not None:
+                settings["wrap_min"] = normalize_wrap_min(value)
 
     def collect_view_settings(self, args: Any) -> dict:
         """Build view render kwargs from parsed CLI args (only set flags)."""
@@ -336,9 +351,20 @@ class TableViewOptMixin(ClakViewOptMixin):
     meta__view_sort_mode = None
 
     meta__config__view_wrap = MetaSetting(
-        help="Default table wrap mode: last or all",
+        help=(
+            "Flexible table columns: last, first, all, or column "
+            "names/indexes (same syntax as --columns)"
+        ),
     )
     meta__view_wrap = None
+
+    meta__config__view_wrap_min = MetaSetting(
+        help=(
+            "Shrink floor for flexible columns: positive int (all of them) "
+            "or mapping of column spec to positive int"
+        ),
+    )
+    meta__view_wrap_min = None
 
     meta__config__view_format = MetaSetting(
         help="Default output format: view, yaml, json, or csv",
@@ -385,8 +411,8 @@ class TableViewOptMixin(ClakViewOptMixin):
     )
     wrap = Argument(
         "--wrap",
-        choices=sorted(WRAP_MODES),
         default=None,
+        metavar="MODE|COL,...",
         group=_OUTPUT_OPTIONS_GROUP,
         help=_WRAP_HELP,
     )

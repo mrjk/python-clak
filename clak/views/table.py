@@ -11,6 +11,7 @@ from clak.views.base import (
     DEFAULT_WIDTH_MODE,
     DEFAULT_WRAP_MODE,
     OUTPUT_FORMATS,
+    WRAP_MODES,
     ClakView,
 )
 from clak.views.table_formatter import (
@@ -106,6 +107,105 @@ def normalize_sort_columns(value):
         return list(value)
     raise TypeError(
         "view_sort_columns must be a string, int, or sequence, "
+        f"got {type(value).__name__}"
+    )
+
+
+def _dedupe_wrap_specs(specs):
+    """Drop duplicate wrap column specs, keeping first-seen order."""
+    seen = set()
+    out = []
+    for spec in specs:
+        if spec in seen:
+            continue
+        seen.add(spec)
+        out.append(spec)
+    return out
+
+
+def parse_wrap(value):
+    """Parse --wrap: keyword last/all/first, or flexible column specs.
+
+    Keywords are recognized only when they are the entire value (case
+    insensitive). Otherwise the value is a comma-separated column list
+    (same rules as --columns). Listed columns expand or shrink to fit
+    the terminal; other columns stay content-sized.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        specs = _dedupe_wrap_specs(list(value))
+        if not specs:
+            raise ValueError("wrap column list must not be empty")
+        return specs
+    if not isinstance(value, str):
+        raise TypeError(
+            f"wrap must be a string or sequence, got {type(value).__name__}"
+        )
+    stripped = value.strip()
+    if not stripped:
+        return None
+    if stripped.lower() in WRAP_MODES:
+        return stripped.lower()
+    cols = parse_columns(stripped)
+    if not cols:
+        raise ValueError("wrap column list must not be empty")
+    return _dedupe_wrap_specs(cols)
+
+
+def normalize_wrap(value):
+    """Normalize Meta.view_wrap (keyword or flexible column specs)."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise TypeError(
+            "view_wrap must be a string, int, or sequence, "
+            f"got {type(value).__name__}"
+        )
+    if isinstance(value, int):
+        return [value]
+    if isinstance(value, str):
+        return parse_wrap(value)
+    if isinstance(value, (list, tuple)):
+        specs = _dedupe_wrap_specs(list(value))
+        if not specs:
+            raise ValueError("wrap column list must not be empty")
+        return specs
+    raise TypeError(
+        "view_wrap must be a string, int, or sequence, "
+        f"got {type(value).__name__}"
+    )
+
+
+def normalize_wrap_min(value):
+    """Normalize Meta.view_wrap_min: positive int or column-spec mapping."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise TypeError(
+            "wrap_min must be a positive int or mapping, "
+            f"got {type(value).__name__}"
+        )
+    if isinstance(value, int):
+        if value <= 0:
+            raise ValueError("wrap_min must be > 0")
+        return value
+    if isinstance(value, Mapping):
+        out = {}
+        for key, val in value.items():
+            if isinstance(key, bool) or not isinstance(key, (str, int)):
+                raise TypeError(
+                    "wrap_min keys must be column names or indexes, "
+                    f"got {type(key).__name__}"
+                )
+            if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
+                raise ValueError(
+                    f"wrap_min[{key!r}] must be a positive int, got {val!r}"
+                )
+            out[key] = val
+        return out
+    raise TypeError(
+        "wrap_min must be a positive int or mapping, "
         f"got {type(value).__name__}"
     )
 
@@ -311,6 +411,7 @@ class FeatureFullViewer(ClakView):
         "columns": None,
         "width": DEFAULT_WIDTH_MODE,
         "wrap": DEFAULT_WRAP_MODE,
+        "wrap_min": None,
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",

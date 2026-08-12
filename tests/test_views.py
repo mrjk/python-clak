@@ -23,8 +23,11 @@ from clak.views import (
     RstView,
     ShowView,
     merge_view_settings,
+    normalize_wrap,
+    normalize_wrap_min,
     parse_columns,
     parse_sort_columns,
+    parse_wrap,
     resolve_view_width,
 )
 
@@ -68,6 +71,28 @@ def test_parse_sort_columns_alias():
     assert parse_sort_columns("name,role") == ["name", "role"]
     assert parse_sort_columns("-1,-3,1") == [-1, -3, 1]
     assert parse_sort_columns(["city", -1]) == ["city", -1]
+
+
+def test_parse_wrap_keywords_and_columns():
+    assert parse_wrap("last") == "last"
+    assert parse_wrap("ALL") == "all"
+    assert parse_wrap("First") == "first"
+    assert parse_wrap("Path,Src") == ["Path", "Src"]
+    assert parse_wrap("-1,Src") == [-1, "Src"]
+    assert parse_wrap(["Path", "Src", "Path"]) == ["Path", "Src"]
+    assert parse_wrap(None) is None
+
+
+def test_normalize_wrap_and_wrap_min():
+    assert normalize_wrap("last") == "last"
+    assert normalize_wrap(("Path", "Src")) == ["Path", "Src"]
+    assert normalize_wrap(-1) == [-1]
+    assert normalize_wrap_min(12) == 12
+    assert normalize_wrap_min({"Path": 24, "Src": 12}) == {"Path": 24, "Src": 12}
+    with pytest.raises(ValueError, match="wrap_min must be > 0"):
+        normalize_wrap_min(0)
+    with pytest.raises(TypeError, match="wrap_min must be"):
+        normalize_wrap_min("24")
 
 
 def test_normalize_sort_columns_accepts_sequence():
@@ -282,6 +307,41 @@ def test_list_view_mixin_meta_view_wrap():
     app = App(parse=False, add_help=False)
     app.dispatch([])
     assert getattr(app, "_clak_view_settings", {}).get("wrap") == "all"
+
+
+def test_list_view_mixin_wrap_cli_column_list():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    app.dispatch(["--wrap", "name,role"])
+    assert getattr(app, "_clak_view_settings", {}).get("wrap") == ["name", "role"]
+
+
+def test_list_view_mixin_meta_view_wrap_columns_and_min():
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_wrap = ("name", "city")
+            view_wrap_min = {"name": 8}
+
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    app.dispatch([])
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings.get("wrap") == ["name", "city"]
+    assert settings.get("wrap_min") == {"name": 8}
+
+
+def test_list_view_mixin_no_wrap_min_flag():
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    assert "--wrap-min" not in _option_flags(app)
 
 
 def test_pprint_view_mixin_has_no_wrap_flag():
