@@ -20,7 +20,6 @@ from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentErro
 
 # from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 from gettext import gettext as _
-from pprint import pprint
 from types import SimpleNamespace
 
 # import argcomplete
@@ -64,30 +63,6 @@ logger = logging.getLogger(__name__)
 # ################################################################################
 
 # Argparse helpers, portable library for argparse.
-
-# Keep this as True for performance reasons,
-# children nodes will be considered as subparsers and not other parsers to be
-# injected into the parent parser. The latter is slower.
-
-USE_SUBPARSERS = True
-# USE_SUBPARSERS = False    # BETA - Do not enable this, it is slower
-
-
-# Merge parent argparsers, and create on merged child.
-def argparse_merge_parents(
-    *parser: argparse.ArgumentParser,
-) -> argparse.ArgumentParser:
-    """Merge X parsers with their subparsers into a new one."""
-    parents = list(*parser)
-    # TOfix, first parent should inherit default settings
-    merged_parser = argparse.ArgumentParser(
-        description="Merged parser example with subcommands",
-        add_help=True,
-        parents=parents,
-        conflict_handler="resolve",  # Required to avoid conflicts when help is enabled
-        formatter_class=RecursiveHelpFormatter,
-    )
-    return merged_parser
 
 
 # Inject a argparser into a subkey of a parent parser.

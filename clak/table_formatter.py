@@ -60,12 +60,6 @@ else:
 ################## Parent class
 
 
-# To create hrule
-def create_separator(table):
-    "Create a separator line for the table"
-    return ["-" * len(str(col)) for col in table.field_names]
-
-
 def normalize_sort_mode(mode, default="asc"):
     """Return True when sort order is descending."""
     if mode is None:
@@ -428,7 +422,8 @@ class TableShowFormatter(_TableFormatter):
         else:
             columns = resolve_column_keys(columns, choices)
 
-        assert isinstance(add_index, bool), f"Got: {add_index}"
+        if not isinstance(add_index, bool):
+            raise TypeError(f"add_index must be a bool, got {type(add_index).__name__}")
         ret = []
         for key in columns:
             try:

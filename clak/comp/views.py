@@ -145,7 +145,8 @@ class _ViewMixinBase(PluginHelpers):
     def add_arguments(self, arguments: dict = None):
         """Like ParserNode.add_arguments, but skips disabled view CLI options."""
         arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
-        assert isinstance(arguments, dict), f"Got {type(arguments)} instead of dict"
+        if not isinstance(arguments, dict):
+            raise TypeError(f"Got {type(arguments)} instead of dict")
 
         enabled = self._enabled_view_options()
         skip = _VIEW_CLI_OPTION_DESTS - enabled

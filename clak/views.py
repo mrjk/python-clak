@@ -506,10 +506,6 @@ class FeatureFullViewer(ClakView):
     }
 
 
-# Backward-compatible alias (typo fixed)
-FeatureFullViewier = FeatureFullViewer
-
-
 class ShowView(FeatureFullViewer):
     "Render show data"
 

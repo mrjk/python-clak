@@ -172,9 +172,10 @@ class Argument(ArgParseItem):
         parser = config.parser
         args, kwargs = self.build_params(key)
         kwargs = dict(kwargs)
-        assert isinstance(
-            args, tuple
-        ), f"Args must be a list for {self.__class__.__name__}: {type(args)}"
+        if not isinstance(args, tuple):
+            raise TypeError(
+                f"Args must be a tuple for {self.__class__.__name__}: {type(args)}"
+            )
 
         group_title = kwargs.pop("group", None)
 
@@ -341,28 +342,6 @@ class SubParser(ArgParseItem):
         return child
 
 
-class RegistryEntry:
-    "Registry entry"
-
-    def __init__(self, config):
-        # super().__init__(*args, **kwargs)
-        # self.parser = None
-        self._config = config
-        self._entries = {}
-
-    def add_entry(self, key: str, value: Any) -> None:
-        """Add a new entry to the registry.
-
-        Args:
-            key: Key to store the entry under
-            value: Value to store in the registry
-        """
-        self._entries[key] = value
-
-    def __repr__(self):
-        return f"RegistryEntry({self._config})"
-
-
 def first_doc_line(text: Optional[str]) -> str:
     """Get the first non-empty line from a text string.
 
@@ -373,16 +352,17 @@ def first_doc_line(text: Optional[str]) -> str:
         str: The first non-empty line, or empty string if no non-empty lines found
 
     Raises:
-        AssertionError: If first non-empty line starts with spaces
+        ValueError: If first non-empty line starts with spaces
     """
     if not text:
         return ""
     lines = text.split("\n")
     for line in lines:
         if line.strip():
-            assert not line.startswith(
-                " "
-            ), f"First line of docstring should not start with 2 spaces: {line}"
+            if line.startswith(" "):
+                raise ValueError(
+                    f"First line of docstring should not start with spaces: {line}"
+                )
             return line
     return ""
 
@@ -402,11 +382,12 @@ def prepare_docstring(
 
     Raises:
         KeyError: If formatting fails due to missing variables
-        AssertionError: If variables arg is not a dict
+        TypeError: If variables arg is not a dict
     """
 
     variables = variables or {}
-    assert isinstance(variables, dict), f"Got {type(variables)} instead of dict"
+    if not isinstance(variables, dict):
+        raise TypeError(f"Got {type(variables)} instead of dict")
 
     if text is None:
         return None
@@ -425,18 +406,15 @@ def prepare_docstring(
     return text
 
 
-class FormatEnv(dict):
-    "Format env"
+class FormatEnv:  # pylint: disable=too-few-public-methods
+    "Format env for docstring variable substitution"
 
     _default = {
         "type": "type FUNC",
     }
 
     def __init__(self, variables=None):
-        self._variables = variables or {}
-
-    # def __str__(self):
-    #     return self.value.format(**self.variables)
+        self._variables = dict(variables or {})
 
     def get(self):
         "Get dict of vars"
@@ -449,9 +427,6 @@ class FormatEnv(dict):
             else:
                 out[key] = value
         return out
-
-    def __dict__(self):
-        return dict(self.get())
 
 
 class MetaSetting(Fn):  # pylint: disable=too-few-public-methods

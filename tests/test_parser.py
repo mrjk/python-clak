@@ -242,6 +242,60 @@ def test_exception_handlers_third_party(capsys):
     assert "handled: bad config" in capsys.readouterr().out
 
 
+def test_exception_handler_return_code_honored(capsys):
+    """Handler int return becomes the process exit code."""
+
+    class _AppError(Exception):
+        rc = 1
+
+    def handle_app(_app, err):
+        print(f"caught: {err}", file=sys.stderr)
+        return 42
+
+    def run_cmd(**_):
+        raise _AppError("boom")
+
+    parser = ParserNode()
+    parser.meta__known_exceptions = [(_AppError, handle_app)]
+    parser.cli_run = run_cmd
+
+    with pytest.raises(SystemExit) as exc:
+        parser.dispatch([])
+    assert exc.value.code == 42
+    assert "caught: boom" in capsys.readouterr().err
+
+
+def test_os_error_exit_uses_errno_or_one(monkeypatch):
+    """OSError subclasses exit with errno, falling back to 1 when unset."""
+
+    parser = ParserNode()
+    monkeypatch.setattr("clak.parser.logger.critical", lambda *a, **k: None)
+
+    with pytest.raises(SystemExit) as exc:
+        parser.clean_terminate(FileNotFoundError(2, "missing"))
+    assert exc.value.code == 2
+
+    err = OSError("synthetic")
+    err.errno = None
+    with pytest.raises(SystemExit) as exc:
+        parser.clean_terminate(err)
+    assert exc.value.code == 1
+
+
+def test_parse_args_string_uses_shlex():
+    """Quoted tokens in a string argv are preserved."""
+
+    class App(ParserNode):
+        path = Argument("path")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App()
+    ns = app.parse_args('"/tmp/my file.txt"')
+    assert ns.path == "/tmp/my file.txt"
+
+
 def test_uncaught_error_reports_bug(monkeypatch):
     """Unhandled exceptions get the developer bug message."""
 

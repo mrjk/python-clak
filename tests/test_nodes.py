@@ -6,13 +6,9 @@ This module contains function-based tests for the core node classes and utilitie
 import pytest
 
 from clak.nodes import (
-    DEFAULT,
-    FAILURE,
     NOT_SET,
     UNSET_ARG,
     ConfigurationError,
-    Default,
-    Failure,
     Fn,
     MissingMetaError,
     Node,
@@ -52,24 +48,6 @@ def test_unset_arg():
     assert repr(unset_arg) == "<UNSET_ARG>"
     assert bool(unset_arg) is False
     assert UNSET_ARG is not None
-
-
-def test_failure():
-    """Test Failure class behavior."""
-    failure = Failure()
-    assert str(failure) == "<FAILURE>"
-    assert repr(failure) == "<FAILURE>"
-    assert bool(failure) is False
-    assert FAILURE is not None
-
-
-def test_default():
-    """Test Default class behavior."""
-    default = Default()
-    assert str(default) == "<DEFAULT>"
-    assert repr(default) == "<DEFAULT>"
-    assert bool(default) is False
-    assert DEFAULT is not None
 
 
 def test_fn_initialization():

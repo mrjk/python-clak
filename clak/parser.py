@@ -10,6 +10,7 @@ unless ``parse=False``.
 
 import logging
 import os
+import shlex
 import sys
 import traceback
 from types import SimpleNamespace
@@ -173,7 +174,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if parent:
             parent.children[self.key] = self
             self.registry = parent.registry
-        self.registry[self.fkey] = self  # RegistryEntry(config=self)
+        self.registry[self.fkey] = self
 
         # Create or reuse parent parser
         if parser is None:
@@ -252,7 +253,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         4. Creates all argument parser entries
         """
         arguments = arguments or getattr(self, "meta__arguments_dict", {}) or {}
-        assert isinstance(arguments, dict), f"Got {type(arguments)} instead of dict"
+        if not isinstance(arguments, dict):
+            raise TypeError(f"Got {type(arguments)} instead of dict")
 
         # Add arguments from class attributes including inherited ones
         for cls in self.__class__.__mro__:
@@ -301,7 +303,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         """
 
         subcommands = subcommands or getattr(self, "meta__subcommands_dict", {}) or {}
-        assert isinstance(subcommands, dict), f"Got {type(subcommands)} instead of dict"
+        if not isinstance(subcommands, dict):
+            raise TypeError(f"Got {type(subcommands)} instead of dict")
 
         # Add arguments from class attributes that are Command instances
         for cls in self.__class__.__mro__:
@@ -388,34 +391,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             **_: Unused keyword arguments
         """
 
-    def find_closest_subcommand(self, args: Optional[List[str]] = None) -> "ParserNode":
-        """Find the deepest valid subcommand from given arguments.
-
-        Args:
-            args (list): Command line arguments, defaults to sys.argv[1:]
-
-        Returns:
-            ParserNode: The deepest valid subcommand parser
-        """
-
-        # Get the current command line from sys.argv
-        current_cmd = sys.argv[1:] if args is None else args
-        last_child = self
-
-        # Loop through each argument to find the deepest valid subcommand
-        for arg in current_cmd:
-            # Skip options (starting with -)
-            if arg.startswith("-"):
-                break
-
-            # Check if argument exists as a subcommand
-            if arg in last_child.children:
-                last_child = last_child.children[arg]
-            else:
-                break
-
-        return last_child
-
     @staticmethod
     def _exception_exit_code(err, default=1):
         rc = getattr(err, "rc", default)
@@ -453,7 +428,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if handler is None:
             self._terminate_app_exception(err)
             return
-        handler(self, err)
+        result = handler(self, err)
+        if isinstance(result, int):
+            sys.exit(result)
         sys.exit(self._exception_exit_code(err))
 
     def clean_terminate(self, err, known_exceptions=None):
@@ -515,20 +492,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if isinstance(err, BrokenPipeError):
             _exit_broken_pipe()
 
-        # 7. OS errors
-        oserrors = [
-            PermissionError,
-            FileExistsError,
-            FileNotFoundError,
-            InterruptedError,
-            IsADirectoryError,
-            NotADirectoryError,
-            TimeoutError,
-        ]
-
-        if err.__class__ in oserrors:
+        # 7. OS errors (BrokenPipeError already handled above)
+        if isinstance(err, OSError):
             logger.critical("Program exited with OS error: %s", err)
-            sys.exit(err.errno)
+            sys.exit(err.errno if err.errno is not None else 1)
 
     def parse_args(
         self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
@@ -538,7 +505,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         Args:
             args: Arguments to parse, can be:
                 - None: Use sys.argv[1:]
-                - str: Split on spaces
+                - str: Shell-style split via ``shlex.split``
                 - list: Use directly
                 - dict: Return as-is
 
@@ -556,7 +523,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if args is None:
             args = sys.argv[1:]
         elif isinstance(args, str):
-            args = args.split(" ")
+            args = shlex.split(args)
         elif isinstance(args, list):
             pass
         elif isinstance(args, dict):
@@ -568,8 +535,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
     def dispatch(  # pylint: disable=too-many-branches
         self,
-        args: Optional[Dict[str, Any]] = None,
-        trace: Optional[bool] = False,
+        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
+        trace: bool = False,
         **_: Any,
     ) -> Any:
         """Main dispatch function for command execution.
@@ -590,7 +557,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             # raise exception.ClakParseError(msg) from err
 
         if not error:
-            assert isinstance(args, dict)
+            if not isinstance(args, dict):
+                raise TypeError(
+                    f"Parsed args must be a dict, got {type(args).__name__}"
+                )
 
             # Check for trace mode
             if "app_trace_mode" in args:
@@ -660,7 +630,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ClakParseError: If argument parsing fails
             NotImplementedError: If command has no implementation
         """
-        assert isinstance(args, dict)
+        if not isinstance(args, dict):
+            raise TypeError(
+                f"cli_execute args must be a dict, got {type(args).__name__}"
+            )
 
         # Prepare args and context
         hook_list = {}
@@ -807,7 +780,7 @@ class Parser(ParserNode):
         **kwargs: Keyword arguments passed to ParserNode
     """
 
-    def __init__(self, *args: list, parse: bool = True, **kwargs: dict):
+    def __init__(self, *args: Any, parse: bool = True, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         if not self.parent and parse is True:

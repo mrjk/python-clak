@@ -71,30 +71,8 @@ class UnSetArg(NullType):
         return "<UNSET_ARG>"
 
 
-class Failure(NullType):
-    """Represent a failure.
-
-    Simple marker class intentionally containing minimal functionality.
-    """
-
-    def repr(self):
-        return "<FAILURE>"
-
-
-class Default(NullType):
-    """Represent a default.
-
-    Simple marker class intentionally containing minimal functionality.
-    """
-
-    def repr(self):
-        return "<DEFAULT>"
-
-
 NOT_SET = NotSet()
 UNSET_ARG = UnSetArg()
-FAILURE = Failure()
-DEFAULT = Default()
 
 
 class Fn(SimpleNamespace):
@@ -135,11 +113,15 @@ class Node:
         self.name = (
             name if name is not UNSET_ARG else f"{self.__class__.__name__}"
         )  # ({hex(id(self))})"
-        assert isinstance(self.name, str)  # To unit test
+        if not isinstance(self.name, str):
+            raise TypeError(f"Node name must be a str, got {type(self.name).__name__}")
 
         # Initialize parent
         self.parent = parent
-        assert isinstance(self.parent, (Node, type(None)))  # To unit test
+        if not isinstance(self.parent, (Node, type(None))):
+            raise TypeError(
+                f"Node parent must be a Node or None, got {type(self.parent).__name__}"
+            )
 
     def get_hierarchy(self):
         "Return the hierarchy of the node"

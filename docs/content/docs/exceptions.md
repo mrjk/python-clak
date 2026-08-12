@@ -101,8 +101,9 @@ class Meta:
     ]
 ```
 
-Handler signature: `handler(parser_node, err)`. It should call `sys.exit()`
-(or let Clak exit with `err.rc` if it returns without exiting).
+Handler signature: `handler(parser_node, err)`. Prefer calling `sys.exit()`
+yourself. If the handler returns an `int`, Clak exits with that code. If it
+returns without an int, Clak exits with `err.rc` (default 1).
 
 ## Map third-party libraries
 

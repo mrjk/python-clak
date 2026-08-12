@@ -7,6 +7,8 @@ Purpose:
   - Illustrate how to use Meta to customize parser behavior
 """
 
+import sys
+
 import clak.exception as exception
 
 # import os
@@ -19,14 +21,14 @@ from clak import Argument, Command, Parser
 class CustomError(Exception):
     """A custom error for demonstration."""
 
-    pass
+    rc = 1
 
 
-def handle_custom_error(app, err):
-    """Custom handler for CustomError."""
-    print(f"Caught CustomError: {err}")
-    print("This is handled by our custom handler!")
-    return 42  # Custom exit code
+def handle_custom_error(_app, err):
+    """Custom handler for CustomError; return int exit code."""
+    print(f"Caught CustomError: {err}", file=sys.stderr)
+    print("This is handled by our custom handler!", file=sys.stderr)
+    return 42
 
 
 class AppException(Exception):
@@ -61,7 +63,7 @@ class AppMain(Parser):
         "Store Main app settings"
 
         known_exceptions = [
-            CustomError,
+            (CustomError, handle_custom_error),
             AppException,
         ]
 
