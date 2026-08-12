@@ -9,11 +9,11 @@ import textwrap
 
 from clak.exception import ClakUserError
 from clak.views.base import (
-    DEFAULT_WIDTH_MODE,
+    DEFAULT_LINE_LENGTH,
     TEXT_FORMATS,
     ClakView,
     pformat_truncated,
-    resolve_view_width,
+    resolve_line_length,
 )
 
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
@@ -29,16 +29,18 @@ def _as_text(payload) -> str:
     return str(payload)
 
 
-def _wrap_text(text: str, width=None, term_width=None, stdout_tty=None, **_) -> str:
-    """Optionally wrap plain text to the resolved view width."""
-    mode, term_budget = resolve_view_width(
-        width=width if width is not None else DEFAULT_WIDTH_MODE,
+def _wrap_text(
+    text: str, line_length=None, term_width=None, stdout_tty=None, **_
+) -> str:
+    """Optionally wrap plain text to the resolved line length."""
+    wrap, budget = resolve_line_length(
+        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
         term_width=term_width,
         stdout_tty=stdout_tty,
     )
-    if mode == "min" or term_budget is None:
+    if not wrap or budget is None:
         return text
-    return textwrap.fill(text, width=term_budget, replace_whitespace=False)
+    return textwrap.fill(text, width=budget, replace_whitespace=False)
 
 
 def require_rich():
@@ -71,28 +73,32 @@ def require_docutils():
     return docutils_core
 
 
-def render_markdown_text(text: str, width=None, term_width=None, stdout_tty=None, **_):
+def render_markdown_text(
+    text: str, line_length=None, term_width=None, stdout_tty=None, **_
+):
     """Render markdown source to terminal text via rich."""
     rich_console, rich_markdown = require_rich()
-    mode, term_budget = resolve_view_width(
-        width=width if width is not None else DEFAULT_WIDTH_MODE,
+    wrap, budget = resolve_line_length(
+        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
         term_width=term_width,
         stdout_tty=stdout_tty,
     )
     console_kwargs = {"force_terminal": True, "soft_wrap": True}
-    if mode != "min" and term_budget is not None:
-        console_kwargs["width"] = term_budget
+    if wrap and budget is not None:
+        console_kwargs["width"] = budget
     console = rich_console.Console(**console_kwargs)
     with console.capture() as capture:
         console.print(rich_markdown.Markdown(text))
     return capture.get().rstrip("\n")
 
 
-def render_rst_text(text: str, width=None, term_width=None, stdout_tty=None, **_):
+def render_rst_text(
+    text: str, line_length=None, term_width=None, stdout_tty=None, **_
+):
     """Render reStructuredText source to plain text via docutils."""
     docutils_core = require_docutils()
-    mode, term_budget = resolve_view_width(
-        width=width if width is not None else DEFAULT_WIDTH_MODE,
+    wrap, budget = resolve_line_length(
+        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
         term_width=term_width,
         stdout_tty=stdout_tty,
     )
@@ -114,8 +120,8 @@ def render_rst_text(text: str, width=None, term_width=None, stdout_tty=None, **_
     if body:
         chunks.append(_html_to_plain(body))
     plain = "\n\n".join(chunk for chunk in chunks if chunk).strip()
-    if mode != "min" and term_budget is not None:
-        return textwrap.fill(plain, width=term_budget, replace_whitespace=False)
+    if wrap and budget is not None:
+        return textwrap.fill(plain, width=budget, replace_whitespace=False)
     return plain
 
 
@@ -143,7 +149,7 @@ class PprintView(ClakView):
     "Render any payload with pprint"
 
     settings_default = {
-        "width": DEFAULT_WIDTH_MODE,
+        "line_length": DEFAULT_LINE_LENGTH,
     }
 
     def render(self, *args, stdout=True, **kwargs):
@@ -158,7 +164,7 @@ class RawView(ClakView):
     "Render payload as plain text"
 
     settings_default = {
-        "width": DEFAULT_WIDTH_MODE,
+        "line_length": DEFAULT_LINE_LENGTH,
     }
 
     def render(self, *args, stdout=True, **kwargs):
@@ -174,7 +180,7 @@ class MarkdownView(ClakView):
     "Render markdown text (or raw source with format=raw)"
 
     settings_default = {
-        "width": DEFAULT_WIDTH_MODE,
+        "line_length": DEFAULT_LINE_LENGTH,
         "format": "view",
     }
 
@@ -199,7 +205,7 @@ class RstView(ClakView):
     "Render reStructuredText (or raw source with format=raw)"
 
     settings_default = {
-        "width": DEFAULT_WIDTH_MODE,
+        "line_length": DEFAULT_LINE_LENGTH,
         "format": "view",
     }
 

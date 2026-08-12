@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 
 import pytest
 
@@ -24,7 +25,9 @@ from clak.views import (
     ShowView,
     merge_view_settings,
     parse_columns,
+    parse_line_length,
     parse_sort_columns,
+    resolve_line_length,
     resolve_view_width,
 )
 
@@ -107,12 +110,12 @@ def test_merge_view_settings_no_warning_when_unset(caplog):
 
 
 def test_resolve_view_width_modes():
-    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
-        "min",
+    assert resolve_view_width(width="content", term_width=80, stdout_tty=True) == (
+        "content",
         None,
     )
-    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
-        "auto",
+    assert resolve_view_width(width="fit", term_width=80, stdout_tty=True) == (
+        "fit",
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=True) == (
@@ -120,13 +123,52 @@ def test_resolve_view_width_modes():
         80,
     )
     assert resolve_view_width(width="terminal", term_width=80, stdout_tty=False) == (
-        "min",
+        "content",
         None,
     )
-    assert resolve_view_width(width="auto", term_width=None, stdout_tty=True) == (
-        "min",
+    assert resolve_view_width(width="fit", term_width=None, stdout_tty=True) == (
+        "content",
         None,
     )
+
+
+def test_resolve_view_width_aliases_min_auto():
+    assert resolve_view_width(width="min", term_width=80, stdout_tty=True) == (
+        "content",
+        None,
+    )
+    assert resolve_view_width(width="auto", term_width=80, stdout_tty=True) == (
+        "fit",
+        80,
+    )
+
+
+def test_resolve_line_length_default_caps_at_120():
+    assert resolve_line_length(
+        line_length=120, term_width=200, stdout_tty=True
+    ) == (True, 120)
+    assert resolve_line_length(
+        line_length=120, term_width=80, stdout_tty=True
+    ) == (True, 80)
+
+
+def test_resolve_line_length_terminal_nowrap_and_nontty():
+    assert resolve_line_length(
+        line_length="terminal", term_width=200, stdout_tty=True
+    ) == (True, 200)
+    assert resolve_line_length(
+        line_length="nowrap", term_width=200, stdout_tty=True
+    ) == (False, None)
+    assert resolve_line_length(
+        line_length=80, term_width=200, stdout_tty=False
+    ) == (False, None)
+
+
+def test_parse_line_length_rejects_zero():
+    with pytest.raises(ValueError, match="nowrap"):
+        parse_line_length(0)
+    with pytest.raises(ValueError, match="nowrap"):
+        parse_line_length("0")
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +270,7 @@ def test_pprint_view_mixin_auto_renders(capsys):
         def cli_run(self, **_):
             return {"name": "ada", "nested": {"a": 1}}
 
-    App(parse=False, add_help=False).dispatch(["--width", "min"])
+    App(parse=False, add_help=False).dispatch(["--line-length", "nowrap"])
 
     assert "ada" in capsys.readouterr().out
 
@@ -240,9 +282,9 @@ def test_list_view_mixin_width_cli_option():
 
     app = App(parse=False, add_help=False)
     assert "--width" in _option_flags(app)
-    app.dispatch(["--width", "auto"])
+    app.dispatch(["--width", "fit"])
     settings = getattr(app, "_clak_view_settings", {})
-    assert settings.get("width") == "auto"
+    assert settings.get("width") == "fit"
     assert "term_width" in settings
     assert "stdout_tty" in settings
 
@@ -257,7 +299,7 @@ def test_list_view_mixin_meta_view_width():
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("width") == "min"
+    assert getattr(app, "_clak_view_settings", {}).get("width") == "content"
 
 
 def test_list_view_mixin_wrap_cli_option():
@@ -716,15 +758,17 @@ def test_show_view_mixin_exposes_table_options_not_expand_keys():
     assert "--width" in flags
     assert "--wrap" in flags
     assert "--expand-keys" not in flags
+    assert "--line-length" not in flags
 
 
-def test_pprint_view_mixin_exposes_only_width():
+def test_pprint_view_mixin_exposes_only_line_length():
     class App(PprintViewMixin, Parser):
         def cli_run(self, **_):
             return USERS
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--width" in flags
+    assert "--line-length" in flags
+    assert "--width" not in flags
     assert "--columns" not in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
@@ -915,13 +959,14 @@ def test_raw_view_mixin_prints_text(capsys):
     assert capsys.readouterr().out.strip() == "plain text line"
 
 
-def test_raw_view_mixin_exposes_only_width():
+def test_raw_view_mixin_exposes_only_line_length():
     class App(RawViewMixin, Parser):
         def cli_run(self, **_):
             return "x"
 
     flags = _option_flags(App(parse=False, add_help=False))
-    assert "--width" in flags
+    assert "--line-length" in flags
+    assert "--width" not in flags
     assert "--format" not in flags
     assert "--wrap" not in flags
     assert "--columns" not in flags
@@ -961,6 +1006,8 @@ def test_markdown_view_mixin_format_choices_are_text_only():
     assert "yaml" not in help_text
     assert "csv" not in help_text
     assert "--wrap" not in help_text
+    assert "--line-length" in help_text
+    assert "--width" not in help_text
 
 
 def test_list_view_mixin_format_choices_remain_table():
@@ -973,6 +1020,8 @@ def test_list_view_mixin_format_choices_remain_table():
         "yaml" in help_text and "json" in help_text and "csv" in help_text
     )
     assert "raw" not in help_text.split("--format")[1].split("\n")[0]
+    assert "--width" in help_text
+    assert "--line-length" not in help_text
 
 
 def test_markdown_view_renders_with_rich(capsys):
@@ -1270,6 +1319,8 @@ def test_composite_view_mixin_exposes_format_scope_flag():
     flags = _option_flags(App(parse=False, add_help=False))
     assert "--format-scope" in flags
     assert "--expand-keys" in flags
+    assert "--width" in flags
+    assert "--line-length" in flags
 
 
 def test_composite_view_mixin_can_hide_expand_keys():
@@ -1296,3 +1347,137 @@ def test_composite_unknown_primary_raises():
             [("users", ListView([{"name": "ada"}]))],
             primary="missing",
         ).render(stdout=False)
+
+
+def _max_plain_line(text: str) -> int:
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", text)
+    lines = plain.splitlines() or [""]
+    return max(len(line) for line in lines)
+
+
+LONG_PROSE = "word " * 50
+
+
+def test_raw_view_default_line_length_caps_at_120():
+    out = RawView(LONG_PROSE).render(
+        stdout=False, term_width=200, stdout_tty=True
+    )
+    assert _max_plain_line(out) <= 120
+
+
+def test_raw_view_line_length_follows_narrow_terminal():
+    out = RawView(LONG_PROSE).render(
+        stdout=False, term_width=80, stdout_tty=True
+    )
+    assert _max_plain_line(out) <= 80
+
+
+def test_raw_view_line_length_terminal_uses_full_term():
+    out = RawView(LONG_PROSE).render(
+        stdout=False,
+        line_length="terminal",
+        term_width=200,
+        stdout_tty=True,
+    )
+    assert _max_plain_line(out) <= 200
+    assert _max_plain_line(out) > 120
+
+
+def test_raw_view_line_length_nowrap_does_not_wrap():
+    out = RawView(LONG_PROSE).render(
+        stdout=False,
+        line_length="nowrap",
+        term_width=40,
+        stdout_tty=True,
+    )
+    assert LONG_PROSE.strip() in out
+    assert _max_plain_line(out) > 120
+
+
+def test_raw_view_line_length_80_caps():
+    out = RawView(LONG_PROSE).render(
+        stdout=False, line_length=80, term_width=200, stdout_tty=True
+    )
+    assert _max_plain_line(out) <= 80
+
+
+def test_list_view_width_terminal_uses_full_term():
+    rows = [{"name": "ada", "role": "admin", "city": "London"}]
+    out = ListView(rows).render(
+        stdout=False, width="terminal", term_width=80, stdout_tty=True
+    )
+    first = re.sub(r"\x1b\[[0-9;]*m", "", out.splitlines()[0])
+    assert len(first) == 80
+
+
+def test_list_view_width_content_is_content_sized():
+    rows = [{"name": "ada"}]
+    out = ListView(rows).render(
+        stdout=False, width="content", term_width=80, stdout_tty=True
+    )
+    first = re.sub(r"\x1b\[[0-9;]*m", "", out.splitlines()[0])
+    assert len(first) < 80
+
+
+def test_markdown_view_mixin_line_length_cli():
+    class App(MarkdownViewMixin, Parser):
+        def cli_run(self, **_):
+            return LONG_PROSE
+
+    app = App(parse=False, add_help=False)
+    app.dispatch(["--format", "raw", "--line-length", "80"])
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings.get("line_length") == 80
+
+
+def test_markdown_view_meta_line_length_nowrap():
+    class App(MarkdownViewMixin, Parser):
+        class Meta:
+            view_line_length = "nowrap"
+            view_format = "raw"
+
+        def cli_run(self, **_):
+            return LONG_PROSE
+
+    app = App(parse=False, add_help=False)
+    app.dispatch([])
+    assert getattr(app, "_clak_view_settings", {}).get("line_length") == "nowrap"
+
+
+def test_parent_view_width_does_not_apply_to_markdown():
+    class Docs(MarkdownViewMixin, Parser):
+        def cli_run(self, **_):
+            return "x"
+
+    class Root(Parser):
+        class Meta:
+            view_width = "content"
+
+        docs = Command(Docs)
+
+    root = Root(parse=False, add_help=False)
+    root.dispatch(["docs"])
+    settings = getattr(root, "_clak_view_settings", {})
+    assert "width" not in settings
+    assert "--width" not in _option_flags(Docs(parse=False, add_help=False))
+
+
+def test_composite_line_length_does_not_shrink_tables():
+    from clak.views import CompositeView
+
+    long_note = "word " * 40
+    out = CompositeView(
+        [
+            ("users", ListView([{"name": "ada", "role": "admin"}])),
+            ("notes", RawView(long_note)),
+        ],
+        width="terminal",
+        line_length=40,
+        term_width=80,
+        stdout_tty=True,
+    ).render(stdout=False)
+    blocks = [b for b in out.split("\n\n") if b.strip()]
+    table_width = _max_plain_line(blocks[0].splitlines()[0])
+    note_width = _max_plain_line(blocks[1])
+    assert table_width == 80
+    assert note_width <= 40

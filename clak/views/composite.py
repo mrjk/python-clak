@@ -10,6 +10,7 @@ from typing import List, Optional, Sequence, Tuple
 
 from clak.views.base import (
     DEFAULT_FORMAT_SCOPE,
+    DEFAULT_LINE_LENGTH,
     DEFAULT_WIDTH_MODE,
     DEFAULT_WRAP_MODE,
     FORMAT_SCOPES,
@@ -28,6 +29,7 @@ from clak.views.table_formatter import require_yaml
 from clak.views.text import MarkdownView, PprintView, RawView, RstView
 
 _SHARED_SETTINGS = frozenset({"width", "wrap", "term_width", "stdout_tty"})
+_TEXT_SETTINGS = frozenset({"line_length", "term_width", "stdout_tty"})
 _PRIMARY_TABLE_SETTINGS = frozenset(
     {"columns", "sort_columns", "sort_mode", "add_index"}
 )
@@ -105,6 +107,7 @@ class CompositeView(ClakView):
     settings_default = {
         "width": DEFAULT_WIDTH_MODE,
         "wrap": DEFAULT_WRAP_MODE,
+        "line_length": DEFAULT_LINE_LENGTH,
         "format": "view",
         "format_scope": DEFAULT_FORMAT_SCOPE,
     }
@@ -163,7 +166,10 @@ class CompositeView(ClakView):
     @staticmethod
     def _settings_for_child(view, settings, *, is_primary, format=None):
         """Build kwargs for a child render; table CLI opts apply to primary only."""
-        child = {key: settings[key] for key in _SHARED_SETTINGS if key in settings}
+        if isinstance(view, (ShowView, ListView)):
+            child = {key: settings[key] for key in _SHARED_SETTINGS if key in settings}
+        else:
+            child = {key: settings[key] for key in _TEXT_SETTINGS if key in settings}
         if format is not None:
             child["format"] = format
         if is_primary and isinstance(view, FeatureFullViewer):
@@ -218,7 +224,7 @@ class CompositeView(ClakView):
             return settings
 
         measure_settings = dict(settings)
-        measure_settings["width"] = "min"
+        measure_settings["width"] = "content"
         naturals = []
         for name, view in tables:
             child_kw = self._settings_for_child(
@@ -235,10 +241,10 @@ class CompositeView(ClakView):
             return settings
 
         max_natural = max(naturals)
-        if mode == "auto" and term_budget is not None:
+        if mode == "fit" and term_budget is not None:
             target = term_budget if max_natural > term_budget else max_natural
         else:
-            # min (or auto without budget): equalize to widest natural table
+            # content (or fit without budget): equalize to widest natural table
             target = max_natural
 
         out = dict(settings)

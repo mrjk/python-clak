@@ -21,6 +21,7 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
       members:
         - ClakViewOptMixin
         - TableViewOptMixin
+        - TextLayoutOptMixin
         - TextViewOptMixin
         - ShowViewMixin
         - ListViewMixin
@@ -50,8 +51,12 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - normalize_sections
         - format_show_payload
         - resolve_view_width
+        - resolve_line_length
+        - parse_line_length
+        - normalize_width_mode
         - OUTPUT_FORMATS
         - TEXT_FORMATS
         - FORMAT_SCOPES
         - WIDTH_MODES
         - WRAP_MODES
+        - DEFAULT_LINE_LENGTH

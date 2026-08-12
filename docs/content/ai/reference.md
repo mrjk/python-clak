@@ -181,20 +181,22 @@ class App(ListViewMixin, Parser):
 
 ShowViewMixin  — one record
 ListViewMixin  — many rows
-PprintViewMixin — pprint; --width
-RawViewMixin — plain text; --width
-MarkdownViewMixin — markdown text; --format view|raw, --width
-RstViewMixin — reStructuredText; --format view|raw, --width
-CompositeViewMixin — return CompositeView(...); table flags + --format-scope first|all
+PprintViewMixin — pprint; --line-length
+RawViewMixin — plain text; --line-length
+MarkdownViewMixin — markdown text; --format view|raw, --line-length
+RstViewMixin — reStructuredText; --format view|raw, --line-length
+CompositeViewMixin — return CompositeView(...); table flags + --line-length + --format-scope first|all
 
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
   --format view|yaml|json|csv, --sort-columns, --sort-mode,
-  --width min|auto|terminal (default terminal; no wrap when non-TTY),
+  --width content|fit|terminal (default terminal; no wrap when non-TTY),
   --wrap last|all (tables only; default last; only when fitting to terminal)
-Flags (markdown/rst): --format view|raw (view=rendered, raw=source), --width
-Flags (composite): table flags + --format-scope first|all (machine export)
-Meta.view_width sets the default width mode.
+Flags (markdown/rst/raw/pprint): --line-length N|terminal|nowrap (default 120)
+Flags (markdown/rst): --format view|raw (view=rendered, raw=source)
+Flags (composite): table flags + --line-length + --format-scope first|all
+Meta.view_width sets the default table width mode.
+Meta.view_line_length sets the default text wrap (int, terminal, or nowrap).
 Meta.view_wrap sets the default table wrap mode.
 Meta.view_format_scope sets CompositeView machine export scope.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).

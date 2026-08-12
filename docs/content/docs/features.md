@@ -43,8 +43,10 @@ Mix in only what you need:
 - Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`,
   `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`, `CompositeViewMixin`.
 - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
-  `--sort-mode`. Text markdown/rst use `--format view|raw`. Composite uses
-  `--format-scope first|all` for multi-section machine export.
+  `--sort-mode`, `--width content|fit|terminal`. Text uses `--line-length`
+  (`N`/`terminal`/`nowrap`, default 120). Markdown/rst also use
+  `--format view|raw`. Composite uses `--format-scope first|all` for
+  multi-section machine export.
 - Markdown render: `mrjk.clak[markdown]`; RST render: `mrjk.clak[rst]`.
 - Guide: [Views](views.md).
 

@@ -2,14 +2,16 @@
 
 Option layers (mirror ClakView hierarchy):
 
-1. ClakViewOptMixin — generic: ``width``
-2. TableViewOptMixin — table (Show/List): ``format``, ``columns``,
+1. ClakViewOptMixin — generic (no CLI flags)
+2. TableViewOptMixin — table (Show/List): ``width``, ``format``, ``columns``,
    ``sort_columns``, ``sort_mode``, ``wrap``, ``add_index``
 3. ListViewMixin — list-only: ``expand_keys``
-4. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
-5. PprintViewMixin / RawViewMixin — enables only ``width``
-6. CompositeViewMixin — multi-section: table opts + ``expand_keys`` +
-   ``format_scope`` (return a ``CompositeView``; no auto ``cli_view``)
+4. TextLayoutOptMixin — text wrap: ``line_length``
+5. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
+   plus ``line_length``
+6. PprintViewMixin / RawViewMixin — ``line_length`` only
+7. CompositeViewMixin — table opts + ``expand_keys`` + ``format_scope`` +
+   ``line_length`` (return a ``CompositeView``; no auto ``cli_view``)
 
 Example:
 
@@ -51,16 +53,18 @@ from clak.views import (
     ShowView,
     normalize_columns,
     normalize_sort_columns,
+    normalize_width_mode,
     parse_columns,
+    parse_line_length,
     parse_sort_columns,
 )
 
 logger = logging.getLogger(__name__)
 
 # Layer option dest sets (explicit unions avoid MRO drift)
-_LAYER_GENERIC_DESTS = frozenset({"width"})
 _LAYER_TABLE_DESTS = frozenset(
     {
+        "width",
         "format",
         "columns",
         "sort_columns",
@@ -70,14 +74,15 @@ _LAYER_TABLE_DESTS = frozenset(
     }
 )
 _LAYER_LIST_DESTS = frozenset({"expand_keys"})
+_LAYER_TEXT_LAYOUT_DESTS = frozenset({"line_length"})
 _LAYER_TEXT_DESTS = frozenset({"format"})
 _LAYER_COMPOSITE_DESTS = frozenset({"format_scope"})
 
 # All known view CLI dests (used to filter Argument collection)
 _VIEW_CLI_OPTION_DESTS = (
-    _LAYER_GENERIC_DESTS
-    | _LAYER_TABLE_DESTS
+    _LAYER_TABLE_DESTS
     | _LAYER_LIST_DESTS
+    | _LAYER_TEXT_LAYOUT_DESTS
     | _LAYER_TEXT_DESTS
     | _LAYER_COMPOSITE_DESTS
 )
@@ -94,14 +99,18 @@ _SORT_COLUMNS_HELP = (
     "values start with '-'."
 )
 _WIDTH_HELP = (
-    "View width mode: min (content-sized), auto (wrap if wider than "
-    "terminal), terminal (always terminal width). No wrap when stdout "
+    "Table width: content (size to data), fit (shrink if wider than "
+    "terminal), terminal (use terminal width). No wrap when stdout "
     "is not a TTY."
 )
 _WRAP_HELP = (
     "Table column wrap when fitting to terminal: last (rightmost "
-    "column only), all (any column). Ignored when width is min or "
+    "column only), all (any column). Ignored when width is content or "
     "stdout is not a TTY."
+)
+_LINE_LENGTH_HELP = (
+    "Wrap text at N columns (default 120), terminal, or nowrap. "
+    "No wrap when stdout is not a TTY."
 )
 _FORMAT_HELP = "Output format (default: view table)"
 _TEXT_FORMAT_HELP = "Output format: view (rendered) or raw (source). Default: view"
@@ -212,6 +221,7 @@ class _ViewMixinBase(PluginHelpers):
             "format",
             "format_scope",
             "sort_mode",
+            "line_length",
         ):
             if key not in enabled:
                 continue
@@ -234,7 +244,8 @@ class _ViewMixinBase(PluginHelpers):
             ("columns", "view_columns", normalize_columns),
             ("sort_columns", "view_sort_columns", normalize_sort_columns),
             ("sort_mode", "view_sort_mode", None),
-            ("width", "view_width", None),
+            ("width", "view_width", normalize_width_mode),
+            ("line_length", "view_line_length", parse_line_length),
             ("wrap", "view_wrap", None),
             ("format", "view_format", None),
             ("format_scope", "view_format_scope", None),
@@ -272,12 +283,18 @@ class _ViewMixinBase(PluginHelpers):
 
 
 class ClakViewOptMixin(_ViewMixinBase):
-    """Layer 1: generic ClakView output options (``width``)."""
+    """Layer 1: generic ClakView (no CLI flags)."""
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS
+    _view_cli_option_names = frozenset()
+
+
+class TableViewOptMixin(ClakViewOptMixin):
+    """Layer 2: table view options shared by Show and List."""
+
+    _view_cli_option_names = _LAYER_TABLE_DESTS
 
     meta__config__view_width = MetaSetting(
-        help="Default view width mode: min, auto, or terminal",
+        help="Default table width: content, fit, or terminal",
     )
     meta__view_width = None
 
@@ -288,12 +305,6 @@ class ClakViewOptMixin(_ViewMixinBase):
         group=_OUTPUT_OPTIONS_GROUP,
         help=_WIDTH_HELP,
     )
-
-
-class TableViewOptMixin(ClakViewOptMixin):
-    """Layer 2: table view options shared by Show and List."""
-
-    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS
 
     meta__config__view_columns = MetaSetting(
         help=(
@@ -390,7 +401,7 @@ class ShowViewMixin(TableViewOptMixin):
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS
+    _view_cli_option_names = _LAYER_TABLE_DESTS
     meta__cli_view = ShowView
 
 
@@ -403,9 +414,7 @@ class ListViewMixin(TableViewOptMixin):
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = (
-        _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS
-    )
+    _view_cli_option_names = _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS
     meta__cli_view = ListView
 
     meta__config__view_expand_keys = MetaSetting(
@@ -422,20 +431,40 @@ class ListViewMixin(TableViewOptMixin):
     )
 
 
-class PprintViewMixin(ClakViewOptMixin):
+class TextLayoutOptMixin(ClakViewOptMixin):
+    """Text wrap options shared by Raw, Pprint, Markdown, Rst, and Composite."""
+
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS
+
+    meta__config__view_line_length = MetaSetting(
+        help="Default text wrap: positive int, terminal, or nowrap",
+    )
+    meta__view_line_length = None
+
+    line_length = Argument(
+        "--line-length",
+        type=parse_line_length,
+        default=None,
+        metavar="N|terminal|nowrap",
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_LINE_LENGTH_HELP,
+    )
+
+
+class PprintViewMixin(TextLayoutOptMixin):
     """Auto-render command results with :class:`~clak.views.PprintView`.
 
-    Adds ``--width``. Configure exposed flags with ``Meta.view_cli_options``.
+    Adds ``--line-length``. Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS
     meta__cli_view = PprintView
 
 
-class TextViewOptMixin(ClakViewOptMixin):
+class TextViewOptMixin(TextLayoutOptMixin):
     """Layer 2: text view options shared by Markdown and Rst."""
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS | _LAYER_TEXT_DESTS
 
     meta__config__view_format = MetaSetting(
         help="Default output format: view (rendered) or raw (source)",
@@ -451,44 +480,45 @@ class TextViewOptMixin(ClakViewOptMixin):
     )
 
 
-class RawViewMixin(ClakViewOptMixin):
+class RawViewMixin(TextLayoutOptMixin):
     """Auto-render command results with :class:`~clak.views.RawView`.
 
-    Adds ``--width``. Configure exposed flags with ``Meta.view_cli_options``.
+    Adds ``--line-length``. Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS
     meta__cli_view = RawView
 
 
 class MarkdownViewMixin(TextViewOptMixin):
     """Auto-render command results with :class:`~clak.views.MarkdownView`.
 
-    Adds ``--format`` (``view`` / ``raw``) and ``--width``.
+    Adds ``--format`` (``view`` / ``raw``) and ``--line-length``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS | _LAYER_TEXT_DESTS
     meta__cli_view = MarkdownView
 
 
 class RstViewMixin(TextViewOptMixin):
     """Auto-render command results with :class:`~clak.views.RstView`.
 
-    Adds ``--format`` (``view`` / ``raw``) and ``--width``.
+    Adds ``--format`` (``view`` / ``raw``) and ``--line-length``.
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+    _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS | _LAYER_TEXT_DESTS
     meta__cli_view = RstView
 
 
-class CompositeViewMixin(TableViewOptMixin):
+class CompositeViewMixin(TextLayoutOptMixin, TableViewOptMixin):
     """CLI flags for multi-section :class:`~clak.views.CompositeView` output.
 
-    Adds table options, ``--expand-keys``, ``--format-scope``, and ``--width``.
-    Does **not** set ``Meta.cli_view``: return a ``CompositeView(...)`` from
-    ``cli_run``. Table flags apply to the primary section only.
+    Adds table options, ``--expand-keys``, ``--format-scope``, ``--width``,
+    and ``--line-length``. Does **not** set ``Meta.cli_view``: return a
+    ``CompositeView(...)`` from ``cli_run``. Table flags apply to the primary
+    section only. ``--line-length`` applies to text/pprint sections only.
     ``--expand-keys`` is for a ListView primary; hide it with
     ``Meta.view_cli_options`` when the primary is ShowView.
     ``--format`` is table-scoped (``view`` / ``yaml`` / ``json`` / ``csv``);
@@ -496,10 +526,10 @@ class CompositeViewMixin(TableViewOptMixin):
     """
 
     _view_cli_option_names = (
-        _LAYER_GENERIC_DESTS
-        | _LAYER_TABLE_DESTS
+        _LAYER_TABLE_DESTS
         | _LAYER_LIST_DESTS
         | _LAYER_COMPOSITE_DESTS
+        | _LAYER_TEXT_LAYOUT_DESTS
     )
 
     meta__config__view_format_scope = MetaSetting(

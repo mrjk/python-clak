@@ -10,16 +10,18 @@ names are stable; each option is defined once and inherited.
 
 | Layer | Options | Who enables |
 | --- | --- | --- |
-| Generic (`ClakView`) | `--width` | Show, List, Pprint, Raw, Markdown, Rst, Composite |
-| Table (Show + List) | `--format` (`view`/`yaml`/`json`/`csv`), `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List, Composite |
+| Generic (`ClakView`) | (none) | - |
+| Table (Show + List) | `--width` (`content`/`fit`/`terminal`), `--format` (`view`/`yaml`/`json`/`csv`), `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List, Composite |
 | List-only | `--expand-keys` / `--no-expand-keys` | List, Composite |
+| Text layout | `--line-length` (`N`/`terminal`/`nowrap`) | Raw, Pprint, Markdown, Rst, Composite |
 | Text (Markdown + Rst) | `--format` (`view`/`raw`) | Markdown, Rst |
 | Composite | `--format-scope` (`first`/`all`) | Composite |
 
 Matching `Meta.view_*` defaults exist for every option (`view_width`,
-`view_format`, `view_format_scope`, `view_columns`, `view_sort_columns`,
-`view_sort_mode`, `view_wrap`, `view_add_index`, `view_expand_keys`, plus
-`view_column_names` for help text and `view_cli_options` to filter flags).
+`view_line_length`, `view_format`, `view_format_scope`, `view_columns`,
+`view_sort_columns`, `view_sort_mode`, `view_wrap`, `view_add_index`,
+`view_expand_keys`, plus `view_column_names` for help text and
+`view_cli_options` to filter flags).
 
 ## Pick a mixin
 
@@ -30,11 +32,11 @@ matching CLI flags:
 | --- | --- | --- | --- |
 | `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
-| `PprintViewMixin` | `PprintView` | any payload | `--width` |
-| `RawViewMixin` | `RawView` | plain text | `--width` |
-| `MarkdownViewMixin` | `MarkdownView` | markdown source text | `--format`, `--width` |
-| `RstViewMixin` | `RstView` | reStructuredText source | `--format`, `--width` |
-| `CompositeViewMixin` | (return `CompositeView`) | primary table + extras | table flags + `--expand-keys` + `--format-scope` + `--width` |
+| `PprintViewMixin` | `PprintView` | any payload | `--line-length` |
+| `RawViewMixin` | `RawView` | plain text | `--line-length` |
+| `MarkdownViewMixin` | `MarkdownView` | markdown source text | `--format`, `--line-length` |
+| `RstViewMixin` | `RstView` | reStructuredText source | `--format`, `--line-length` |
+| `CompositeViewMixin` | (return `CompositeView`) | primary table + extras | table flags + `--expand-keys` + `--format-scope` + `--line-length` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
 raw return values are **not** printed. `CompositeViewMixin` does not set
@@ -102,18 +104,22 @@ View flags appear under an **Output options** group in `--help` (same
 | `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
 | `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
-| `--width` | `min`, `auto`, `terminal` | `terminal` | View width mode (see below) |
+| `--width` | `content`, `fit`, `terminal` | `terminal` | Table width mode (see below) |
 | `--wrap` | `last`, `all` | `last` | Table column wrap when fitting (see below) |
 
-### View width (`--width`)
+### Table width (`--width`)
 
-Shared by show, list, pprint, and text backends (when they implement it):
+Table backends only (`ShowView` / `ListView` / `CompositeView` tables). Text
+views use `--line-length` instead.
 
 | Mode | Effect on TTY | Non-TTY |
 | --- | --- | --- |
-| `min` | Content-sized (no wrap) | Same |
-| `auto` | Content-sized; wrap if wider than the terminal | No wrap (`min`) |
-| `terminal` | Always use terminal width (tables expand/wrap) | No wrap (`min`) |
+| `content` | Size to data (no wrap) | Same |
+| `fit` | Size to data; wrap if wider than the terminal | No wrap (`content`) |
+| `terminal` | Always use the terminal width (tables expand/wrap) | No wrap (`content`) |
+
+Aliases `min` -> `content` and `auto` -> `fit` still work in Meta and when
+passed to a view constructor. Help shows the new names only.
 
 Terminal size comes from `ctx.runtime` (`term_width`, honors `CLAK_COLUMNS`).
 Default Meta override:
@@ -121,7 +127,7 @@ Default Meta override:
 ```python
 class App(ListViewMixin, Parser):
     class Meta:
-        view_width = "auto"  # or "min" / "terminal"
+        view_width = "fit"  # or "content" / "terminal"
 ```
 
 CLI `--width` overrides `Meta.view_width`.
@@ -129,7 +135,7 @@ CLI `--width` overrides `Meta.view_width`.
 ### Table wrap (`--wrap`)
 
 Table backends only (`ShowView` / `ListView`). Ignored by pprint and text
-views, and ignored when width does not fit to the terminal (`min`, or non-TTY):
+views, and ignored when width does not fit to the terminal (`content`, or non-TTY):
 
 | Mode | Effect |
 | --- | --- |
@@ -149,11 +155,23 @@ CLI `--wrap` overrides `Meta.view_wrap`.
 Use these when `cli_run` returns a **text** payload (not tabular data). Pick the
 mixin that matches how you want it shown:
 
-| Mixin | Default | `--format` |
-| --- | --- | --- |
-| `RawViewMixin` | Print source as-is | (none) |
-| `MarkdownViewMixin` | Render markdown in the terminal | `view` (rendered) or `raw` (source) |
-| `RstViewMixin` | Render reStructuredText | `view` (rendered) or `raw` (source) |
+| Mixin | Default | `--format` | `--line-length` |
+| --- | --- | --- | --- |
+| `RawViewMixin` | Print source as-is | (none) | wrap at 120 (or `terminal` / `nowrap`) |
+| `MarkdownViewMixin` | Render markdown in the terminal | `view` (rendered) or `raw` (source) | same |
+| `RstViewMixin` | Render reStructuredText | `view` (rendered) or `raw` (source) | same |
+
+`--line-length` wraps prose at N columns (default 120, or the terminal if
+narrower), `terminal` (full terminal width), or `nowrap` (do not wrap). No wrap
+when stdout is not a TTY.
+
+```python
+class App(MarkdownViewMixin, Parser):
+    class Meta:
+        view_line_length = 80  # or "terminal" / "nowrap"
+```
+
+CLI `--line-length` overrides `Meta.view_line_length`.
 
 `--format` is **view-scoped**: table mixins use `view|yaml|json|csv`; markdown/rst
 use `view|raw`. There is no conflict because a command mixes in only one view
@@ -257,7 +275,7 @@ Use `Meta.view_cli_options`:
 | `("columns", "add_index")` | Expose a subset (`list` / `tuple` / `set` also work) |
 
 Option names are destinations: `columns`, `add_index`, `expand_keys`, `width`,
-`wrap`, `format`, `format_scope`, `sort_columns`, `sort_mode`.
+`wrap`, `format`, `format_scope`, `sort_columns`, `sort_mode`, `line_length`.
 Unknown names raise `ValueError`.
 
 ```python
@@ -334,8 +352,9 @@ class App(CompositeViewMixin, Parser):
 ```
 
 Human (`--format view`) output prints sections in order, separated by a blank
-line. Table sections share the same outer width (equalized under `--width min`
-/ `auto`; shared terminal budget under `--width terminal`).
+line. Table sections share the same outer width (equalized under `--width content`
+/ `fit`; shared terminal budget under `--width terminal`). Text sections follow
+`--line-length` (default 120) and are not stretched to the table border.
 
 Table CLI flags (`--columns`, `--sort-*`, `--add-index`, ...) apply to the
 **primary** section only (first section by default; override with
@@ -392,8 +411,8 @@ class App(ListViewMixin, Parser):
 
 - **Show** — one record as key/value (or index/value) rows.
 - **List** — many records as a multi-column table (`expand_keys` flattens nested dicts).
-- **Pprint** — `pprint`-style dump with shared `--width` modes.
-- **Composite** — ordered sections (tables and/or text) with shared table width
-  and optional machine envelope via `--format-scope`.
+- **Pprint** — `pprint`-style dump with `--line-length`.
+- **Composite** — ordered sections (tables and/or text) with shared table width,
+  `--line-length` for prose, and optional machine envelope via `--format-scope`.
 
 API details: [Views component](../api/plugin_views.md).

@@ -12,6 +12,7 @@ Functions:
 
 from clak.views.base import (
     DEFAULT_FORMAT_SCOPE,
+    DEFAULT_LINE_LENGTH,
     DEFAULT_WIDTH_MODE,
     DEFAULT_WRAP_MODE,
     FORMAT_SCOPES,
@@ -21,7 +22,10 @@ from clak.views.base import (
     WRAP_MODES,
     ClakView,
     merge_view_settings,
+    normalize_width_mode,
+    parse_line_length,
     pformat_truncated,
+    resolve_line_length,
     resolve_view_width,
 )
 from clak.views.composite import CompositeView, normalize_sections
@@ -51,6 +55,7 @@ __all__ = [
     "ClakView",
     "CompositeView",
     "DEFAULT_FORMAT_SCOPE",
+    "DEFAULT_LINE_LENGTH",
     "DEFAULT_WIDTH_MODE",
     "DEFAULT_WRAP_MODE",
     "FORMAT_SCOPES",
@@ -71,12 +76,15 @@ __all__ = [
     "normalize_columns",
     "normalize_sections",
     "normalize_sort_columns",
+    "normalize_width_mode",
     "parse_columns",
+    "parse_line_length",
     "parse_sort_columns",
     "pformat_truncated",
     "render_markdown_text",
     "render_rst_text",
     "require_docutils",
     "require_rich",
+    "resolve_line_length",
     "resolve_view_width",
 ]

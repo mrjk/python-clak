@@ -123,4 +123,4 @@ On NSS timeout: names are `None` / empty `groups`.
 ## Related
 
 - [Logging](logging.md) (`--log-colors` still has its own resolve path)
-- [Views](views.md) (`--width` uses `ctx.runtime.term_width` / `stdout_tty`)
+- [Views](views.md) (`--width` / `--line-length` use `ctx.runtime.term_width` / `stdout_tty`)

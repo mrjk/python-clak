@@ -204,7 +204,7 @@ def _apply_prettytable_width(
     stdout_tty=None,
     wrap="last",
 ):
-    """Apply min/auto/terminal width modes to a PrettyTable instance."""
+    """Apply content/fit/terminal width modes to a PrettyTable instance."""
     # Late import avoids circular dependency with clak.views.table
     from clak.views.base import (  # pylint: disable=import-outside-toplevel
         DEFAULT_WRAP_MODE,
@@ -215,7 +215,7 @@ def _apply_prettytable_width(
     mode, term_budget = resolve_view_width(
         width=width, term_width=term_width, stdout_tty=stdout_tty
     )
-    if mode == "min" or term_budget is None:
+    if mode == "content" or term_budget is None:
         return
 
     wrap_mode = wrap if wrap is not None else DEFAULT_WRAP_MODE
@@ -226,7 +226,7 @@ def _apply_prettytable_width(
         raise ValueError(f"wrap must be one of {sorted(WRAP_MODES)}, got {wrap_mode!r}")
 
     if wrap_mode == "all":
-        if mode == "auto":
+        if mode == "fit":
             table.max_table_width = term_budget
         elif mode == "terminal":
             table.min_table_width = term_budget
@@ -257,7 +257,7 @@ def _apply_last_column_wrap(table, mode, term_width):
     last_width = natural_widths[-1]
     last_field = table.field_names[-1]
 
-    if mode == "auto" and natural_border <= term_width:
+    if mode == "fit" and natural_border <= term_width:
         return
 
     budget = max(1, term_width - (natural_border - last_width))
