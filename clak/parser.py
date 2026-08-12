@@ -30,7 +30,9 @@ from clak.descriptors import (
     SubParser,
     prepare_docstring,
 )
+from clak.facts import detect_facts
 from clak.nodes import NOT_SET, Node
+from clak.runtime import detect_runtime
 from clak.settings import CLAK_DEBUG
 from clak.views import ClakView, merge_view_settings
 
@@ -108,6 +110,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     # Views support
     meta__config__cli_view = MetaSetting(
         help="class of the view to use",
+    )
+    meta__config__runtime_narrow_width = MetaSetting(
+        help="Column threshold for ctx.runtime.is_narrow (default 80)",
     )
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -687,6 +692,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # Shared data
         ctx["data"] = {}
         ctx["plugins"] = {}
+
+        narrow_width = self.query_cfg_parents("runtime_narrow_width", default=None)
+        ctx["runtime"] = detect_runtime(narrow_width=narrow_width)
+        ctx["facts"] = detect_facts()
 
         # Loop var init
         ctx["cli_first"] = True

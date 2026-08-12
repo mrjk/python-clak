@@ -56,6 +56,12 @@ Testing / libraries:
 cli_run signature: keyword args for destinations + often ctx, and **_.
 Parent destinations are included when nested.
 
+On ctx (attached once at execute start):
+  ctx.runtime  - core TTY/launch/display/size (eager, local)
+  ctx.facts    - optional OS sugar (lazy host/user/distro)
+  See docs: Runtime and facts. Meta.runtime_narrow_width configures is_narrow.
+  CLAK_FACTS_TIMEOUT default 30s for blocking fact resolves (-1 = none).
+
 Useful helpers on self:
   self.show_help() / show_usage()
   self.cli_exit(status, message=None)
@@ -103,6 +109,7 @@ class App(Parser):
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
+        runtime_narrow_width = 80          # ctx.runtime.is_narrow threshold
 
 Logging Meta (with LoggingOptMixin):
         log_prefix = __name__

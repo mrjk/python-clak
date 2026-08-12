@@ -71,6 +71,12 @@ Mix in only what you need:
 - Emit shell completion scripts with `CompCmdRender` (argcomplete).
 - Guide: [Completion](completion.md).
 
+### Runtime / facts
+
+- `ctx.runtime`: TTY, shell parent, color/size, pager (core CLI session).
+- `ctx.facts`: optional lazy host/user/distro helpers.
+- Guide: [Runtime and facts](runtime.md).
+
 ### Build your own
 
 - Package reusable mixins (options + hooks) the same way Clak’s components do.
