@@ -17,7 +17,8 @@ These are the current **star features** — each has user documentation:
 | XDG paths + config file load (`XDGConfigMixin`) | [Config](../docs/config.md) |
 | Shell completion script generation (`CompCmdRender`) | [Completion](../docs/completion.md) |
 
-Optional extras: `mrjk.clak[colors]` (coloredlogs), `mrjk.clak[config]` (PyYAML).
+Optional extras: `mrjk.clak[colors]` (coloredlogs), `mrjk.clak[config]` (PyYAML),
+`mrjk.clak[markdown]` (rich), `mrjk.clak[rst]` (docutils).
 
 ## Planned
 

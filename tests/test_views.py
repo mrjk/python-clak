@@ -1017,7 +1017,7 @@ def test_markdown_view_missing_rich_raises(monkeypatch):
     with pytest.raises(ClakUserError) as exc:
         MarkdownView("# hi").render(stdout=False)
     assert "rich" in str(exc.value.message).lower()
-    assert "pip install rich" in (exc.value.advice or "")
+    assert "mrjk.clak[markdown]" in (exc.value.advice or "")
 
 
 def test_rst_view_missing_docutils_raises(monkeypatch):
@@ -1035,7 +1035,7 @@ def test_rst_view_missing_docutils_raises(monkeypatch):
     with pytest.raises(ClakUserError) as exc:
         RstView("Title\n=====\n").render(stdout=False)
     assert "docutils" in str(exc.value.message).lower()
-    assert "pip install docutils" in (exc.value.advice or "")
+    assert "mrjk.clak[rst]" in (exc.value.advice or "")
 
 
 def test_markdown_view_meta_view_format_raw(capsys):
@@ -1166,6 +1166,57 @@ def test_composite_primary_override_and_columns():
     assert json.loads(out) == [{"label": "x"}]
 
 
+def test_composite_show_view_primary_with_markdown():
+    pytest.importorskip("rich")
+    from clak.views import CompositeView
+
+    out = CompositeView(
+        [
+            ("summary", ShowView({"App": "demo:web", "Name": "Demo"})),
+            ("docs", MarkdownView("# Demo README\n\nLong body.")),
+        ],
+        width="min",
+    ).render(stdout=False)
+    assert "App" in out
+    assert "demo:web" in out
+    assert "Long body." in out
+    assert "=== Docs ===" not in out
+
+
+def test_composite_list_primary_uses_child_expand_keys_default():
+    from clak.views import CompositeView
+
+    out = CompositeView(
+        [("users", ListView([{"name": "ada", "role": "admin"}]))],
+        width="min",
+    ).render(stdout=False)
+    assert "name" in out
+    assert "role" in out
+    assert "ada" in out
+    assert "{'name'" not in out
+
+
+def test_composite_show_primary_expand_keys_cli_does_not_crash(capsys):
+    from clak import CompositeViewMixin
+    from clak.views import CompositeView
+
+    class App(CompositeViewMixin, Parser):
+        def cli_run(self, **_):
+            return CompositeView(
+                [
+                    ("summary", ShowView({"App": "demo:web", "Name": "Demo"})),
+                    ("notes", RawView("extra")),
+                ],
+                width="min",
+            )
+
+    App(parse=False, add_help=False).dispatch(["--expand-keys"])
+    out = capsys.readouterr().out
+    assert "App" in out
+    assert "demo:web" in out
+    assert "extra" in out
+
+
 def test_composite_view_mixin_format_scope_cli(capsys):
     from clak import CompositeViewMixin
     from clak.views import CompositeView
@@ -1216,7 +1267,25 @@ def test_composite_view_mixin_exposes_format_scope_flag():
         def cli_run(self, **_):
             return None
 
-    assert "--format-scope" in _option_flags(App(parse=False, add_help=False))
+    flags = _option_flags(App(parse=False, add_help=False))
+    assert "--format-scope" in flags
+    assert "--expand-keys" in flags
+
+
+def test_composite_view_mixin_can_hide_expand_keys():
+    from clak import CompositeViewMixin
+
+    class App(CompositeViewMixin, Parser):
+        class Meta:
+            view_cli_options = ("width", "format", "format_scope", "add_index")
+
+        def cli_run(self, **_):
+            return None
+
+    flags = _option_flags(App(parse=False, add_help=False))
+    assert "--expand-keys" not in flags
+    assert "--format-scope" in flags
+    assert "--add-index" in flags
 
 
 def test_composite_unknown_primary_raises():

@@ -24,7 +24,7 @@ PyPI: [mrjk.clak](https://pypi.org/project/mrjk.clak/)
 - **Argparse-native** — same argument syntax as `add_argument()` / subparsers
 - **Nested commands** — git-like trees with inheritance and a command overview in `--help`
 - **Optional components** — views, logging, XDG config, shell-completion script generation
-- Light core; extras only when you need them (`colors`, `config`)
+- Light core; extras only when you need them (`colors`, `config`, `markdown`, `rst`)
 
 ## Requirements
 
@@ -49,6 +49,8 @@ Optional:
 ```bash
 pip install 'mrjk.clak[colors]'   # coloredlogs for LoggingOptMixin
 pip install 'mrjk.clak[config]'   # PyYAML for YAML config / --format yaml
+pip install 'mrjk.clak[markdown]' # rich for MarkdownView
+pip install 'mrjk.clak[rst]'      # docutils for RstView
 ```
 
 ## Quick start

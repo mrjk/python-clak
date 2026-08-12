@@ -45,6 +45,7 @@ Mix in only what you need:
 - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
   `--sort-mode`. Text markdown/rst use `--format view|raw`. Composite uses
   `--format-scope first|all` for multi-section machine export.
+- Markdown render: `mrjk.clak[markdown]`; RST render: `mrjk.clak[rst]`.
 - Guide: [Views](views.md).
 
 ### Error handling

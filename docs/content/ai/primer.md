@@ -35,6 +35,8 @@ Aliases still work but prefer canonical names:
 pip install mrjk.clak
 # optional: mrjk.clak[colors]  (coloredlogs)
 # optional: mrjk.clak[config]  (PyYAML for YAML config / --format yaml)
+# optional: mrjk.clak[markdown]  (rich for MarkdownView)
+# optional: mrjk.clak[rst]  (docutils for RstView)
 
 ## Minimal app
 
@@ -108,6 +110,7 @@ class Meta:
 Views: return data from cli_run; mixin prints it.
 Logging: configure Meta.log_levels as cumulative tiers of "LEVEL|logger".
 Config: JSON always; YAML needs mrjk.clak[config]. Not merged into args.
+MarkdownView needs mrjk.clak[markdown]; RstView needs mrjk.clak[rst].
 Completion: generates argcomplete shellcode; runtime autocomplete during parse is not fully wired yet.
 
 ## Anti-patterns (do not generate)

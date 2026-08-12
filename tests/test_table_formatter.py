@@ -67,6 +67,12 @@ def test_show_dict_default():
     assert "Value" in output  # Should have Value column
 
 
+def test_show_formatter_ignores_unknown_kwargs():
+    output = TableShowFormatter().render(data_item_dict1, expand_keys=True)
+    assert "World" in output
+    assert "Key" in output
+
+
 def test_show_dict_no_index():
     """Test TableShowFormatter without index on dictionary"""
     output = TableShowFormatter(add_index=False).render(data_item_dict1)

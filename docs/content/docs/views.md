@@ -159,8 +159,8 @@ mixin that matches how you want it shown:
 use `view|raw`. There is no conflict because a command mixes in only one view
 family.
 
-Rendered markdown needs the optional `rich` package (`pip install rich`).
-Rendered RST needs `docutils` (`pip install docutils`). With `--format raw`,
+Rendered markdown needs `pip install 'mrjk.clak[markdown]'` (`rich`).
+Rendered RST needs `pip install 'mrjk.clak[rst]'` (`docutils`). With `--format raw`,
 no extra package is required. Missing packages raise a clear install hint.
 
 ```python
@@ -337,8 +337,15 @@ Human (`--format view`) output prints sections in order, separated by a blank
 line. Table sections share the same outer width (equalized under `--width min`
 / `auto`; shared terminal budget under `--width terminal`).
 
-Table CLI flags (`--columns`, `--sort-*`, ...) apply to the **primary** section
-only (first section by default; override with `CompositeView(..., primary="related")`).
+Table CLI flags (`--columns`, `--sort-*`, `--add-index`, ...) apply to the
+**primary** section only (first section by default; override with
+`CompositeView(..., primary="related")`). `--expand-keys` is always registered
+(for a ListView primary); omit `expand_keys` from `Meta.view_cli_options` when
+the primary is ShowView.
+
+`--format` is **table-scoped** (`view` / `yaml` / `json` / `csv`). There is no
+`--format raw` for markdown or RST inside a composite; source text is in the
+`--format-scope all` envelope `data` field.
 
 ### Machine formats (`--format-scope`)
 

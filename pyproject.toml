@@ -37,6 +37,8 @@ Issues = "https://github.com/mrjk/python-clak/issues"
 [project.optional-dependencies]
 colors = ["coloredlogs (>=15.0.1,<16.0.0)"]
 config = ["pyyaml (>=6.0,<7.0)"]
+markdown = ["rich (>=14.0.0,<15.0.0)"]
+rst = ["docutils (>=0.21.0,<1.0.0)"]
 
 [tool.poetry]
 packages = [{include = "clak/"}]

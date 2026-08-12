@@ -489,6 +489,10 @@ class CompositeViewMixin(TableViewOptMixin):
     Adds table options, ``--expand-keys``, ``--format-scope``, and ``--width``.
     Does **not** set ``Meta.cli_view``: return a ``CompositeView(...)`` from
     ``cli_run``. Table flags apply to the primary section only.
+    ``--expand-keys`` is for a ListView primary; hide it with
+    ``Meta.view_cli_options`` when the primary is ShowView.
+    ``--format`` is table-scoped (``view`` / ``yaml`` / ``json`` / ``csv``);
+    markdown source is in ``--format-scope all`` envelopes, not ``--format raw``.
     """
 
     _view_cli_option_names = (

@@ -16,8 +16,8 @@ from clak.views.base import (
     resolve_view_width,
 )
 
-_RICH_INSTALL_HINT = "pip install rich"
-_DOCUTILS_INSTALL_HINT = "pip install docutils"
+_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
+_DOCUTILS_INSTALL_HINT = "pip install 'mrjk.clak[rst]'"
 
 
 def _as_text(payload) -> str:

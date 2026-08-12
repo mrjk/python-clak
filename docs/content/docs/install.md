@@ -71,6 +71,16 @@ pip install 'mrjk.clak[config]'
 
 JSON config files and `--format json` / `csv` work without extras (stdlib).
 
+### Markdown / RST views
+
+Terminal rendering for `MarkdownView` needs `rich`; `RstView` needs `docutils`.
+`--format raw` needs no extra package.
+
+```bash
+pip install 'mrjk.clak[markdown]'
+pip install 'mrjk.clak[rst]'
+```
+
 
 ## Shell completion helper
 

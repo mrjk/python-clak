@@ -29,8 +29,9 @@ from clak.views.text import MarkdownView, PprintView, RawView, RstView
 
 _SHARED_SETTINGS = frozenset({"width", "wrap", "term_width", "stdout_tty"})
 _PRIMARY_TABLE_SETTINGS = frozenset(
-    {"columns", "sort_columns", "sort_mode", "add_index", "expand_keys"}
+    {"columns", "sort_columns", "sort_mode", "add_index"}
 )
+_LIST_ONLY_SETTINGS = frozenset({"expand_keys"})
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 Section = Tuple[str, ClakView]
@@ -95,6 +96,10 @@ class CompositeView(ClakView):
 
     - ``first`` (default): export only the primary section
     - ``all``: export a structured envelope of every section
+
+    Table opts (``columns``, ``sort_*``, ``add_index``, ``expand_keys``) are
+    forwarded to the primary table only when set; children keep their own
+    defaults.
     """
 
     settings_default = {
@@ -102,11 +107,6 @@ class CompositeView(ClakView):
         "wrap": DEFAULT_WRAP_MODE,
         "format": "view",
         "format_scope": DEFAULT_FORMAT_SCOPE,
-        "columns": None,
-        "sort_columns": None,
-        "sort_mode": "asc",
-        "add_index": None,
-        "expand_keys": True,
     }
 
     def __init__(self, sections=None, *, primary: Optional[str] = None, **kwargs):
@@ -170,6 +170,10 @@ class CompositeView(ClakView):
             for key in _PRIMARY_TABLE_SETTINGS:
                 if key in settings:
                     child[key] = settings[key]
+            if isinstance(view, ListView):
+                for key in _LIST_ONLY_SETTINGS:
+                    if key in settings:
+                        child[key] = settings[key]
         return child
 
     def _render_view(self, sections, settings, primary_name):
