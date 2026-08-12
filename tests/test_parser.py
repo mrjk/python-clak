@@ -257,6 +257,52 @@ def test_uncaught_error_reports_bug(caplog):
     assert "report to the developer" in caplog.text
 
 
+def test_clean_terminate_broken_pipe(caplog, monkeypatch):
+    """BrokenPipeError exits quietly with code 1 (no bug / OS-error log)."""
+
+    def fake_exit_broken_pipe(rc=1):
+        raise SystemExit(rc)
+
+    monkeypatch.setattr("clak.parser._exit_broken_pipe", fake_exit_broken_pipe)
+
+    parser = ParserNode()
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(SystemExit) as exc:
+            parser.clean_terminate(BrokenPipeError(32, "Broken pipe"))
+    assert exc.value.code == 1
+    assert "may be a bug" not in caplog.text
+    assert "Uncaught error" not in caplog.text
+    assert "Program exited with OS error" not in caplog.text
+
+
+def test_broken_pipe_during_view_render(caplog, monkeypatch):
+    """Pipe break during view print goes through clean_terminate, not bug path."""
+    from clak.views import ListView
+
+    def fake_exit_broken_pipe(rc=1):
+        raise SystemExit(rc)
+
+    monkeypatch.setattr("clak.parser._exit_broken_pipe", fake_exit_broken_pipe)
+
+    def run_cmd(**_):
+        return ListView([{"name": "a"}, {"name": "b"}])
+
+    def boom_print(*_args, **_kwargs):
+        raise BrokenPipeError(32, "Broken pipe")
+
+    monkeypatch.setattr("builtins.print", boom_print)
+
+    parser = ParserNode()
+    parser.cli_run = run_cmd
+
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(SystemExit) as exc:
+            parser.dispatch([])
+    assert exc.value.code == 1
+    assert "may be a bug" not in caplog.text
+    assert "report to the developer" not in caplog.text
+
+
 # Utility Function Tests
 def test_first_doc_line():
     """Test first_doc_line function."""

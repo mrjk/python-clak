@@ -36,7 +36,8 @@ flowchart TD
 | 5 | Fallback | Uncaught bug — traceback + report to developer |
 
 You do **not** wrap each command in try/except. Raise in `cli_run`; Clak
-terminates consistently.
+terminates consistently. `BrokenPipeError` from `| head` / `| tail` exits
+quietly with code 1 (no traceback, no "Exception ignored" flush noise).
 
 ## Organize app exceptions (Paasify style)
 

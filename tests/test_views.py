@@ -380,13 +380,16 @@ def test_list_view_mixin_columns_one_based_index(capsys):
     assert "London" not in out
 
 
-def test_list_view_mixin_columns_rejects_zero_index():
+def test_list_view_mixin_columns_rejects_zero_index(caplog):
     class App(ListViewMixin, Parser):
         def cli_run(self, **_):
             return USERS
 
-    with pytest.raises(KeyError, match="index 0 is invalid"):
-        App(parse=False, add_help=False).dispatch(["--columns", "0"])
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(SystemExit) as exc:
+            App(parse=False, add_help=False).dispatch(["--columns", "0"])
+    assert exc.value.code == 1
+    assert "index 0 is invalid" in caplog.text
 
 
 # ---------------------------------------------------------------------------

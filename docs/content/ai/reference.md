@@ -141,6 +141,7 @@ Handler order in clean_terminate roughly:
 2. Meta.exception_handlers (third-party)
 3. Built-in Clak* errors
 4. Some OS errors (FileNotFoundError, PermissionError, ...)
+   BrokenPipeError from | head / | tail: quiet exit 1 (no traceback / Exception ignored)
 5. Else: traceback + “report to developer”, exit 1
 
 Typical app pattern:

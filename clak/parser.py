@@ -9,6 +9,7 @@ unless ``parse=False``.
 """
 
 import logging
+import os
 import sys
 import traceback
 from types import SimpleNamespace
@@ -37,6 +38,24 @@ from clak.settings import CLAK_DEBUG
 from clak.views import ClakView, merge_view_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _exit_broken_pipe(rc=1):
+    """Exit quietly after BrokenPipeError (e.g. ``| head`` / ``| tail``).
+
+    Redirects stdout to ``/dev/null`` so Python's shutdown flush does not print
+    ``Exception ignored ... BrokenPipeError``.
+    """
+    try:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+    except Exception:  # pylint: disable=broad-exception-caught
+        try:
+            sys.stdout.close()
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+    sys.exit(rc)
+
 
 # Backwards-compatible aliases (preferred public name is Command via clak.__init__)
 Command = SubParser
@@ -445,7 +464,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
         2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, …)
         3. Built-in Clak exceptions
-        4. Common OS errors
+        4. Broken pipe (``| head`` / ``| tail``) - quiet exit
+        5. Common OS errors
 
         If nothing matches, return and let ``dispatch()`` report an unexpected bug.
 
@@ -491,7 +511,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             )
             sys.exit(err.rc)
 
-        # 6. OS errors
+        # 6. Broken pipe from | head / | tail - quiet exit (no bug log)
+        if isinstance(err, BrokenPipeError):
+            _exit_broken_pipe()
+
+        # 7. OS errors
         oserrors = [
             PermissionError,
             FileExistsError,
@@ -577,34 +601,32 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             # Leaf command (may carry Meta.cli_view / view mixins on nested cmds)
             cli_leaf = args.get("__cli_self__", self)
 
-            # Run app command
+            # Run app command + view render (pipe breaks during print hit clean_terminate)
             try:
-                # Process commands
                 data = self.cli_execute(args=args)
+
+                # Prepare viewer output (CLI view mixins may stash settings on root)
+                view_settings = getattr(self, "_clak_view_settings", None) or {}
+                if isinstance(data, ClakView):
+                    render_kwargs = merge_view_settings(
+                        getattr(data, "settings", None), view_settings
+                    )
+                    data.render(**render_kwargs)
+                else:
+                    viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
+                    if isinstance(viewer, type) and issubclass(viewer, ClakView):
+                        viewer = viewer()
+                    if viewer is not None:
+                        if not isinstance(viewer, ClakView):
+                            raise TypeError(
+                                "Meta.cli_view must be a ClakView instance or subclass"
+                            )
+                        viewer.render(data, **view_settings)
+
+                return data
 
             except Exception as err:  # pylint: disable=broad-exception-caught
                 error = err
-
-        if not error:
-            # Prepare viewer output (CLI view mixins may stash settings on root)
-            view_settings = getattr(self, "_clak_view_settings", None) or {}
-            if isinstance(data, ClakView):
-                render_kwargs = merge_view_settings(
-                    getattr(data, "settings", None), view_settings
-                )
-                data.render(**render_kwargs)
-            else:
-                viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
-                if isinstance(viewer, type) and issubclass(viewer, ClakView):
-                    viewer = viewer()
-                if viewer is not None:
-                    if not isinstance(viewer, ClakView):
-                        raise TypeError(
-                            "Meta.cli_view must be a ClakView instance or subclass"
-                        )
-                    viewer.render(data, **view_settings)
-
-            return data
 
         if trace is True:
             # print("TRACE")
