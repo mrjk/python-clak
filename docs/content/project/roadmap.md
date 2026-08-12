@@ -11,7 +11,7 @@ These are the current **star features** — each has user documentation:
 | --- | --- |
 | Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../docs/features.md), [Quickstart](../quickstart/quickstart.md) |
 | Nested subcommands + command tree in `--help` | [Nested guide](../guides/guide_102.md) |
-| Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst` mixins) | [Views](../docs/views.md) |
+| Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
 | Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
 | Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../docs/exceptions.md) |
 | XDG paths + config file load (`XDGConfigMixin`) | [Config](../docs/config.md) |

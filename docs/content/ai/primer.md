@@ -99,6 +99,7 @@ class Meta:
 | --- | --- |
 | Tables / json/csv/yaml from return value | ListViewMixin / ShowViewMixin / PprintViewMixin |
 | Plain / markdown / rst text | RawViewMixin / MarkdownViewMixin / RstViewMixin |
+| Primary table + extras | CompositeViewMixin + return CompositeView(...) |
 | -v logging + self.logger | LoggingOptMixin |
 | XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
 | Emit shell completion script | CompCmdRender as a Command |

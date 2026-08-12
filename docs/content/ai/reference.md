@@ -25,7 +25,7 @@ from clak import (
     ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
     LoggingOptMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin,
-    RawViewMixin, MarkdownViewMixin, RstViewMixin,
+    RawViewMixin, MarkdownViewMixin, RstViewMixin, CompositeViewMixin,
     XDGConfigMixin,
     CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin,
     OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, SUPPRESS,  # argparse constants
@@ -34,7 +34,7 @@ from clak.exception import (
     ClakError, ClakUserError, ClakParseError, ClakExitError,
     ClakAppError, ClakNotImplementedError, ClakBugError,
 )
-from clak.views import ListView, ShowView, PprintView, RawView, MarkdownView, RstView, ClakView  # not re-exported at clak top-level
+from clak.views import ListView, ShowView, PprintView, RawView, MarkdownView, RstView, CompositeView, ClakView  # not re-exported at clak top-level
 
 # Package layout (implementation): clak.core, clak.runtime, clak.views, clak.comp.
 # Prefer top-level ``from clak import ...``. Old deep paths (clak.parser, clak.nodes,
@@ -185,6 +185,7 @@ PprintViewMixin — pprint; --width
 RawViewMixin — plain text; --width
 MarkdownViewMixin — markdown text; --format view|raw, --width
 RstViewMixin — reStructuredText; --format view|raw, --width
+CompositeViewMixin — return CompositeView(...); table flags + --format-scope first|all
 
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
@@ -192,8 +193,10 @@ Flags (list/show): --columns, --add-index/--no-add-index,
   --width min|auto|terminal (default terminal; no wrap when non-TTY),
   --wrap last|all (tables only; default last; only when fitting to terminal)
 Flags (markdown/rst): --format view|raw (view=rendered, raw=source), --width
+Flags (composite): table flags + --format-scope first|all (machine export)
 Meta.view_width sets the default width mode.
 Meta.view_wrap sets the default table wrap mode.
+Meta.view_format_scope sets CompositeView machine export scope.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
 Markdown render needs rich (pip install rich); RST render needs docutils
 (pip install docutils). --format raw needs no extra package.

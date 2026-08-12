@@ -28,6 +28,7 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - RawViewMixin
         - MarkdownViewMixin
         - RstViewMixin
+        - CompositeViewMixin
 
 ::: clak.views
     options:
@@ -39,15 +40,18 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - RawView
         - MarkdownView
         - RstView
+        - CompositeView
         - ClakView
         - FeatureFullViewer
         - merge_view_settings
         - parse_columns
         - parse_sort_columns
         - normalize_sort_columns
+        - normalize_sections
         - format_show_payload
         - resolve_view_width
         - OUTPUT_FORMATS
         - TEXT_FORMATS
+        - FORMAT_SCOPES
         - WIDTH_MODES
         - WRAP_MODES

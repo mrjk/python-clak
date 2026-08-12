@@ -41,9 +41,10 @@ Mix in only what you need:
 
 - Turn return values into tables or pretty-prints.
 - Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`,
-  `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`.
+  `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`, `CompositeViewMixin`.
 - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
-  `--sort-mode`. Text markdown/rst use `--format view|raw`.
+  `--sort-mode`. Text markdown/rst use `--format view|raw`. Composite uses
+  `--format-scope first|all` for multi-section machine export.
 - Guide: [Views](views.md).
 
 ### Error handling

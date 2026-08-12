@@ -11,8 +11,10 @@ Functions:
 """
 
 from clak.views.base import (
+    DEFAULT_FORMAT_SCOPE,
     DEFAULT_WIDTH_MODE,
     DEFAULT_WRAP_MODE,
+    FORMAT_SCOPES,
     OUTPUT_FORMATS,
     TEXT_FORMATS,
     WIDTH_MODES,
@@ -22,6 +24,7 @@ from clak.views.base import (
     pformat_truncated,
     resolve_view_width,
 )
+from clak.views.composite import CompositeView, normalize_sections
 from clak.views.table import (
     FeatureFullViewer,
     ListView,
@@ -46,8 +49,11 @@ from clak.views.text import (
 
 __all__ = [
     "ClakView",
+    "CompositeView",
+    "DEFAULT_FORMAT_SCOPE",
     "DEFAULT_WIDTH_MODE",
     "DEFAULT_WRAP_MODE",
+    "FORMAT_SCOPES",
     "FeatureFullViewer",
     "ListView",
     "MarkdownView",
@@ -63,6 +69,7 @@ __all__ = [
     "format_show_payload",
     "merge_view_settings",
     "normalize_columns",
+    "normalize_sections",
     "normalize_sort_columns",
     "parse_columns",
     "parse_sort_columns",

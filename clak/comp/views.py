@@ -8,6 +8,8 @@ Option layers (mirror ClakView hierarchy):
 3. ListViewMixin — list-only: ``expand_keys``
 4. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
 5. PprintViewMixin / RawViewMixin — enables only ``width``
+6. CompositeViewMixin — multi-section: table opts + ``expand_keys`` +
+   ``format_scope`` (return a ``CompositeView``; no auto ``cli_view``)
 
 Example:
 
@@ -37,6 +39,7 @@ from typing import Any, Mapping, Set
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.views import (
+    FORMAT_SCOPES,
     TEXT_FORMATS,
     WIDTH_MODES,
     WRAP_MODES,
@@ -68,10 +71,15 @@ _LAYER_TABLE_DESTS = frozenset(
 )
 _LAYER_LIST_DESTS = frozenset({"expand_keys"})
 _LAYER_TEXT_DESTS = frozenset({"format"})
+_LAYER_COMPOSITE_DESTS = frozenset({"format_scope"})
 
 # All known view CLI dests (used to filter Argument collection)
 _VIEW_CLI_OPTION_DESTS = (
-    _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS | _LAYER_TEXT_DESTS
+    _LAYER_GENERIC_DESTS
+    | _LAYER_TABLE_DESTS
+    | _LAYER_LIST_DESTS
+    | _LAYER_TEXT_DESTS
+    | _LAYER_COMPOSITE_DESTS
 )
 
 _OUTPUT_OPTIONS_GROUP = "Output options"
@@ -100,6 +108,10 @@ _TEXT_FORMAT_HELP = "Output format: view (rendered) or raw (source). Default: vi
 _SORT_MODE_HELP = "Sort direction (default: asc)"
 _ADD_INDEX_HELP = "Include key/index column in the table"
 _EXPAND_KEYS_HELP = "Expand nested dict items into table columns"
+_FORMAT_SCOPE_HELP = (
+    "When using CompositeView with machine formats: first (primary "
+    "section only) or all (envelope of every section). Default: first"
+)
 
 
 class _ViewMixinBase(PluginHelpers):
@@ -192,7 +204,15 @@ class _ViewMixinBase(PluginHelpers):
             if raw is not None:
                 settings["columns"] = parse_columns(raw)
 
-        for key in ("add_index", "expand_keys", "width", "wrap", "format", "sort_mode"):
+        for key in (
+            "add_index",
+            "expand_keys",
+            "width",
+            "wrap",
+            "format",
+            "format_scope",
+            "sort_mode",
+        ):
             if key not in enabled:
                 continue
             value = self._args_get(args, key, None)
@@ -217,6 +237,7 @@ class _ViewMixinBase(PluginHelpers):
             ("width", "view_width", None),
             ("wrap", "view_wrap", None),
             ("format", "view_format", None),
+            ("format_scope", "view_format_scope", None),
             ("add_index", "view_add_index", None),
             ("expand_keys", "view_expand_keys", None),
         )
@@ -460,3 +481,44 @@ class RstViewMixin(TextViewOptMixin):
 
     _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
     meta__cli_view = RstView
+
+
+class CompositeViewMixin(TableViewOptMixin):
+    """CLI flags for multi-section :class:`~clak.views.CompositeView` output.
+
+    Adds table options, ``--expand-keys``, ``--format-scope``, and ``--width``.
+    Does **not** set ``Meta.cli_view``: return a ``CompositeView(...)`` from
+    ``cli_run``. Table flags apply to the primary section only.
+    """
+
+    _view_cli_option_names = (
+        _LAYER_GENERIC_DESTS
+        | _LAYER_TABLE_DESTS
+        | _LAYER_LIST_DESTS
+        | _LAYER_COMPOSITE_DESTS
+    )
+
+    meta__config__view_format_scope = MetaSetting(
+        help="Default format scope for CompositeView: first or all",
+    )
+    meta__view_format_scope = None
+
+    meta__config__view_expand_keys = MetaSetting(
+        help="Default for --expand-keys / --no-expand-keys",
+    )
+    meta__view_expand_keys = None
+
+    expand_keys = Argument(
+        "--expand-keys",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_EXPAND_KEYS_HELP,
+    )
+    format_scope = Argument(
+        "--format-scope",
+        choices=sorted(FORMAT_SCOPES),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_FORMAT_SCOPE_HELP,
+    )

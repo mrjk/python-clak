@@ -10,15 +10,16 @@ names are stable; each option is defined once and inherited.
 
 | Layer | Options | Who enables |
 | --- | --- | --- |
-| Generic (`ClakView`) | `--width` | Show, List, Pprint, Raw, Markdown, Rst |
-| Table (Show + List) | `--format` (`view`/`yaml`/`json`/`csv`), `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List |
-| List-only | `--expand-keys` / `--no-expand-keys` | List |
+| Generic (`ClakView`) | `--width` | Show, List, Pprint, Raw, Markdown, Rst, Composite |
+| Table (Show + List) | `--format` (`view`/`yaml`/`json`/`csv`), `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List, Composite |
+| List-only | `--expand-keys` / `--no-expand-keys` | List, Composite |
 | Text (Markdown + Rst) | `--format` (`view`/`raw`) | Markdown, Rst |
+| Composite | `--format-scope` (`first`/`all`) | Composite |
 
 Matching `Meta.view_*` defaults exist for every option (`view_width`,
-`view_format`, `view_columns`, `view_sort_columns`, `view_sort_mode`,
-`view_wrap`, `view_add_index`, `view_expand_keys`, plus `view_column_names`
-for help text and `view_cli_options` to filter flags).
+`view_format`, `view_format_scope`, `view_columns`, `view_sort_columns`,
+`view_sort_mode`, `view_wrap`, `view_add_index`, `view_expand_keys`, plus
+`view_column_names` for help text and `view_cli_options` to filter flags).
 
 ## Pick a mixin
 
@@ -33,9 +34,11 @@ matching CLI flags:
 | `RawViewMixin` | `RawView` | plain text | `--width` |
 | `MarkdownViewMixin` | `MarkdownView` | markdown source text | `--format`, `--width` |
 | `RstViewMixin` | `RstView` | reStructuredText source | `--format`, `--width` |
+| `CompositeViewMixin` | (return `CompositeView`) | primary table + extras | table flags + `--expand-keys` + `--format-scope` + `--width` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
-raw return values are **not** printed.
+raw return values are **not** printed. `CompositeViewMixin` does not set
+`Meta.cli_view`; return a `CompositeView(...)` from `cli_run`.
 
 ## Minimal example
 
@@ -254,7 +257,7 @@ Use `Meta.view_cli_options`:
 | `("columns", "add_index")` | Expose a subset (`list` / `tuple` / `set` also work) |
 
 Option names are destinations: `columns`, `add_index`, `expand_keys`, `width`,
-`wrap`, `format`, `sort_columns`, `sort_mode`.
+`wrap`, `format`, `format_scope`, `sort_columns`, `sort_mode`.
 Unknown names raise `ValueError`.
 
 ```python
@@ -310,6 +313,60 @@ class App(ListViewMixin, Parser):
             return [{"name": "ada"}, {"name": "linus"}]
     ```
 
+## Multiple sections (CompositeView)
+
+When a command needs a **primary table** plus extras (other tables, markdown,
+raw text), return a `CompositeView` of named sections:
+
+```python
+from clak import CompositeViewMixin, Parser
+from clak.views import CompositeView, ListView, MarkdownView
+
+class App(CompositeViewMixin, Parser):
+    def cli_run(self, **_):
+        return CompositeView(
+            [
+                ("users", ListView([{"name": "ada", "role": "admin"}])),
+                ("notes", MarkdownView("## Notes\nMore detail.")),
+                ("related", ListView([{"name": "linus"}])),
+            ]
+        )
+```
+
+Human (`--format view`) output prints sections in order, separated by a blank
+line. Table sections share the same outer width (equalized under `--width min`
+/ `auto`; shared terminal budget under `--width terminal`).
+
+Table CLI flags (`--columns`, `--sort-*`, ...) apply to the **primary** section
+only (first section by default; override with `CompositeView(..., primary="related")`).
+
+### Machine formats (`--format-scope`)
+
+| Scope | Effect |
+| --- | --- |
+| `first` (default) | Export only the primary section (same shape as a lone List/Show) |
+| `all` | Export an envelope of every section |
+
+```python
+class App(CompositeViewMixin, Parser):
+    class Meta:
+        view_format_scope = "all"  # or "first"
+```
+
+CLI `--format-scope first|all` overrides Meta. Envelope shape for json/yaml:
+
+```json
+{
+  "sections": [
+    {"name": "users", "kind": "list", "data": [ ... ]},
+    {"name": "notes", "kind": "markdown", "data": "## Notes\n..."}
+  ]
+}
+```
+
+CSV with `--format-scope all` emits sequential blocks separated by a blank line,
+each starting with `# section: <name>`.
+
 ## CLI overrides
 
 When a mixin is present, CLI flags merge into `.render(**kwargs)`.
@@ -324,10 +381,12 @@ class App(ListViewMixin, Parser):
         return ListView(rows, columns=["name", "role"])
 ```
 
-## Show vs list vs pprint
+## Show vs list vs pprint vs composite
 
 - **Show** — one record as key/value (or index/value) rows.
 - **List** — many records as a multi-column table (`expand_keys` flattens nested dicts).
 - **Pprint** — `pprint`-style dump with shared `--width` modes.
+- **Composite** — ordered sections (tables and/or text) with shared table width
+  and optional machine envelope via `--format-scope`.
 
 API details: [Views component](../api/plugin_views.md).

@@ -16,6 +16,8 @@ WIDTH_MODES = frozenset({"min", "auto", "terminal"})
 DEFAULT_WIDTH_MODE = "terminal"
 WRAP_MODES = frozenset({"last", "all"})
 DEFAULT_WRAP_MODE = "last"
+FORMAT_SCOPES = frozenset({"first", "all"})
+DEFAULT_FORMAT_SCOPE = "first"
 
 
 class ClakView:

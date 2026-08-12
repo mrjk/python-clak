@@ -15,7 +15,8 @@ Canonical public API (import from ``clak``):
 - Command: nested subcommand descriptor (alias of SubParser)
 
 Optional mixins (also from ``clak``): LoggingOptMixin,
-Show/List/Pprint/Raw/Markdown/RstViewMixin, completion, XDGConfigMixin.
+Show/List/Pprint/Raw/Markdown/Rst/CompositeViewMixin, completion,
+XDGConfigMixin.
 
 Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.comp`` (mixins). Internal layout: ``clak.core``, ``clak.runtime``,
@@ -26,6 +27,7 @@ from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOp
 from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.views import (
+    CompositeViewMixin,
     ListViewMixin,
     MarkdownViewMixin,
     PprintViewMixin,
