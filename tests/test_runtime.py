@@ -22,13 +22,15 @@ def _tty(flag: bool):
 
 
 def test_detect_runtime_tty_and_interactive(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: "/dev/pts/1")
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: "/bin/bash")
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: "/dev/pts/1")
     monkeypatch.setattr(
-        "clak.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/bash"
+        "clak.runtime.runtime._read_parent_cmd", lambda _ppid: "/bin/bash"
+    )
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/bash"
     )
 
     runtime = detect_runtime()
@@ -42,16 +44,16 @@ def test_detect_runtime_tty_and_interactive(monkeypatch):
 
 
 def test_detect_runtime_not_from_shell(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
     monkeypatch.setattr(
-        "clak.runtime._read_parent_cmd",
+        "clak.runtime.runtime._read_parent_cmd",
         lambda _ppid: "containerd-shim-runc-v2 ...",
     )
     monkeypatch.setattr(
-        "clak.runtime._read_parent_exe",
+        "clak.runtime.runtime._read_parent_exe",
         lambda _ppid, _cmd: "/usr/bin/containerd-shim-runc-v2",
     )
 
@@ -62,12 +64,14 @@ def test_detect_runtime_not_from_shell(monkeypatch):
 
 
 def test_color_level_respects_no_color(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(True))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
@@ -77,12 +81,14 @@ def test_color_level_respects_no_color(monkeypatch):
 
 
 def test_color_level_truecolor(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(True))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
@@ -94,12 +100,14 @@ def test_color_level_truecolor(monkeypatch):
 
 
 def test_color_level_256_from_term(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(True))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
@@ -111,12 +119,14 @@ def test_color_level_256_from_term(monkeypatch):
 
 
 def test_force_color_without_tty(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("FORCE_COLOR", "1")
     monkeypatch.setenv("CLAK_COLORS", "1")
@@ -125,12 +135,14 @@ def test_force_color_without_tty(monkeypatch):
 
 
 def test_get_size_honors_clak_columns(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.setenv("CLAK_COLUMNS", "100")
     monkeypatch.setenv("CLAK_LINES", "40")
     monkeypatch.setenv("COLUMNS", "50")
@@ -150,12 +162,14 @@ def test_get_size_honors_clak_columns(monkeypatch):
 
 
 def test_narrow_width_from_env(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(False))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.setenv("CLAK_NARROW_WIDTH", "100")
     monkeypatch.setenv("CLAK_COLUMNS", "90")
 
@@ -165,15 +179,17 @@ def test_narrow_width_from_env(monkeypatch):
 
 
 def test_pager_and_encoding(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(False))
     monkeypatch.setattr(
-        "clak.runtime.sys.stdout",
+        "clak.runtime.runtime.sys.stdout",
         SimpleNamespace(isatty=lambda: False, encoding="UTF-8"),
     )
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(False))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: None)
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: None)
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: None)
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(False))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: None)
+    monkeypatch.setattr("clak.runtime.runtime._read_parent_cmd", lambda _ppid: None)
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: None
+    )
     monkeypatch.setenv("CLAK_PAGER", "less -R")
     monkeypatch.setenv("PAGER", "more")
 
@@ -184,12 +200,16 @@ def test_pager_and_encoding(monkeypatch):
 
 
 def test_ctx_runtime_attached_on_dispatch(monkeypatch):
-    monkeypatch.setattr("clak.runtime.sys.stdin", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stdout", _tty(True))
-    monkeypatch.setattr("clak.runtime.sys.stderr", _tty(True))
-    monkeypatch.setattr("clak.runtime._detect_ctty", lambda: "/dev/pts/9")
-    monkeypatch.setattr("clak.runtime._read_parent_cmd", lambda _ppid: "/bin/zsh -l")
-    monkeypatch.setattr("clak.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/zsh")
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdin", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stdout", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime.sys.stderr", _tty(True))
+    monkeypatch.setattr("clak.runtime.runtime._detect_ctty", lambda: "/dev/pts/9")
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_cmd", lambda _ppid: "/bin/zsh -l"
+    )
+    monkeypatch.setattr(
+        "clak.runtime.runtime._read_parent_exe", lambda _ppid, _cmd: "/bin/zsh"
+    )
 
     seen = {}
 

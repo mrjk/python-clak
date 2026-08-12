@@ -78,8 +78,8 @@ def test_log_colors_flag_always_declared():
 
 
 def test_resolve_log_colors_cli_overrides_env_and_tty(monkeypatch):
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", False)
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", False)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
     stream = SimpleNamespace(isatty=lambda: False)
 
     assert resolve_log_colors(True, stream=stream) is True
@@ -87,35 +87,35 @@ def test_resolve_log_colors_cli_overrides_env_and_tty(monkeypatch):
 
 
 def test_resolve_log_colors_env_overrides_tty(monkeypatch):
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     stream = SimpleNamespace(isatty=lambda: False)
 
     assert resolve_log_colors(None, stream=stream) is True
 
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", False)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", False)
     stream_tty = SimpleNamespace(isatty=lambda: True)
     assert resolve_log_colors(None, stream=stream_tty) is False
 
 
 def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", None)
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", None)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
 
     assert resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is True
     assert (
         resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: False)) is False
     )
 
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", False)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
     assert (
         resolve_log_colors(None, stream=SimpleNamespace(isatty=lambda: True)) is False
     )
 
 
 def test_resolve_log_colors_env_value_overrides_module_global(monkeypatch):
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     stream = SimpleNamespace(isatty=lambda: True)
 
     assert resolve_log_colors(None, stream=stream, env_value=False) is False
@@ -137,8 +137,8 @@ def test_log_colors_help_uses_meta_env_name():
 
 def test_log_colors_hook_reads_meta_env(monkeypatch):
     monkeypatch.setenv("PAASIFY__LOG_COLORS", "0")
-    monkeypatch.setattr("clak.settings.CLAK_LOG_COLORS", True)
-    monkeypatch.setattr("clak.settings.CLAK_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
 
     captured = {}
 

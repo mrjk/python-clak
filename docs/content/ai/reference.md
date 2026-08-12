@@ -36,6 +36,10 @@ from clak.exception import (
 )
 from clak.views import ListView, ShowView, PprintView, RawView, MarkdownView, RstView, ClakView  # not re-exported at clak top-level
 
+# Package layout (implementation): clak.core, clak.runtime, clak.views, clak.comp.
+# Prefer top-level ``from clak import ...``. Old deep paths (clak.parser, clak.nodes,
+# clak.table_formatter, …) remain import-compatible via re-exports.
+
 ParserNode is the implementation base; users subclass Parser.
 
 ==============================================================================

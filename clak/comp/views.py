@@ -71,10 +71,7 @@ _LAYER_TEXT_DESTS = frozenset({"format"})
 
 # All known view CLI dests (used to filter Argument collection)
 _VIEW_CLI_OPTION_DESTS = (
-    _LAYER_GENERIC_DESTS
-    | _LAYER_TABLE_DESTS
-    | _LAYER_LIST_DESTS
-    | _LAYER_TEXT_DESTS
+    _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS | _LAYER_TEXT_DESTS
 )
 
 _OUTPUT_OPTIONS_GROUP = "Output options"
@@ -99,9 +96,7 @@ _WRAP_HELP = (
     "stdout is not a TTY."
 )
 _FORMAT_HELP = "Output format (default: view table)"
-_TEXT_FORMAT_HELP = (
-    "Output format: view (rendered) or raw (source). Default: view"
-)
+_TEXT_FORMAT_HELP = "Output format: view (rendered) or raw (source). Default: view"
 _SORT_MODE_HELP = "Sort direction (default: asc)"
 _ADD_INDEX_HELP = "Include key/index column in the table"
 _EXPAND_KEYS_HELP = "Expand nested dict items into table columns"

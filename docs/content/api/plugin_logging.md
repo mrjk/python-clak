@@ -48,7 +48,7 @@ automatically.
         - DEFAULT_LOG_LEVEL
         - DEFAULT_LOG_LEVELS
 
-::: clak.log_levels
+::: clak.runtime.log_levels
     options:
       show_source: false
       members:

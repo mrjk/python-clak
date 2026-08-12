@@ -80,6 +80,7 @@ plugins:
   - awesome-pages
   - mkdocs-simple-hooks:
       hooks:
+        on_config: "docs.hooks:patch_pygments_filename"
         on_post_build: "docs.hooks:copy_get"
   - autorefs
   - mkdocstrings:

@@ -13,7 +13,7 @@ import sys
 from typing import Optional, Tuple
 
 from clak.common import to_boolean
-from clak.settings import CLAK_COLORS
+from clak.runtime.settings import CLAK_COLORS
 
 logger = logging.getLogger("clak.runtime")
 

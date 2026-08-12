@@ -47,8 +47,8 @@ def test_detect_facts_does_not_resolve_until_access(monkeypatch):
         calls["host"] += 1
         return "host"
 
-    monkeypatch.setattr("clak.facts.socket.getfqdn", boom_fqdn)
-    monkeypatch.setattr("clak.facts.socket.gethostname", boom_host)
+    monkeypatch.setattr("clak.runtime.facts.socket.getfqdn", boom_fqdn)
+    monkeypatch.setattr("clak.runtime.facts.socket.gethostname", boom_host)
 
     facts = detect_facts(timeout=-1)
     assert calls["fqdn"] == 0
@@ -64,8 +64,8 @@ def test_detect_facts_does_not_resolve_until_access(monkeypatch):
 
 
 def test_fqdn_logs_info(monkeypatch, caplog):
-    monkeypatch.setattr("clak.facts.socket.gethostname", lambda: "box")
-    monkeypatch.setattr("clak.facts.socket.getfqdn", lambda: "box.example.com")
+    monkeypatch.setattr("clak.runtime.facts.socket.gethostname", lambda: "box")
+    monkeypatch.setattr("clak.runtime.facts.socket.getfqdn", lambda: "box.example.com")
 
     facts = detect_facts(timeout=-1)
     with caplog.at_level(logging.INFO, logger="clak.facts"):
@@ -76,25 +76,25 @@ def test_fqdn_logs_info(monkeypatch, caplog):
 
 
 def test_facts_timeout_zero_skips_blocking(monkeypatch):
-    monkeypatch.setattr("clak.facts.socket.gethostname", lambda: "box")
+    monkeypatch.setattr("clak.runtime.facts.socket.gethostname", lambda: "box")
 
     def never():
         raise AssertionError("getfqdn should not run")
 
-    monkeypatch.setattr("clak.facts.socket.getfqdn", never)
+    monkeypatch.setattr("clak.runtime.facts.socket.getfqdn", never)
     facts = detect_facts(timeout=0)
     assert facts.fqdn == "box"
     assert facts.domain is None
 
 
 def test_facts_timeout_soft_fallback(monkeypatch):
-    monkeypatch.setattr("clak.facts.socket.gethostname", lambda: "box")
+    monkeypatch.setattr("clak.runtime.facts.socket.gethostname", lambda: "box")
 
     def slow():
         time.sleep(0.2)
         return "box.example.com"
 
-    monkeypatch.setattr("clak.facts.socket.getfqdn", slow)
+    monkeypatch.setattr("clak.runtime.facts.socket.getfqdn", slow)
     facts = detect_facts(timeout=0.05)
     assert facts.fqdn == "box"
     assert facts.domain is None
@@ -125,7 +125,7 @@ def test_parse_os_release(tmp_path):
 
 def test_clear_cache(monkeypatch):
     hosts = iter(["one", "two"])
-    monkeypatch.setattr("clak.facts.socket.gethostname", lambda: next(hosts))
+    monkeypatch.setattr("clak.runtime.facts.socket.gethostname", lambda: next(hosts))
     facts = detect_facts(timeout=-1)
     assert facts.hostname == "one"
     facts.clear_cache()
@@ -133,11 +133,11 @@ def test_clear_cache(monkeypatch):
 
 
 def test_identity_numeric_without_nss_names(monkeypatch):
-    monkeypatch.setattr("clak.facts.os.getuid", lambda: 1000, raising=False)
-    monkeypatch.setattr("clak.facts.os.getgid", lambda: 1000, raising=False)
-    monkeypatch.setattr("clak.facts.os.geteuid", lambda: 1000, raising=False)
-    monkeypatch.setattr("clak.facts.os.getegid", lambda: 1000, raising=False)
-    monkeypatch.setattr("clak.facts.os.getgroups", lambda: [1000, 10])
+    monkeypatch.setattr("clak.runtime.facts.os.getuid", lambda: 1000, raising=False)
+    monkeypatch.setattr("clak.runtime.facts.os.getgid", lambda: 1000, raising=False)
+    monkeypatch.setattr("clak.runtime.facts.os.geteuid", lambda: 1000, raising=False)
+    monkeypatch.setattr("clak.runtime.facts.os.getegid", lambda: 1000, raising=False)
+    monkeypatch.setattr("clak.runtime.facts.os.getgroups", lambda: [1000, 10])
 
     # Avoid real NSS in this unit test for names path separately
     facts = detect_facts(timeout=0)
