@@ -6,7 +6,8 @@ Option layers (mirror ClakView hierarchy):
 2. TableViewOptMixin — table (Show/List): ``format``, ``columns``,
    ``sort_columns``, ``sort_mode``, ``wrap``, ``add_index``
 3. ListViewMixin — list-only: ``expand_keys``
-4. PprintViewMixin — enables only ``width``
+4. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
+5. PprintViewMixin / RawViewMixin — enables only ``width``
 
 Example:
 
@@ -36,10 +37,14 @@ from typing import Any, Mapping, Set
 from clak.parser import Argument, MetaSetting
 from clak.plugins import PluginHelpers
 from clak.views import (
+    TEXT_FORMATS,
     WIDTH_MODES,
     WRAP_MODES,
     ListView,
+    MarkdownView,
     PprintView,
+    RawView,
+    RstView,
     ShowView,
     normalize_columns,
     normalize_sort_columns,
@@ -62,9 +67,15 @@ _LAYER_TABLE_DESTS = frozenset(
     }
 )
 _LAYER_LIST_DESTS = frozenset({"expand_keys"})
+_LAYER_TEXT_DESTS = frozenset({"format"})
 
 # All known view CLI dests (used to filter Argument collection)
-_VIEW_CLI_OPTION_DESTS = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS
+_VIEW_CLI_OPTION_DESTS = (
+    _LAYER_GENERIC_DESTS
+    | _LAYER_TABLE_DESTS
+    | _LAYER_LIST_DESTS
+    | _LAYER_TEXT_DESTS
+)
 
 _OUTPUT_OPTIONS_GROUP = "Output options"
 
@@ -88,6 +99,9 @@ _WRAP_HELP = (
     "stdout is not a TTY."
 )
 _FORMAT_HELP = "Output format (default: view table)"
+_TEXT_FORMAT_HELP = (
+    "Output format: view (rendered) or raw (source). Default: view"
+)
 _SORT_MODE_HELP = "Sort direction (default: asc)"
 _ADD_INDEX_HELP = "Include key/index column in the table"
 _EXPAND_KEYS_HELP = "Expand nested dict items into table columns"
@@ -400,3 +414,54 @@ class PprintViewMixin(ClakViewOptMixin):
 
     _view_cli_option_names = _LAYER_GENERIC_DESTS
     meta__cli_view = PprintView
+
+
+class TextViewOptMixin(ClakViewOptMixin):
+    """Layer 2: text view options shared by Markdown and Rst."""
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+
+    meta__config__view_format = MetaSetting(
+        help="Default output format: view (rendered) or raw (source)",
+    )
+    meta__view_format = None
+
+    format = Argument(
+        "--format",
+        choices=sorted(TEXT_FORMATS),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_TEXT_FORMAT_HELP,
+    )
+
+
+class RawViewMixin(ClakViewOptMixin):
+    """Auto-render command results with :class:`~clak.views.RawView`.
+
+    Adds ``--width``. Configure exposed flags with ``Meta.view_cli_options``.
+    """
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS
+    meta__cli_view = RawView
+
+
+class MarkdownViewMixin(TextViewOptMixin):
+    """Auto-render command results with :class:`~clak.views.MarkdownView`.
+
+    Adds ``--format`` (``view`` / ``raw``) and ``--width``.
+    Configure exposed flags with ``Meta.view_cli_options``.
+    """
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+    meta__cli_view = MarkdownView
+
+
+class RstViewMixin(TextViewOptMixin):
+    """Auto-render command results with :class:`~clak.views.RstView`.
+
+    Adds ``--format`` (``view`` / ``raw``) and ``--width``.
+    Configure exposed flags with ``Meta.view_cli_options``.
+    """
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TEXT_DESTS
+    meta__cli_view = RstView

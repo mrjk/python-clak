@@ -14,14 +14,22 @@ Canonical public API:
 - Argument: positional or optional argument descriptor
 - Command: nested subcommand descriptor (alias of SubParser)
 
-Optional mixins: LoggingOptMixin, Show/List/PprintViewMixin, completion, XDGConfigMixin.
+Optional mixins: LoggingOptMixin, Show/List/Pprint/Raw/Markdown/RstViewMixin,
+completion, XDGConfigMixin.
 """
 
 from clak.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import XDGConfigMixin
 from clak.comp.logging import LoggingOptMixin
-from clak.comp.views import ListViewMixin, PprintViewMixin, ShowViewMixin
+from clak.comp.views import (
+    ListViewMixin,
+    MarkdownViewMixin,
+    PprintViewMixin,
+    RawViewMixin,
+    RstViewMixin,
+    ShowViewMixin,
+)
 from clak.parser import Argument, Command, Parser, ParserNode, SubParser
 
 # Legacy / short aliases (prefer Command)

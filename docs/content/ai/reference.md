@@ -25,6 +25,7 @@ from clak import (
     ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
     LoggingOptMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin,
+    RawViewMixin, MarkdownViewMixin, RstViewMixin,
     XDGConfigMixin,
     CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin,
     OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, SUPPRESS,  # argparse constants
@@ -33,7 +34,7 @@ from clak.exception import (
     ClakError, ClakUserError, ClakParseError, ClakExitError,
     ClakAppError, ClakNotImplementedError, ClakBugError,
 )
-from clak.views import ListView, ShowView, PprintView, ClakView  # not re-exported at clak top-level
+from clak.views import ListView, ShowView, PprintView, RawView, MarkdownView, RstView, ClakView  # not re-exported at clak top-level
 
 ParserNode is the implementation base; users subclass Parser.
 
@@ -177,15 +178,21 @@ class App(ListViewMixin, Parser):
 ShowViewMixin  — one record
 ListViewMixin  — many rows
 PprintViewMixin — pprint; --width
+RawViewMixin — plain text; --width
+MarkdownViewMixin — markdown text; --format view|raw, --width
+RstViewMixin — reStructuredText; --format view|raw, --width
 
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
   --format view|yaml|json|csv, --sort-columns, --sort-mode,
   --width min|auto|terminal (default terminal; no wrap when non-TTY),
   --wrap last|all (tables only; default last; only when fitting to terminal)
+Flags (markdown/rst): --format view|raw (view=rendered, raw=source), --width
 Meta.view_width sets the default width mode.
 Meta.view_wrap sets the default table wrap mode.
 yaml format needs PyYAML (mrjk.clak[config] or pip install pyyaml).
+Markdown render needs rich (pip install rich); RST render needs docutils
+(pip install docutils). --format raw needs no extra package.
 
 Without a mixin / returned ClakView / Meta.cli_view, return values are not printed.
 

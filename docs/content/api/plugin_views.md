@@ -21,9 +21,13 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
       members:
         - ClakViewOptMixin
         - TableViewOptMixin
+        - TextViewOptMixin
         - ShowViewMixin
         - ListViewMixin
         - PprintViewMixin
+        - RawViewMixin
+        - MarkdownViewMixin
+        - RstViewMixin
 
 ::: clak.views
     options:
@@ -32,6 +36,9 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - ShowView
         - ListView
         - PprintView
+        - RawView
+        - MarkdownView
+        - RstView
         - ClakView
         - FeatureFullViewer
         - merge_view_settings
@@ -41,5 +48,6 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - format_show_payload
         - resolve_view_width
         - OUTPUT_FORMATS
+        - TEXT_FORMATS
         - WIDTH_MODES
         - WRAP_MODES

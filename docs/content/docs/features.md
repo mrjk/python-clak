@@ -40,9 +40,10 @@ Mix in only what you need:
 ### Views
 
 - Turn return values into tables or pretty-prints.
-- Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`.
+- Mixins: `ShowViewMixin`, `ListViewMixin`, `PprintViewMixin`,
+  `RawViewMixin`, `MarkdownViewMixin`, `RstViewMixin`.
 - Cliff-style output: `--format view|yaml|json|csv`, `--sort-columns`,
-  `--sort-mode`.
+  `--sort-mode`. Text markdown/rst use `--format view|raw`.
 - Guide: [Views](views.md).
 
 ### Error handling

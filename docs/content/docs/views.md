@@ -10,9 +10,10 @@ names are stable; each option is defined once and inherited.
 
 | Layer | Options | Who enables |
 | --- | --- | --- |
-| Generic (`ClakView`) | `--width` | Show, List, Pprint |
-| Table (Show + List) | `--format`, `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List |
+| Generic (`ClakView`) | `--width` | Show, List, Pprint, Raw, Markdown, Rst |
+| Table (Show + List) | `--format` (`view`/`yaml`/`json`/`csv`), `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List |
 | List-only | `--expand-keys` / `--no-expand-keys` | List |
+| Text (Markdown + Rst) | `--format` (`view`/`raw`) | Markdown, Rst |
 
 Matching `Meta.view_*` defaults exist for every option (`view_width`,
 `view_format`, `view_columns`, `view_sort_columns`, `view_sort_mode`,
@@ -29,6 +30,9 @@ matching CLI flags:
 | `ShowViewMixin` | `ShowView` | one dict / sequence | `--columns`, `--add-index` / `--no-add-index`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `ListViewMixin` | `ListView` | list/dict of rows | `--columns`, `--add-index` / `--no-add-index`, `--expand-keys` / `--no-expand-keys`, `--format`, `--sort-columns`, `--sort-mode`, `--width`, `--wrap` |
 | `PprintViewMixin` | `PprintView` | any payload | `--width` |
+| `RawViewMixin` | `RawView` | plain text | `--width` |
+| `MarkdownViewMixin` | `MarkdownView` | markdown source text | `--format`, `--width` |
+| `RstViewMixin` | `RstView` | reStructuredText source | `--format`, `--width` |
 
 Without a view mixin (and without returning a view / setting `Meta.cli_view`),
 raw return values are **not** printed.
@@ -100,7 +104,7 @@ View flags appear under an **Output options** group in `--help` (same
 
 ### View width (`--width`)
 
-Shared by show, list, and pprint backends (when they implement it):
+Shared by show, list, pprint, and text backends (when they implement it):
 
 | Mode | Effect on TTY | Non-TTY |
 | --- | --- | --- |
@@ -121,8 +125,8 @@ CLI `--width` overrides `Meta.view_width`.
 
 ### Table wrap (`--wrap`)
 
-Table backends only (`ShowView` / `ListView`). Ignored by pprint, and ignored
-when width does not fit to the terminal (`min`, or non-TTY):
+Table backends only (`ShowView` / `ListView`). Ignored by pprint and text
+views, and ignored when width does not fit to the terminal (`min`, or non-TTY):
 
 | Mode | Effect |
 | --- | --- |
@@ -136,6 +140,33 @@ class App(ListViewMixin, Parser):
 ```
 
 CLI `--wrap` overrides `Meta.view_wrap`.
+
+### Text views (raw / markdown / rst)
+
+Use these when `cli_run` returns a **text** payload (not tabular data). Pick the
+mixin that matches how you want it shown:
+
+| Mixin | Default | `--format` |
+| --- | --- | --- |
+| `RawViewMixin` | Print source as-is | (none) |
+| `MarkdownViewMixin` | Render markdown in the terminal | `view` (rendered) or `raw` (source) |
+| `RstViewMixin` | Render reStructuredText | `view` (rendered) or `raw` (source) |
+
+`--format` is **view-scoped**: table mixins use `view|yaml|json|csv`; markdown/rst
+use `view|raw`. There is no conflict because a command mixes in only one view
+family.
+
+Rendered markdown needs the optional `rich` package (`pip install rich`).
+Rendered RST needs `docutils` (`pip install docutils`). With `--format raw`,
+no extra package is required. Missing packages raise a clear install hint.
+
+```python
+from clak import MarkdownViewMixin, Parser
+
+class App(MarkdownViewMixin, Parser):
+    def cli_run(self, **_):
+        return "# Status\n\nAll **good**."
+```
 
 Example: `--sort-columns=-1,-3,1` sorts by last column, then third-from-last, then first
 (use `=` when the value starts with `-`, so argparse does not treat it as a flag).

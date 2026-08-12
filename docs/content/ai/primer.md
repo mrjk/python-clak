@@ -98,6 +98,7 @@ class Meta:
 | Need | Use |
 | --- | --- |
 | Tables / json/csv/yaml from return value | ListViewMixin / ShowViewMixin / PprintViewMixin |
+| Plain / markdown / rst text | RawViewMixin / MarkdownViewMixin / RstViewMixin |
 | -v logging + self.logger | LoggingOptMixin |
 | XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
 | Emit shell completion script | CompCmdRender as a Command |

@@ -63,6 +63,8 @@ yamllint = "^1.35.1"
 pymarkdownlnt = "^0.9.26"
 pytest-tagging = "^1.6.0"
 sh = "^2.2.1"
+rich = "^14.0.0"
+docutils = "^0.21.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.5.49"
