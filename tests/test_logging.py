@@ -13,6 +13,8 @@ from clak.exception import ClakAppError
 from clak.parser import Parser
 from clak.settings import resolve_log_colors
 
+pytestmark = pytest.mark.tags("unit-tests")
+
 
 @pytest.fixture
 def logging_mixin():

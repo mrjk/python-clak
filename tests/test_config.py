@@ -16,6 +16,8 @@ from clak.comp.config import (
 from clak.exception import ClakUserError
 from clak.parser import Parser
 
+pytestmark = pytest.mark.tags("unit-tests")
+
 
 def test_sanitize_xdg_app_name():
     assert sanitize_xdg_app_name("my_app") == "my_app"

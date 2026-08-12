@@ -27,6 +27,8 @@ from clak.parser import (
     SubParser,
 )
 
+pytestmark = pytest.mark.tags("unit-tests")
+
 
 # Basic Parser Tests
 def test_parser_initialization():
@@ -214,7 +216,7 @@ def test_known_exception_uses_rc(capsys):
     with pytest.raises(SystemExit) as exc:
         parser.dispatch([])
     assert exc.value.code == 44
-    assert "application missing" in capsys.readouterr().out
+    assert "application missing" in capsys.readouterr().err
 
 
 def test_exception_handlers_third_party(capsys):
@@ -240,21 +242,29 @@ def test_exception_handlers_third_party(capsys):
     assert "handled: bad config" in capsys.readouterr().out
 
 
-def test_uncaught_error_reports_bug(caplog):
+def test_uncaught_error_reports_bug(monkeypatch):
     """Unhandled exceptions get the developer bug message."""
 
     def run_cmd(**_):
         raise RuntimeError("boom")
 
+    messages = []
+
+    def _critical(msg, *args, **_kwargs):
+        messages.append(msg % args if args else str(msg))
+
+    monkeypatch.setattr("clak.parser.logger.critical", _critical)
+    monkeypatch.setattr("clak.parser.logger.error", lambda *a, **k: None)
+
     parser = ParserNode()
     parser.cli_run = run_cmd
 
-    with caplog.at_level(logging.CRITICAL):
-        with pytest.raises(SystemExit) as exc:
-            parser.dispatch([])
+    with pytest.raises(SystemExit) as exc:
+        parser.dispatch([])
     assert exc.value.code == 1
-    assert "may be a bug" in caplog.text
-    assert "report to the developer" in caplog.text
+    text = "\n".join(messages)
+    assert "may be a bug" in text
+    assert "report to the developer" in text
 
 
 def test_clean_terminate_broken_pipe(caplog, monkeypatch):
@@ -310,6 +320,8 @@ def test_first_doc_line():
     Second line
     Third line"""
     assert first_doc_line(doc) == "First line"
+    assert first_doc_line(None) == ""
+    assert first_doc_line("") == ""
 
 
 def test_prepare_docstring():

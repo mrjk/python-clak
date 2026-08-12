@@ -430,7 +430,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     def _terminate_app_exception(self, err):
         """Default handler for app exceptions (Paasify-style: rc + message)."""
         self._exception_advice(err)
-        print(err)
+        print(err, file=sys.stderr)
         rc = self._exception_exit_code(err)
         logger.critical(
             "Program exited with: error %s: %s",
@@ -488,13 +488,13 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # 3. Clak parse errors — show usage first
         if isinstance(err, exception.ClakParseError):
             self.show_usage()
-            print(f"{err}")
+            print(f"{err}", file=sys.stderr)
             sys.exit(err.rc)
 
         # 4. User-facing Clak errors
         if isinstance(err, exception.ClakUserError):
             self._exception_advice(err)
-            print(f"{err}")
+            print(f"{err}", file=sys.stderr)
             sys.exit(err.rc)
 
         # 5. Other Clak errors (app / bug)
@@ -502,7 +502,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             err_name = err.__class__.__name__
             self._exception_advice(err)
             err_message = err.message or err.__doc__
-            print(f"{err}")
+            print(f"{err}", file=sys.stderr)
             logger.critical(
                 "Program exited with bug %s(%s): %s",
                 err_name,

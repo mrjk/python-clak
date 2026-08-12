@@ -14,6 +14,8 @@ from clak.table_formatter import (
     resolve_sort_column_index,
 )
 
+pytestmark = pytest.mark.tags("unit-tests")
+
 ################## Test data
 
 # For test 1

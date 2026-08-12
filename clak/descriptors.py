@@ -278,7 +278,7 @@ class SubParser(ArgParseItem):
             parser_help = prepare_docstring(
                 first_doc_line(parser_help), variables=ctx_vars
             )
-            parser_kwargs = self.kwargs
+            parser_kwargs = dict(self.kwargs)
             parser_kwargs.update(
                 {
                     "formatter_class": RecursiveHelpFormatter,
@@ -363,11 +363,11 @@ class RegistryEntry:
         return f"RegistryEntry({self._config})"
 
 
-def first_doc_line(text: str) -> str:
+def first_doc_line(text: Optional[str]) -> str:
     """Get the first non-empty line from a text string.
 
     Args:
-        text (str): The text to extract the first line from
+        text: The text to extract the first line from (None treated as empty)
 
     Returns:
         str: The first non-empty line, or empty string if no non-empty lines found
@@ -375,6 +375,8 @@ def first_doc_line(text: str) -> str:
     Raises:
         AssertionError: If first non-empty line starts with spaces
     """
+    if not text:
+        return ""
     lines = text.split("\n")
     for line in lines:
         if line.strip():

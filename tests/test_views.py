@@ -17,6 +17,8 @@ from clak.views import (
     resolve_view_width,
 )
 
+pytestmark = pytest.mark.tags("unit-tests")
+
 USERS = [
     {"name": "ada", "role": "admin", "city": "London"},
     {"name": "linus", "role": "dev", "city": "Helsinki"},
@@ -656,6 +658,68 @@ def test_subcommand_list_view_mixin_format_json(capsys):
     assert set(records[0]) == {"name", "role"}
 
 
+def test_list_view_mixin_sort_applies_to_json(capsys):
+    """--sort-columns must reorder --format json output."""
+
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS_UNSORTED
+
+    App(parse=False, add_help=False).dispatch(
+        ["--format", "json", "--sort-columns", "name", "--columns", "name,role"]
+    )
+    records = json.loads(capsys.readouterr().out)
+    assert [row["name"] for row in records] == ["ada", "grace", "linus"]
+
+
+def test_list_view_mixin_meta_view_format_and_add_index(capsys):
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_format = "json"
+            view_columns = ("name",)
+            view_add_index = False
+            view_expand_keys = True
+
+        def cli_run(self, **_):
+            return USERS
+
+    app = App(parse=False, add_help=False)
+    app.dispatch([])
+    settings = getattr(app, "_clak_view_settings", {})
+    assert settings["format"] == "json"
+    assert settings["columns"] == ["name"]
+    assert settings["add_index"] is False
+    assert settings["expand_keys"] is True
+    records = json.loads(capsys.readouterr().out)
+    assert all(set(row) == {"name"} for row in records)
+
+
+def test_show_view_mixin_exposes_table_options_not_expand_keys():
+    class App(ShowViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS[0]
+
+    flags = _option_flags(App(parse=False, add_help=False))
+    assert "--columns" in flags
+    assert "--format" in flags
+    assert "--width" in flags
+    assert "--wrap" in flags
+    assert "--expand-keys" not in flags
+
+
+def test_pprint_view_mixin_exposes_only_width():
+    class App(PprintViewMixin, Parser):
+        def cli_run(self, **_):
+            return USERS
+
+    flags = _option_flags(App(parse=False, add_help=False))
+    assert "--width" in flags
+    assert "--columns" not in flags
+    assert "--format" not in flags
+    assert "--wrap" not in flags
+    assert "--expand-keys" not in flags
+
+
 # ---------------------------------------------------------------------------
 # Mixins — nested subcommand (hooks must fire on child nodes)
 # ---------------------------------------------------------------------------
@@ -800,7 +864,7 @@ def test_example_script_exceptions_runs(capsys):
     with pytest.raises(SystemExit) as exc:
         module.AppMain(parse=False, add_help=False).dispatch(["deploy", "missing"])
     assert exc.value.code == 44
-    assert "not found" in capsys.readouterr().out
+    assert "not found" in capsys.readouterr().err
 
 
 def test_example_script_views_runs(capsys):

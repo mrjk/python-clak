@@ -22,7 +22,6 @@ from collections.abc import Mapping, Sequence
 from clak.common import replace_tabs
 from clak.settings import CLAK_COLORS
 
-OUTPUT_FORMATS = frozenset({"view", "yaml", "json", "csv"})
 SORT_MODES = frozenset({"asc", "desc"})
 
 
@@ -35,9 +34,6 @@ def require_yaml():
             "PyYAML is required for --format yaml. Install with: pip install pyyaml"
         ) from err
     return yaml
-
-
-# assert False
 
 
 # pylint: disable=invalid-name
@@ -59,9 +55,6 @@ else:
         from prettytable import PrettyTable
 
         table_cls = PrettyTable
-
-
-# from pprint import pformat, pprint
 
 
 ################## Parent class
@@ -181,6 +174,9 @@ def default_sort_columns(headers):
 
 def format_structured(rows, headers, fmt):
     """Render tabular rows as yaml, json, or csv."""
+    # Late import: OUTPUT_FORMATS lives in clak.views (avoids circular import)
+    from clak.views import OUTPUT_FORMATS  # pylint: disable=import-outside-toplevel
+
     if fmt not in OUTPUT_FORMATS - {"view"}:
         raise ValueError(
             f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
@@ -220,10 +216,10 @@ def _apply_prettytable_width(
         resolve_view_width,
     )
 
-    mode, columns = resolve_view_width(
+    mode, term_budget = resolve_view_width(
         width=width, term_width=term_width, stdout_tty=stdout_tty
     )
-    if mode == "min" or columns is None:
+    if mode == "min" or term_budget is None:
         return
 
     wrap_mode = wrap if wrap is not None else DEFAULT_WRAP_MODE
@@ -235,13 +231,13 @@ def _apply_prettytable_width(
 
     if wrap_mode == "all":
         if mode == "auto":
-            table.max_table_width = columns
+            table.max_table_width = term_budget
         elif mode == "terminal":
-            table.min_table_width = columns
-            table.max_table_width = columns
+            table.min_table_width = term_budget
+            table.max_table_width = term_budget
         return
 
-    _apply_last_column_wrap(table, mode=mode, term_width=columns)
+    _apply_last_column_wrap(table, mode=mode, term_width=term_budget)
 
 
 def _strip_ansi(text):
@@ -282,8 +278,10 @@ def _apply_last_column_wrap(table, mode, term_width):
         table.min_table_width = term_width
         table.max_table_width = term_width
 
-    table.min_width = min_width
-    table.max_width = max_width
+    # PrettyTable 3.x min_width/max_width setters take a single int;
+    # per-column dicts go on the private maps.
+    table._min_width = min_width  # pylint: disable=protected-access
+    table._max_width = max_width  # pylint: disable=protected-access
 
 
 class _TableFormatter(ABC):
@@ -474,7 +472,7 @@ class TableListFormatter(_TableFormatter):
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments,too-many-statements
     def process_table(
-        self, data, columns=None, add_index=None, expand_keys=False, remove_tabs=True
+        self, data, columns=None, add_index=None, expand_keys=True, remove_tabs=True
     ):
         "Restructure data to fit to list view"
 

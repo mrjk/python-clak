@@ -19,6 +19,8 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
     options:
       show_source: false
       members:
+        - ClakViewOptMixin
+        - TableViewOptMixin
         - ShowViewMixin
         - ListViewMixin
         - PprintViewMixin
@@ -31,6 +33,7 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - ListView
         - PprintView
         - ClakView
+        - FeatureFullViewer
         - merge_view_settings
         - parse_columns
         - parse_sort_columns

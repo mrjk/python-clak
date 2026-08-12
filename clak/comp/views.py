@@ -1,11 +1,12 @@
 """View mixins for automatic CLI rendering and view options.
 
-Mix in one of:
-- ShowViewMixin → ShowView + --columns / --add-index / --format /
-  --sort-columns / --width / --wrap
-- ListViewMixin → ListView + --columns / --add-index / --expand-keys /
-  --format / --sort-columns / --width / --wrap
-- PprintViewMixin → PprintView + --width
+Option layers (mirror ClakView hierarchy):
+
+1. ClakViewOptMixin — generic: ``width``
+2. TableViewOptMixin — table (Show/List): ``format``, ``columns``,
+   ``sort_columns``, ``sort_mode``, ``wrap``, ``add_index``
+3. ListViewMixin — list-only: ``expand_keys``
+4. PprintViewMixin — enables only ``width``
 
 Example:
 
@@ -15,6 +16,7 @@ Example:
             view_columns = ("name", "role")
             view_column_names = ("name", "role", "city")
             view_sort_columns = 1
+            view_format = "view"
             view_width = "terminal"
             view_wrap = "last"
 
@@ -47,19 +49,22 @@ from clak.views import (
 
 logger = logging.getLogger(__name__)
 
-# Destination names shared across view mixins (used to filter Argument collection)
-_VIEW_CLI_OPTION_DESTS = frozenset(
+# Layer option dest sets (explicit unions avoid MRO drift)
+_LAYER_GENERIC_DESTS = frozenset({"width"})
+_LAYER_TABLE_DESTS = frozenset(
     {
-        "columns",
-        "add_index",
-        "expand_keys",
-        "width",
-        "wrap",
         "format",
+        "columns",
         "sort_columns",
         "sort_mode",
+        "wrap",
+        "add_index",
     }
 )
+_LAYER_LIST_DESTS = frozenset({"expand_keys"})
+
+# All known view CLI dests (used to filter Argument collection)
+_VIEW_CLI_OPTION_DESTS = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS
 
 _OUTPUT_OPTIONS_GROUP = "Output options"
 
@@ -82,6 +87,10 @@ _WRAP_HELP = (
     "column only), all (any column). Ignored when width is min or "
     "stdout is not a TTY."
 )
+_FORMAT_HELP = "Output format (default: view table)"
+_SORT_MODE_HELP = "Sort direction (default: asc)"
+_ADD_INDEX_HELP = "Include key/index column in the table"
+_EXPAND_KEYS_HELP = "Expand nested dict items into table columns"
 
 
 class _ViewMixinBase(PluginHelpers):
@@ -96,60 +105,6 @@ class _ViewMixinBase(PluginHelpers):
         ),
     )
     meta__view_cli_options = True
-
-    meta__config__view_columns = MetaSetting(
-        help=(
-            "Default columns when --columns is unset "
-            "(string, int index, or sequence; same syntax as --columns)"
-        ),
-    )
-    meta__view_columns = None
-
-    meta__config__view_column_names = MetaSetting(
-        help=(
-            "Full set of selectable column names shown in --columns / "
-            "--sort-columns help (view_columns remains the default display subset)"
-        ),
-    )
-    meta__view_column_names = None
-
-    meta__config__view_sort_columns = MetaSetting(
-        help=(
-            "Default sort columns when --sort-columns is unset "
-            "(string, int index, or sequence; same syntax as --sort-columns)"
-        ),
-    )
-    meta__view_sort_columns = None
-
-    meta__config__view_sort_mode = MetaSetting(
-        help="Default sort mode: asc or desc",
-    )
-    meta__view_sort_mode = None
-
-    meta__config__view_width = MetaSetting(
-        help="Default view width mode: min, auto, or terminal",
-    )
-    meta__view_width = None
-
-    meta__config__view_wrap = MetaSetting(
-        help="Default table wrap mode: last or all",
-    )
-    meta__view_wrap = None
-
-    width = Argument(
-        "--width",
-        choices=sorted(WIDTH_MODES),
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_WIDTH_HELP,
-    )
-    wrap = Argument(
-        "--wrap",
-        choices=sorted(WRAP_MODES),
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_WRAP_HELP,
-    )
 
     def _enabled_view_options(self) -> Set[str]:
         available = set(self._view_cli_option_names)
@@ -241,16 +196,23 @@ class _ViewMixinBase(PluginHelpers):
 
         return settings
 
-    def _apply_meta_view_defaults(self, settings: dict) -> None:
-        """Fill unset settings from Meta.view_* defaults."""
+    def _apply_meta_view_defaults(
+        self, settings: dict, enabled: Set[str] | None = None
+    ) -> None:
+        """Fill unset settings from Meta.view_* defaults (enabled options only)."""
         meta_defaults = (
             ("columns", "view_columns", normalize_columns),
             ("sort_columns", "view_sort_columns", normalize_sort_columns),
             ("sort_mode", "view_sort_mode", None),
             ("width", "view_width", None),
             ("wrap", "view_wrap", None),
+            ("format", "view_format", None),
+            ("add_index", "view_add_index", None),
+            ("expand_keys", "view_expand_keys", None),
         )
         for key, meta_name, normalizer in meta_defaults:
+            if enabled is not None and key not in enabled:
+                continue
             if key in settings:
                 continue
             value = self.query_cfg_parents(meta_name, default=None, include_self=True)
@@ -262,7 +224,7 @@ class _ViewMixinBase(PluginHelpers):
         """Build view render kwargs from parsed CLI args (only set flags)."""
         enabled = self._enabled_view_options()
         settings = self._collect_enabled_cli_settings(args, enabled)
-        self._apply_meta_view_defaults(settings)
+        self._apply_meta_view_defaults(settings, enabled)
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
@@ -278,7 +240,117 @@ class _ViewMixinBase(PluginHelpers):
         logger.debug("View settings for %s: %s", instance, settings)
 
 
-class ShowViewMixin(_ViewMixinBase):
+class ClakViewOptMixin(_ViewMixinBase):
+    """Layer 1: generic ClakView output options (``width``)."""
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS
+
+    meta__config__view_width = MetaSetting(
+        help="Default view width mode: min, auto, or terminal",
+    )
+    meta__view_width = None
+
+    width = Argument(
+        "--width",
+        choices=sorted(WIDTH_MODES),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_WIDTH_HELP,
+    )
+
+
+class TableViewOptMixin(ClakViewOptMixin):
+    """Layer 2: table view options shared by Show and List."""
+
+    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS
+
+    meta__config__view_columns = MetaSetting(
+        help=(
+            "Default columns when --columns is unset "
+            "(string, int index, or sequence; same syntax as --columns)"
+        ),
+    )
+    meta__view_columns = None
+
+    meta__config__view_column_names = MetaSetting(
+        help=(
+            "Full set of selectable column names shown in --columns / "
+            "--sort-columns help (view_columns remains the default display subset)"
+        ),
+    )
+    meta__view_column_names = None
+
+    meta__config__view_sort_columns = MetaSetting(
+        help=(
+            "Default sort columns when --sort-columns is unset "
+            "(string, int index, or sequence; same syntax as --sort-columns)"
+        ),
+    )
+    meta__view_sort_columns = None
+
+    meta__config__view_sort_mode = MetaSetting(
+        help="Default sort mode: asc or desc",
+    )
+    meta__view_sort_mode = None
+
+    meta__config__view_wrap = MetaSetting(
+        help="Default table wrap mode: last or all",
+    )
+    meta__view_wrap = None
+
+    meta__config__view_format = MetaSetting(
+        help="Default output format: view, yaml, json, or csv",
+    )
+    meta__view_format = None
+
+    meta__config__view_add_index = MetaSetting(
+        help="Default for --add-index / --no-add-index",
+    )
+    meta__view_add_index = None
+
+    columns = Argument(
+        "--columns",
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_COLUMNS_HELP,
+    )
+    add_index = Argument(
+        "--add-index",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_ADD_INDEX_HELP,
+    )
+    format = Argument(
+        "--format",
+        choices=["view", "yaml", "json", "csv"],
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_FORMAT_HELP,
+    )
+    sort_columns = Argument(
+        "--sort-columns",
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_SORT_COLUMNS_HELP,
+    )
+    sort_mode = Argument(
+        "--sort-mode",
+        choices=["asc", "desc"],
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_SORT_MODE_HELP,
+    )
+    wrap = Argument(
+        "--wrap",
+        choices=sorted(WRAP_MODES),
+        default=None,
+        group=_OUTPUT_OPTIONS_GROUP,
+        help=_WRAP_HELP,
+    )
+
+
+class ShowViewMixin(TableViewOptMixin):
     """Auto-render command results with :class:`~clak.views.ShowView`.
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
@@ -287,55 +359,11 @@ class ShowViewMixin(_ViewMixinBase):
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = frozenset(
-        {
-            "columns",
-            "add_index",
-            "format",
-            "sort_columns",
-            "sort_mode",
-            "width",
-            "wrap",
-        }
-    )
+    _view_cli_option_names = _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS
     meta__cli_view = ShowView
 
-    columns = Argument(
-        "--columns",
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_COLUMNS_HELP,
-    )
-    add_index = Argument(
-        "--add-index",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Include key/index column in the show table",
-    )
-    format = Argument(
-        "--format",
-        choices=["view", "yaml", "json", "csv"],
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Output format (default: view table)",
-    )
-    sort_columns = Argument(
-        "--sort-columns",
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_SORT_COLUMNS_HELP,
-    )
-    sort_mode = Argument(
-        "--sort-mode",
-        choices=["asc", "desc"],
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Sort direction (default: asc)",
-    )
 
-
-class ListViewMixin(_ViewMixinBase):
+class ListViewMixin(TableViewOptMixin):
     """Auto-render command results with :class:`~clak.views.ListView`.
 
     Adds ``--columns``, ``--add-index`` / ``--no-add-index``,
@@ -344,67 +372,30 @@ class ListViewMixin(_ViewMixinBase):
     Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = frozenset(
-        {
-            "columns",
-            "add_index",
-            "expand_keys",
-            "format",
-            "sort_columns",
-            "sort_mode",
-            "width",
-            "wrap",
-        }
+    _view_cli_option_names = (
+        _LAYER_GENERIC_DESTS | _LAYER_TABLE_DESTS | _LAYER_LIST_DESTS
     )
     meta__cli_view = ListView
 
-    columns = Argument(
-        "--columns",
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_COLUMNS_HELP,
+    meta__config__view_expand_keys = MetaSetting(
+        help="Default for --expand-keys / --no-expand-keys",
     )
-    add_index = Argument(
-        "--add-index",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Include index column in the list table",
-    )
+    meta__view_expand_keys = None
+
     expand_keys = Argument(
         "--expand-keys",
         action=argparse.BooleanOptionalAction,
         default=None,
         group=_OUTPUT_OPTIONS_GROUP,
-        help="Expand nested dict items into table columns",
-    )
-    format = Argument(
-        "--format",
-        choices=["view", "yaml", "json", "csv"],
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Output format (default: view table)",
-    )
-    sort_columns = Argument(
-        "--sort-columns",
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help=_SORT_COLUMNS_HELP,
-    )
-    sort_mode = Argument(
-        "--sort-mode",
-        choices=["asc", "desc"],
-        default=None,
-        group=_OUTPUT_OPTIONS_GROUP,
-        help="Sort direction (default: asc)",
+        help=_EXPAND_KEYS_HELP,
     )
 
 
-class PprintViewMixin(_ViewMixinBase):
+class PprintViewMixin(ClakViewOptMixin):
     """Auto-render command results with :class:`~clak.views.PprintView`.
 
     Adds ``--width``. Configure exposed flags with ``Meta.view_cli_options``.
     """
 
-    _view_cli_option_names = frozenset({"width"})
+    _view_cli_option_names = _LAYER_GENERIC_DESTS
     meta__cli_view = PprintView

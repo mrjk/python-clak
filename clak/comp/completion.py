@@ -103,7 +103,7 @@ class CompRenderCmdMixin(CompRenderMixin):
         "--executable",
         nargs="+",
         help=argparse.SUPPRESS,
-        default=["my_app_name"],
+        default=None,
     )
 
     def cli_run(self, ctx, **kwargs):  # pylint: disable=unused-argument
@@ -125,9 +125,16 @@ class CompRenderCmdMixin(CompRenderMixin):
             my-app completion --shell zsh  # Outputs zsh completion code
         """
 
-        print("COMPLETION")
-        self.print_completion_stdout(ctx)
-        print("COMPLETION")
+        args = ctx.args
+        executable = getattr(args, "executable", None)
+        if not executable:
+            prog = getattr(ctx, "app_proc_name", None) or getattr(
+                ctx.cli_root, "proc_name", None
+            )
+            if not prog:
+                prog = sys.argv[0]
+            args.executable = [prog]
+        self.print_completion_stdout(args)
 
 
 class CompRenderOptMixin(CompRenderMixin):
@@ -174,8 +181,14 @@ class CompRenderOptMixin(CompRenderMixin):
 
         args = ctx.args
 
+        prog = getattr(ctx, "app_proc_name", None) or getattr(
+            ctx.cli_root, "proc_name", None
+        )
+        if not prog:
+            prog = sys.argv[0]
+
         kwargs = {
-            "executable": ["my_app_name"],
+            "executable": [prog],
             "shell": "bash",
             "use_defaults": True,
             "complete_arguments": [],

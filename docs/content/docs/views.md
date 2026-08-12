@@ -3,6 +3,22 @@
 Clak can turn command return values into readable CLI tables (or pretty-prints)
 without hand-written `print()` formatting.
 
+## Option layers
+
+View CLI options are layered to match the view class hierarchy. Public flag
+names are stable; each option is defined once and inherited.
+
+| Layer | Options | Who enables |
+| --- | --- | --- |
+| Generic (`ClakView`) | `--width` | Show, List, Pprint |
+| Table (Show + List) | `--format`, `--columns`, `--sort-columns`, `--sort-mode`, `--wrap`, `--add-index` / `--no-add-index` | Show, List |
+| List-only | `--expand-keys` / `--no-expand-keys` | List |
+
+Matching `Meta.view_*` defaults exist for every option (`view_width`,
+`view_format`, `view_columns`, `view_sort_columns`, `view_sort_mode`,
+`view_wrap`, `view_add_index`, `view_expand_keys`, plus `view_column_names`
+for help text and `view_cli_options` to filter flags).
+
 ## Pick a mixin
 
 Mix in **one** view mixin on your parser. That chooses the view and registers
@@ -173,7 +189,10 @@ $ python script_views.py --sort-columns name --sort-mode desc --columns name,rol
 - **`json`** / **`csv`** — stdlib only.
 - **`yaml`** — requires PyYAML (`pip install 'mrjk.clak[config]'` or `pip install pyyaml`).
 
-Sorting applies before rendering, so it works for every format (including multi-column sort).
+Sorting applies before rendering, so it works for every format (including
+multi-column sort). For List `json` / `yaml`, Clak projects and sorts the
+original payload (no table fillers such as `-`); `view` / `csv` use the table
+path (fillers, Index column, tab cleanup).
 
 ## Nested subcommands
 
