@@ -149,7 +149,8 @@ class Argument(ArgParseItem):
     """Represents an argument that can be added to an argument parser.
 
     Handles both positional arguments and optional flags, choosing the
-    appropriate argparse form from the flag names.
+    appropriate argparse form from the flag names. Optional helpers
+    :class:`Arg` (positionals) and :class:`Opt` (flags) reject mixed names.
 
     Most keyword arguments are passed through to
     :meth:`argparse.ArgumentParser.add_argument`. Clak-only kwargs (stripped
@@ -233,6 +234,50 @@ class Argument(ArgParseItem):
         target.add_argument(*args, **kwargs)
 
         return parser
+
+
+def _check_arg_opt_names(args, expect_option: bool, cls_name: str) -> None:
+    """Reject mixed positional names and option flags on Arg/Opt."""
+    for arg in args:
+        is_flag = str(arg).startswith("-")
+        if expect_option and not is_flag:
+            raise ValueError(
+                f"{cls_name}() is for option flags, got positional {arg!r}. "
+                "Use Arg() or Argument() for positionals."
+            )
+        if not expect_option and is_flag:
+            raise ValueError(
+                f"{cls_name}() is for positional arguments, got option flag "
+                f"{arg!r}. Use Opt() or Argument() for flags."
+            )
+
+
+class Arg(Argument):
+    """Optional sugar for a positional argument.
+
+    Same ``*args`` / ``**kwargs`` as :class:`Argument`, but every name must
+    be a positional (no leading ``-``). ``Argument`` still accepts both
+    positionals and flags; use ``Arg`` only when you want that distinction
+    checked at class definition time.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _check_arg_opt_names(self.args, expect_option=False, cls_name="Arg")
+
+
+class Opt(Argument):
+    """Optional sugar for an option flag.
+
+    Same ``*args`` / ``**kwargs`` as :class:`Argument`, but every name must
+    start with ``-`` / ``--``. ``Argument`` still accepts both positionals
+    and flags; use ``Opt`` only when you want that distinction checked at
+    class definition time.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _check_arg_opt_names(self.args, expect_option=True, cls_name="Opt")
 
 
 class SubParser(ArgParseItem):

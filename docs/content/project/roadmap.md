@@ -10,6 +10,7 @@ These are the current **star features** — each has user documentation:
 | Feature | Docs |
 | --- | --- |
 | Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../docs/features.md), [Quickstart](../quickstart/quickstart.md) |
+| Optional `Arg` / `Opt` helpers (positionals vs flags) | [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers) |
 | Nested subcommands + command tree in `--help` | [Nested guide](../guides/guide_102.md) |
 | Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
 | Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
@@ -38,7 +39,9 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 ### API helpers
 
-- [ ] Distinct `Opt` / `Arg` helpers (optional vs positional) — today everything is `Argument`
+- [x] Distinct `Opt` / `Arg` helpers (optional vs positional). `Argument` remains
+  the canonical descriptor and still accepts both; `Arg` / `Opt` are optional
+  sugar that reject mixed names. They are not aliases of `Argument`.
 - [ ] Automatic mapping of environment variables to CLI options (beyond Clak’s own `CLAK_*` / XDG vars);
   building block: `resolve_bool_option` in `clak.common` (CLI > env > auto; used by `resolve_log_colors`)
 
@@ -68,3 +71,6 @@ Prefer the canonical names in new code and docs:
 | `Command` | `SubParser`, `SubCommand`, `Cmd` |
 
 These aliases are not deprecated; documentation simply leads with the canonical names.
+
+`Arg` and `Opt` are optional helpers, not aliases: they subclass `Argument` and
+reject mixed positional / flag names.

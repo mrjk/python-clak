@@ -12,7 +12,10 @@ you already know most of Clak.
   - `.add_subparsers(...)` → `subcmd = Command(...)`
 - Aliases (supported, not preferred in new code): `SubParser` / `SubCommand` /
   `Cmd` for `Command`; `ArgumentParser` for `Parser`.
-  See [Roadmap](../project/roadmap.md) for planned `Opt` / `Arg` helpers.
+- Optional helpers: `Opt` for flags (`-` / `--`) and `Arg` for positionals.
+  `Argument` still accepts both; `Arg` / `Opt` are never required. Mixing
+  names (`Arg("--flag")`, `Opt("NAME")`) raises `ValueError`. See
+  [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers).
 
 ## Class-based structure
 
@@ -93,5 +96,5 @@ Mix in only what you need:
 
 ## Planned
 
-See the [roadmap](../project/roadmap.md) for intermixed args, `Opt`/`Arg`
-helpers, env-var mapping, and runtime autocomplete.
+See the [roadmap](../project/roadmap.md) for intermixed args, env-var mapping,
+and runtime autocomplete.

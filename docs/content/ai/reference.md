@@ -22,6 +22,7 @@ PUBLIC SURFACE
 
 from clak import (
     Parser, Argument, Command,          # core
+    Arg, Opt,                           # optional: positionals vs flags
     ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
     LoggingOptMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin, DataViewMixin,
@@ -317,10 +318,22 @@ Argument(..., exclusive_group="key") maps to add_mutually_exclusive_group
 Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 
 ==============================================================================
+OPTIONAL ARG / OPT HELPERS
+==============================================================================
+
+Argument still accepts both positionals and flags. Arg and Opt are optional
+sugar (not aliases of Argument):
+
+- Arg("NAME", help="...")  # positional only; Arg("--flag") raises ValueError
+- Opt("-v", "--verbose")   # flags only; Opt("NAME") raises ValueError
+
+Same kwargs as Argument / add_argument(). Mixing kinds in one call also
+raises. Prefer Argument in generated code unless the user asked for Arg/Opt.
+
+==============================================================================
 NOT SHIPPED (do not invent APIs)
 ==============================================================================
 
-- Opt / Arg split helpers
 - Automatic env-var → option mapping (beyond CLAK_* and XDG_*)
 - Intermixed optional/positional helpers
 - Decorator-first Click/Typer style primary API
@@ -331,6 +344,7 @@ QUICK CHECKLIST FOR GENERATED CODE
 ==============================================================================
 
 [ ] Imports from clak use Parser, Argument, Command (+ mixins as needed)
+[ ] Arg/Opt only if requested; do not mix positional names with -/-- flags
 [ ] Mixin(s) appear before Parser in class bases
 [ ] cli_run uses destinations + **_ ; raises ClakUserError / AppError for UX
 [ ] Root instantiated under if __name__ == "__main__" or entry point

@@ -174,6 +174,47 @@ python script2.py --force --config custom.yaml --color blue \
                 John Smith nickname1 nickname2
 ```
 
+## Optional Arg and Opt helpers
+
+`Argument` is the canonical descriptor and still accepts both flags and
+positionals. `Opt` and `Arg` are **optional** sugar if you want that
+difference checked when the class is defined:
+
+- `Opt(...)` : option flags only (`-` / `--`)
+- `Arg(...)` : positional names only (no leading `-`)
+
+Mixing names raises `ValueError` (`Arg("--flag")`, `Opt("NAME")`, or both
+kinds in one call). Same kwargs as `Argument` / `add_argument()`. You never
+have to use them.
+
+The previous example, rewritten:
+
+```python
+from clak import Arg, Opt, Parser
+
+
+class AppMain(Parser):
+    """Demo application with many arguments."""
+
+    force = Opt("--force", "-f", action="store_true", help="Force mode")
+    config = Opt("-c", help="Config file path", default="config.yaml")
+    color = Opt(
+        "--color",
+        choices=["red", "green", "blue", "unknown"],
+        default="unknown",
+        help="Favorite color",
+    )
+    items = Opt("--items", "-m", action="append", help="Preferred items")
+    name = Arg("NAME", help="First Name")
+    surname = Arg("SURNAME", nargs="?", default="Doe", help="Last Name")
+    aliases = Arg(
+        "ALIAS", nargs="*", default=["Bond", "agent 007"], help="Aliases"
+    )
+
+    def cli_run(self, name=None, surname=None, **_):
+        print(f"Identity: {name} {surname}")
+```
+
 ## Next Steps
 
 Next: [Nested command-line applications](guide_102.md) — subcommands and

@@ -1,9 +1,10 @@
 """Clak parser: ParserNode build, dispatch, and execute.
 
-Descriptors (Argument, SubParser, MetaSetting, docstring helpers) live in
-``clak.core.descriptors`` and are re-exported here for compatibility.
+Descriptors (Argument, Arg, Opt, SubParser, MetaSetting, docstring helpers)
+live in ``clak.core.descriptors`` and are re-exported here for compatibility.
 
 Canonical public names: ``Parser``, ``Argument``, ``Command`` (alias of SubParser).
+Optional helpers: ``Arg`` (positionals), ``Opt`` (flags).
 Instantiate a root ``Parser`` to parse and run; it calls ``dispatch()`` automatically
 unless ``parse=False``.
 """
@@ -24,11 +25,13 @@ from clak.core.argparse_ import (
     argparse,
     format_argument_error,
 )
-from clak.core.descriptors import (
+from clak.core.descriptors import (  # pylint: disable=unused-import
+    Arg,  # re-exported
     ArgParseItem,
     Argument,
     FormatEnv,
     MetaSetting,
+    Opt,  # re-exported
     SubParser,
     prepare_docstring,
 )

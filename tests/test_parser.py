@@ -20,8 +20,10 @@ import pytest
 from clak.descriptors import FormatEnv, first_doc_line, prepare_docstring
 from clak.exception import ClakError, ClakParseError, ClakUserError
 from clak.parser import (
+    Arg,
     Argument,
     Command,
+    Opt,
     Parser,
     ParserNode,
     SubParser,
@@ -64,6 +66,63 @@ def test_argument_destination():
 
     arg = Argument("-t", "--test", help="Test argument")
     assert arg._get_best_dest() == "test"
+
+
+def test_arg_opt_public_import():
+    """Arg and Opt are optional helpers exported from clak."""
+    from clak import Arg as TopArg
+    from clak import Opt as TopOpt
+
+    assert TopArg is Arg
+    assert TopOpt is Opt
+    assert issubclass(Arg, Argument)
+    assert issubclass(Opt, Argument)
+    assert isinstance(Arg("NAME"), Argument)
+    assert isinstance(Opt("--verbose"), Argument)
+
+
+def test_arg_opt_parse_happy_path():
+    """Parser accepts Opt flags and Arg positionals like Argument."""
+
+    class App(Parser):
+        verbose = Opt("-v", "--verbose", action="store_true", help="Verbose")
+        name = Arg("NAME", help="Who to greet")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=False)
+    args = app.parse_args(["-v", "Ada"])
+    assert args.verbose is True
+    assert args.name == "Ada"
+
+    args = app.parse_args(["Ada"])
+    assert args.verbose is False
+    assert args.name == "Ada"
+
+
+def test_arg_rejects_option_flags():
+    """Arg must not be given option flags."""
+    with pytest.raises(ValueError, match="option flag '--miss-placed-option'"):
+        Arg("--miss-placed-option")
+    with pytest.raises(ValueError, match="option flag '--flag'"):
+        Arg("NAME", "--flag")
+    with pytest.raises(ValueError, match="option flag '-v'"):
+        Arg("-v")
+
+
+def test_opt_rejects_positionals():
+    """Opt must not be given positional names."""
+    with pytest.raises(ValueError, match="positional 'miss_placed_arg'"):
+        Opt("miss_placed_arg")
+    with pytest.raises(ValueError, match="positional 'NAME'"):
+        Opt("-v", "NAME")
+
+
+def test_opt_dest_derived_flag_allowed():
+    """Opt with no names still uses dest-derived flags."""
+    opt = Opt(action="store_true", help="Verbose")
+    assert opt.args == ()
 
 
 def test_option_group_reuses_same_title():

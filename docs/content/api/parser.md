@@ -7,9 +7,10 @@ Prefer the top-level package for app code:
 
 ```python
 from clak import Parser, Argument, Command
+# Optional: Arg (positionals), Opt (flags) - Argument still accepts both
 ```
 
-Descriptors (`Argument`, `SubParser`, docstring helpers):
+Descriptors (`Argument`, `Arg`, `Opt`, `SubParser`, docstring helpers):
 
 ::: clak.core.descriptors
 

@@ -26,6 +26,11 @@ Canonical API (prefer these names):
 - Argument — class attribute = one option/positional (add_argument kwargs)
 - Command  — binds a child Parser as a subcommand (add_subparsers)
 
+Optional helpers (not required; Argument still accepts both):
+- Arg — positional names only (no leading -)
+- Opt — option flags only (- / --)
+Mixing names (Arg("--x"), Opt("NAME")) raises ValueError.
+
 Aliases still work but prefer canonical names:
 - ArgumentParser = Parser
 - SubParser / SubCommand / Cmd = Command
@@ -67,7 +72,8 @@ if __name__ == "__main__":
 6. Optional flags start with -/-- ; positionals are bare names (e.g. "NAME").
 7. Prefer raise ClakUserError("msg") over print+sys.exit for user mistakes.
 8. Mixins go LEFT of Parser: class App(LoggingOptMixin, Parser):
-9. Do not invent Opt/Arg helpers — not shipped; use Argument only.
+9. Arg/Opt are optional sugar. Argument still accepts both. Do not mix:
+   Arg is positionals only, Opt is flags only (ValueError if mixed).
 10. Do not assume env vars auto-map to CLI options — not shipped.
 11. Do not use Click/Typer patterns (@app.command, typer.Option, etc.).
 12. Default root App() auto-dispatches. Use App(parse=False) to build without running.
