@@ -15,6 +15,7 @@ from clak.views.base import (
     pformat_truncated,
     resolve_wrap_budget,
 )
+from clak.views.rich_style import make_rich_console, resolve_syntax_theme, syntax_kwargs
 
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 _DOCUTILS_INSTALL_HINT = "pip install 'mrjk.clak[rst]'"
@@ -69,18 +70,67 @@ def require_docutils():
     return docutils_core
 
 
+_FG_MARKDOWN_CLS = None
+
+
+def _fg_markdown_class(rich_markdown, rich_syntax):
+    """Markdown subclass: fenced/indented code is fg-only Syntax, no pane pad."""
+    # pylint: disable=global-statement
+    global _FG_MARKDOWN_CLS
+    if _FG_MARKDOWN_CLS is not None:
+        return _FG_MARKDOWN_CLS
+
+    class FgOnlyCodeBlock(rich_markdown.CodeBlock):
+        """Code fence renderer that never paints a theme pane background."""
+
+        def __rich_console__(self, console, options):  # pylint: disable=unused-argument
+            code = str(self.text).rstrip()
+            yield rich_syntax.Syntax(
+                code,
+                self.lexer_name,
+                word_wrap=True,
+                padding=0,
+                **syntax_kwargs(self.theme),
+            )
+
+    class FgMarkdown(rich_markdown.Markdown):
+        """Markdown with fg-only fenced and indented code blocks."""
+
+        elements = {
+            **rich_markdown.Markdown.elements,
+            "fence": FgOnlyCodeBlock,
+            "code_block": FgOnlyCodeBlock,
+        }
+
+    _FG_MARKDOWN_CLS = FgMarkdown
+    return FgMarkdown
+
+
 def render_markdown_text(
-    text: str, line_length=None, term_width=None, stdout_tty=None, **_
+    text: str,
+    line_length=None,
+    term_width=None,
+    stdout_tty=None,
+    theme=None,
+    **_,
 ):
-    """Render markdown source to terminal text via rich."""
+    """Render markdown source to terminal text via rich (fg-only code)."""
     rich_console, rich_markdown = require_rich()
+    import rich.syntax as rich_syntax  # pylint: disable=import-outside-toplevel
+
     wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
-    console_kwargs = {"force_terminal": True, "soft_wrap": True}
-    if wrap and budget is not None:
-        console_kwargs["width"] = budget
-    console = rich_console.Console(**console_kwargs)
+    width = budget if wrap and budget is not None else None
+    console = make_rich_console(rich_console, width=width)
+    resolved = resolve_syntax_theme(theme)
+    markdown_cls = _fg_markdown_class(rich_markdown, rich_syntax)
     with console.capture() as capture:
-        console.print(rich_markdown.Markdown(text))
+        console.print(
+            markdown_cls(
+                text,
+                code_theme=resolved,
+                inline_code_theme=resolved,
+            )
+        )
     return capture.get().rstrip("\n")
 
 
@@ -168,6 +218,7 @@ class MarkdownView(ClakView):
     settings_default = {
         "line_length": DEFAULT_LINE_LENGTH,
         "format": "view",
+        "theme": None,
     }
 
     def render(self, *args, stdout=True, **kwargs):
@@ -180,10 +231,12 @@ class MarkdownView(ClakView):
             raise ValueError(
                 f"Unsupported format {fmt!r}, choose one of: {sorted(TEXT_FORMATS)}"
             )
+        merged_theme = settings.pop("theme", None)
+        theme = self.settings.get("theme") or merged_theme
         if fmt == "raw":
             rendered = _wrap_text(text, **settings)
         else:
-            rendered = render_markdown_text(text, **settings)
+            rendered = render_markdown_text(text, theme=theme, **settings)
         return self._output(rendered, stdout=stdout)
 
 

@@ -37,6 +37,10 @@ from clak.views.data import (
     format_data_payload,
     resolve_data_format,
 )
+from clak.views.rich_style import (
+    DEFAULT_SYNTAX_THEME,
+    resolve_syntax_theme,
+)
 from clak.views.table import (
     FeatureFullViewer,
     ListView,
@@ -68,6 +72,7 @@ __all__ = [
     "DATA_FORMATS",
     "DEFAULT_FORMAT_SCOPE",
     "DEFAULT_LINE_LENGTH",
+    "DEFAULT_SYNTAX_THEME",
     "DEFAULT_WIDTH_MODE",
     "DEFAULT_WRAP_MODE",
     "DataView",
@@ -105,5 +110,6 @@ __all__ = [
     "require_rich",
     "resolve_data_format",
     "resolve_line_length",
+    "resolve_syntax_theme",
     "resolve_view_width",
 ]

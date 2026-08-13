@@ -22,7 +22,7 @@ Matching `Meta.view_*` defaults exist for every option (`view_width`,
 `view_line_length`, `view_format`, `view_format_scope`, `view_columns`,
 `view_sort_columns`, `view_sort_mode`, `view_wrap`, `view_wrap_min`,
 `view_add_index`, `view_expand_keys`, `view_compact`, `view_color`,
-`view_anchors`, plus `view_column_names` for help text and
+`view_anchors`, `view_syntax_theme`, plus `view_column_names` for help text and
 `view_cli_options` to filter flags).
 
 ## Pick a mixin
@@ -196,8 +196,12 @@ use `view|raw`. There is no conflict because a command mixes in only one view
 family.
 
 Rendered markdown needs `pip install 'mrjk.clak[markdown]'` (`rich`).
-Rendered RST needs `pip install 'mrjk.clak[rst]'` (`docutils`). With `--format raw`,
-no extra package is required. Missing packages raise a clear install hint.
+Color is foreground-only: no black chips on inline code or fenced blocks, and
+fenced `yaml` / `json` use the same Syntax theme as DataView
+(`MarkdownView(theme=...)` > `Meta.view_syntax_theme` > `CLAK_SYNTAX_THEME` >
+`ansi_dark`). Rendered RST needs `pip install 'mrjk.clak[rst]'` (`docutils`).
+With `--format raw`, no extra package is required. Missing packages raise a
+clear install hint.
 
 ```python
 from clak import MarkdownViewMixin, Parser
@@ -468,8 +472,13 @@ class App(ListViewMixin, Parser):
 | --- | --- | --- |
 | `--format json\|yaml` | auto | YAML when PyYAML is installed, else JSON. Explicit `yaml` without PyYAML fails with install advice. |
 | `--compact` / `--no-compact` | off | JSON only: single-line vs indented. |
-| `--color` / `--no-color` | auto | Colorize with rich when `CLAK_COLORS`, TTY, and rich are available. Explicit `--color` without rich fails. |
+| `--color` / `--no-color` | auto | Colorize with rich when `CLAK_COLORS`, TTY, and rich are available. Explicit `--color` without rich fails. Color is foreground-only; the terminal background is left as-is (no theme pane or token fill). |
 | `--anchors` / `--no-anchors` | on | YAML only: keep or disable anchors/aliases for shared references. |
+
+Syntax theme (no CLI flag; shared with MarkdownView code fences):
+`DataView(theme=...)` / `MarkdownView(theme=...)` > `Meta.view_syntax_theme` >
+`CLAK_SYNTAX_THEME` > `ansi_dark`. Invalid names fail via rich/Pygments.
+Color is foreground-only; the terminal background is left as-is.
 
 Extras: `mrjk.clak[config]` for YAML, `mrjk.clak[markdown]` for rich colors.
 

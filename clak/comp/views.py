@@ -301,6 +301,13 @@ class _ViewMixinBase(PluginHelpers):
             if value is not None:
                 settings["wrap_min"] = normalize_wrap_min(value)
 
+        if getattr(self, "_uses_syntax_theme", False) and "theme" not in settings:
+            value = self.query_cfg_parents(
+                "view_syntax_theme", default=None, include_self=True
+            )
+            if value is not None:
+                settings["theme"] = value
+
     def collect_view_settings(self, args: Any) -> dict:
         """Build view render kwargs from parsed CLI args (only set flags)."""
         enabled = self._enabled_view_options()
@@ -544,11 +551,21 @@ class MarkdownViewMixin(TextViewOptMixin):
     """Auto-render command results with :class:`~clak.views.MarkdownView`.
 
     Adds ``--format`` (``view`` / ``raw``) and ``--line-length``.
-    Configure exposed flags with ``Meta.view_cli_options``.
+    Syntax theme: ``Meta.view_syntax_theme`` or ``CLAK_SYNTAX_THEME``, else
+    ``ansi_dark``. Configure exposed flags with ``Meta.view_cli_options``.
     """
 
     _view_cli_option_names = _LAYER_TEXT_LAYOUT_DESTS | _LAYER_TEXT_DESTS
+    _uses_syntax_theme = True
     meta__cli_view = MarkdownView
+
+    meta__config__view_syntax_theme = MetaSetting(
+        help=(
+            "Pygments/Rich Syntax theme for markdown code fences. "
+            "Overrides CLAK_SYNTAX_THEME; default ansi_dark"
+        ),
+    )
+    meta__view_syntax_theme = None
 
 
 class RstViewMixin(TextViewOptMixin):
@@ -567,10 +584,12 @@ class DataViewMixin(_ViewMixinBase):
 
     Adds ``--format`` (``json`` / ``yaml``), ``--compact`` / ``--no-compact``,
     ``--color`` / ``--no-color``, and ``--anchors`` / ``--no-anchors``.
-    Configure exposed flags with ``Meta.view_cli_options``.
+    Syntax theme: ``Meta.view_syntax_theme`` or ``CLAK_SYNTAX_THEME``, else
+    ``ansi_dark``. Configure exposed flags with ``Meta.view_cli_options``.
     """
 
     _view_cli_option_names = _LAYER_DATA_DESTS
+    _uses_syntax_theme = True
     meta__cli_view = DataView
 
     meta__config__view_format = MetaSetting(
@@ -592,6 +611,14 @@ class DataViewMixin(_ViewMixinBase):
         help="Default for --anchors / --no-anchors (YAML only)",
     )
     meta__view_anchors = None
+
+    meta__config__view_syntax_theme = MetaSetting(
+        help=(
+            "Pygments/Rich Syntax theme for DataView and Markdown code. "
+            "Overrides CLAK_SYNTAX_THEME; default ansi_dark"
+        ),
+    )
+    meta__view_syntax_theme = None
 
     format = Argument(
         "--format",

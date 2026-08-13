@@ -2,6 +2,7 @@
 
 import builtins
 import json
+import re
 
 import pytest
 
@@ -12,12 +13,19 @@ from clak.views import (
     DataView,
     format_data_payload,
     resolve_data_format,
+    resolve_syntax_theme,
 )
 from clak.views.composite import _section_kind
+from clak.views.rich_style import CLAK_SYNTAX_THEME_ENV, DEFAULT_SYNTAX_THEME
 
 pytestmark = pytest.mark.tags("unit-tests")
 
 PAYLOAD = {"name": "ada", "roles": ["admin", "ops"]}
+STRING_PAYLOAD = {
+    "title": "Traefik Web",
+    "description": "Reverse proxy",
+    "enum": ["http", "https"],
+}
 
 
 def _option_flags(app):
@@ -161,6 +169,114 @@ def test_data_view_explicit_color_with_rich():
     assert "\x1b[" in rendered
 
 
+def _has_background_csi(text: str) -> bool:
+    """True if *text* sets a token/pane background (not default-bg or underline)."""
+    if "\x1b[48;" in text:
+        return True
+    for seq in re.findall(r"\x1b\[([0-9;]*)m", text):
+        if not seq:
+            continue
+        for code in seq.split(";"):
+            if not code:
+                continue
+            number = int(code)
+            if 40 <= number <= 47 or number == 48 or 100 <= number <= 107:
+                return True
+    return False
+
+
+def _spy_syntax_theme(monkeypatch):
+    seen = {}
+    from clak.views.rich_style import resolve_syntax_theme as real
+
+    def _spy(theme=None):
+        result = real(theme)
+        seen["arg"] = theme
+        seen["result"] = result
+        return result
+
+    monkeypatch.setattr("clak.views.rich_style.resolve_syntax_theme", _spy)
+    monkeypatch.setattr("clak.views.text.resolve_syntax_theme", _spy)
+    return seen
+
+
+def test_resolve_syntax_theme_default(monkeypatch):
+    monkeypatch.delenv(CLAK_SYNTAX_THEME_ENV, raising=False)
+    assert resolve_syntax_theme(None) == DEFAULT_SYNTAX_THEME
+    assert resolve_syntax_theme("") == DEFAULT_SYNTAX_THEME
+    assert resolve_syntax_theme("   ") == DEFAULT_SYNTAX_THEME
+
+
+def test_resolve_syntax_theme_env(monkeypatch):
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    assert resolve_syntax_theme(None) == "vim"
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "  ")
+    assert resolve_syntax_theme(None) == DEFAULT_SYNTAX_THEME
+
+
+def test_resolve_syntax_theme_explicit_wins_over_env(monkeypatch):
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    assert resolve_syntax_theme("monokai") == "monokai"
+    assert resolve_syntax_theme("  monokai  ") == "monokai"
+
+
+def test_resolve_syntax_theme_rejects_non_string():
+    with pytest.raises(TypeError, match="theme must be a string"):
+        resolve_syntax_theme(1)
+
+
+def test_data_view_colored_yaml_json_are_fg_only():
+    pytest.importorskip("rich")
+    pytest.importorskip("yaml")
+    for fmt in ("json", "yaml"):
+        rendered = DataView(
+            STRING_PAYLOAD, format=fmt, color=True, stdout_tty=True
+        ).render(stdout=False)
+        assert "\x1b[" in rendered
+        assert not _has_background_csi(rendered)
+        assert "Traefik Web" in rendered
+
+
+def test_data_view_monokai_theme_has_no_background_csi():
+    pytest.importorskip("rich")
+    rendered = DataView(
+        STRING_PAYLOAD,
+        format="json",
+        color=True,
+        theme="monokai",
+        stdout_tty=True,
+    ).render(stdout=False)
+    assert "\x1b[" in rendered
+    assert not _has_background_csi(rendered)
+
+
+def test_data_view_color_false_stays_plain():
+    pytest.importorskip("rich")
+    rendered = DataView(
+        STRING_PAYLOAD, format="json", color=False, theme="monokai"
+    ).render(stdout=False)
+    assert rendered.startswith("{")
+    assert "\x1b[" not in rendered
+
+
+def test_data_view_uses_env_syntax_theme(monkeypatch):
+    pytest.importorskip("rich")
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    seen = _spy_syntax_theme(monkeypatch)
+    DataView(PAYLOAD, format="json", color=True).render(stdout=False)
+    assert seen["arg"] is None
+    assert seen["result"] == "vim"
+
+
+def test_data_view_constructor_theme_wins_over_env(monkeypatch):
+    pytest.importorskip("rich")
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    seen = _spy_syntax_theme(monkeypatch)
+    DataView(PAYLOAD, format="json", color=True, theme="monokai").render(stdout=False)
+    assert seen["arg"] == "monokai"
+    assert seen["result"] == "monokai"
+
+
 # ---------------------------------------------------------------------------
 # Mixin
 # ---------------------------------------------------------------------------
@@ -235,6 +351,45 @@ def test_data_view_mixin_meta_defaults(capsys):
     App(parse=False, add_help=False).dispatch([])
     out = capsys.readouterr().out.strip()
     assert out == json.dumps(PAYLOAD)
+
+
+def test_data_view_mixin_meta_syntax_theme(monkeypatch, capsys):
+    pytest.importorskip("rich")
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    seen = _spy_syntax_theme(monkeypatch)
+
+    class App(DataViewMixin, Parser):
+        class Meta:
+            view_format = "json"
+            view_color = True
+            view_syntax_theme = "monokai"
+
+        def cli_run(self, **_):
+            return PAYLOAD
+
+    App(parse=False, add_help=False).dispatch([])
+    capsys.readouterr()
+    assert seen["arg"] == "monokai"
+    assert seen["result"] == "monokai"
+
+
+def test_data_view_constructor_theme_wins_over_meta(monkeypatch, capsys):
+    pytest.importorskip("rich")
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    seen = _spy_syntax_theme(monkeypatch)
+
+    class App(DataViewMixin, Parser):
+        class Meta:
+            view_syntax_theme = "default"
+            view_color = True
+
+        def cli_run(self, **_):
+            return DataView(PAYLOAD, format="json", theme="monokai", color=True)
+
+    App(parse=False, add_help=False).dispatch([])
+    capsys.readouterr()
+    assert seen["arg"] == "monokai"
+    assert seen["result"] == "monokai"
 
 
 def test_data_view_mixin_no_anchors(capsys):

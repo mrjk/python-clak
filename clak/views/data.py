@@ -11,6 +11,7 @@ from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.settings import CLAK_COLORS
 from clak.views.base import ClakView
+from clak.views.rich_style import make_rich_console, syntax_kwargs
 
 DATA_FORMATS = frozenset({"json", "yaml"})
 
@@ -111,6 +112,7 @@ def colorize_data_text(
     *,
     color=None,
     stdout_tty=None,
+    theme=None,
     **_,
 ) -> str:
     """Optionally syntax-highlight *text* with rich.
@@ -118,6 +120,9 @@ def colorize_data_text(
     * ``color=True``: require rich and colorize (fails if missing).
     * ``color=False``: return plain text.
     * ``color=None`` (auto): colorize when CLAK_COLORS, TTY, and rich available.
+
+    Syntax color is foreground-only (terminal background is left as-is).
+    Theme: explicit *theme* > ``CLAK_SYNTAX_THEME`` > ``ansi_dark``.
     """
     want_color = resolve_bool_option(
         color,
@@ -136,19 +141,14 @@ def colorize_data_text(
         except ClakUserError:
             return text
 
-    console = rich_console.Console(
-        force_terminal=True,
-        soft_wrap=True,
-        no_color=False,
-        color_system="standard",
-    )
+    console = make_rich_console(rich_console)
     with console.capture() as capture:
         console.print(
             rich_syntax.Syntax(
                 text.rstrip("\n"),
                 language,
-                theme="monokai",
                 word_wrap=False,
+                **syntax_kwargs(theme),
             )
         )
     return capture.get().rstrip("\n")
@@ -162,6 +162,7 @@ class DataView(ClakView):
         "compact": False,
         "color": None,
         "anchors": True,
+        "theme": None,
     }
 
     def render(self, *args, stdout=True, **kwargs):
@@ -177,6 +178,7 @@ class DataView(ClakView):
         fmt_setting = settings.pop("format", None)
         color = settings.pop("color", None)
         stdout_tty = settings.get("stdout_tty")
+        theme = self.settings.get("theme") or settings.pop("theme", None)
 
         text, fmt = format_data_payload(
             payload,
@@ -189,5 +191,6 @@ class DataView(ClakView):
             fmt,
             color=color,
             stdout_tty=stdout_tty,
+            theme=theme,
         )
         return self._output(rendered, stdout=stdout)

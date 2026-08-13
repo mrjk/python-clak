@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 
 import pytest
 
@@ -973,6 +974,19 @@ def test_example_script_views_runs(capsys):
 
 
 MD_SAMPLE = "# Hello\n\n**bold** and `code`"
+MD_FENCE_SAMPLE = """# Title
+
+Use `inline` here.
+
+```yaml
+title: Traefik Web
+description: Reverse proxy
+```
+
+```json
+{"title": "Traefik Web"}
+```
+"""
 RST_SAMPLE = "Hello\n=====\n\nThis is **strong** text.\n"
 
 
@@ -1057,6 +1071,68 @@ def test_markdown_view_renders_with_rich(capsys):
     out = capsys.readouterr().out
     assert "Hello" in out
     assert "# Hello" not in out
+
+
+def _has_background_csi(text: str) -> bool:
+    """True if *text* sets a token/pane background (not default-bg or underline)."""
+    if "\x1b[48;" in text:
+        return True
+    for seq in re.findall(r"\x1b\[([0-9;]*)m", text):
+        if not seq:
+            continue
+        for code in seq.split(";"):
+            if not code:
+                continue
+            number = int(code)
+            if 40 <= number <= 47 or number == 48 or 100 <= number <= 107:
+                return True
+    return False
+
+
+def test_markdown_view_code_is_fg_only():
+    pytest.importorskip("rich")
+    rendered = MarkdownView(MD_FENCE_SAMPLE).render(stdout=False)
+    assert "Traefik Web" in rendered
+    assert "inline" in rendered
+    assert "\x1b[" in rendered
+    assert not _has_background_csi(rendered)
+
+
+def test_markdown_view_monokai_theme_has_no_background_csi():
+    pytest.importorskip("rich")
+    rendered = MarkdownView(MD_FENCE_SAMPLE, theme="monokai").render(stdout=False)
+    assert "\x1b[" in rendered
+    assert not _has_background_csi(rendered)
+
+
+def test_markdown_view_mixin_meta_syntax_theme(monkeypatch, capsys):
+    pytest.importorskip("rich")
+    from clak.views.rich_style import CLAK_SYNTAX_THEME_ENV, resolve_syntax_theme
+
+    monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
+    seen = {}
+    real = resolve_syntax_theme
+
+    def _spy(theme=None):
+        result = real(theme)
+        seen["arg"] = theme
+        seen["result"] = result
+        return result
+
+    monkeypatch.setattr("clak.views.rich_style.resolve_syntax_theme", _spy)
+    monkeypatch.setattr("clak.views.text.resolve_syntax_theme", _spy)
+
+    class App(MarkdownViewMixin, Parser):
+        class Meta:
+            view_syntax_theme = "monokai"
+
+        def cli_run(self, **_):
+            return MD_SAMPLE
+
+    App(parse=False, add_help=False).dispatch([])
+    capsys.readouterr()
+    assert seen["arg"] == "monokai"
+    assert seen["result"] == "monokai"
 
 
 def test_rst_view_renders_with_docutils(capsys):
