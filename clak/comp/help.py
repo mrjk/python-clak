@@ -24,20 +24,25 @@ except ImportError:
     RegexHighlighter = object
     Text = None
 
+# Rich has no argparse keys in DEFAULT_STYLES. Groups use Rich's heading
+# magenta (bold); args/cmds follow the usual cyan / dark_cyan argparse pair.
 _HELP_STYLES = {
-    "argparse.groups": "bold",
+    "argparse.groups": "bold magenta",
     "argparse.args": "cyan",
+    "argparse.cmds": "dark_cyan",
     "argparse.default": "dim",
 }
 
 # (?m) so section titles match after the first line. Flags only on option
-# definition lines (not ``--flag`` in description/epilog prose).
+# definition lines (not ``--flag`` in description/epilog prose). Left-column
+# command / positional names (not wrapped help prose).
 _HELP_HIGHLIGHTS = (
     r"(?m)^(?P<groups>usage:)",
     r"(?m)^(?P<groups>(?:positional arguments|options|subcommands):)",
     r"(?m)^(?P<groups>[A-Za-z][\w /()-]+:\s*$)",
     r"(?m)^\s+(?P<args>-{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?"
     r"(?:, -{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?)*)",
+    r"(?m)^ {2,14}(?P<cmds>[\w][\w-]*(?: [\w][\w-]*)*)(?: {2,}|\s*$)",
     r"(?P<default>\(default: [^)]*\))",
 )
 

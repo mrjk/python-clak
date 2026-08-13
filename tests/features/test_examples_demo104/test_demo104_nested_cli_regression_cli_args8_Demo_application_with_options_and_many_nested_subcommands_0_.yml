@@ -3,10 +3,10 @@ cli_args:
 err: '0'
 output: "usage: demo104-test [-h] [--debug] [--config CONFIG] {command1,command2}\
   \ ...\n\nDemo application with options and many nested subcommands.\n\nsubcommands:\n\
-  \  command1                  Execute command 1\n    sub1                    SubCommand1\n\
-  \    sub2                    SubCommand2\n      sub2a                 SubSubCommand2a\n\
-  \      sub2b                 SubSubCommand2b, should raise NotIMplemented error\n\
-  \  command2                  Execute command 2\n\noptions:\n  -h, --help       \
-  \           show this help message and exit\n  --debug                     Enable\
-  \ debug mode (default: False)\n  --config CONFIG, -c CONFIG  Config file path (default:\
-  \ config.yaml)\n"
+  \  command1                    Execute command 1\n    sub1                     \
+  \ SubCommand1\n    sub2                      SubCommand2\n      sub2a          \
+  \         SubSubCommand2a\n      sub2b                   SubSubCommand2b, should\
+  \ raise NotIMplemented error\n  command2                    Execute command 2\n\n\
+  options:\n  -h, --help                  show this help message and exit\n  --debug\
+  \                     Enable debug mode (default: False)\n  --config CONFIG, -c\
+  \ CONFIG  Config file path (default: config.yaml)\n"

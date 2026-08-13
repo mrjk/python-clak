@@ -382,6 +382,8 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         # Get the original format parts
         parts = []
         bullet: str = "  "
+        # argparse pads invocation to action_width, then two spaces before help
+        help_gap = "  "
 
         help_position = min(self._action_max_length + 2, self._max_help_position)
         action_width = help_position - self._current_indent - 2
@@ -403,7 +405,7 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                 lines = [f"{prefix}{cmd}"]
                 lines.extend(f"{' ' * help_position}{chunk}" for chunk in wrapped)
                 return "".join(f"{line}\n" for line in lines)
-            return f"{prefix}{cmd:<{action_width}}{help_msg}\n"
+            return f"{prefix}{cmd:<{action_width}}{help_gap}{help_msg}\n"
 
         def add_subparser_to_parts(
             parser: argparse.ArgumentParser,

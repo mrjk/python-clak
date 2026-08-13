@@ -273,6 +273,59 @@ def test_help_highlight_skips_prose_flags():
     assert any("--config" in item for item in found)
 
 
+def test_help_highlight_subcommand_and_positional_names():
+    """Left-column command and positional names, including nested indent."""
+    text = (
+        "usage: app [-h] NAME\n"
+        "\n"
+        "Use force to continue.\n"
+        "\n"
+        "positional arguments:\n"
+        "  NAME                 Who\n"
+        "\n"
+        "subcommands (base):\n"
+        "  tool                 Tools\n"
+        "    netmap             Map networks\n"
+        "\n"
+        "subcommands:\n"
+        "  command1 sub1        Nested path\n"
+        "\n"
+        "options:\n"
+        "  -h, --help            show this help message and exit\n"
+        "                        long wrapped help\n"
+    )
+    cmds_pattern = next(p for p in _HELP_HIGHLIGHTS if "?P<cmds>" in p)
+    found = [match.group("cmds") for match in re.finditer(cmds_pattern, text)]
+    assert "NAME" in found
+    assert "tool" in found
+    assert "netmap" in found
+    assert "command1 sub1" in found
+    assert "Use" not in found
+    assert "long" not in found
+    assert not any(item.startswith("-") for item in found)
+
+
+def test_help_highlighter_styles_cmds_and_groups():
+    """Section titles, commands, and flags get distinct argparse styles."""
+    pytest.importorskip("rich")
+    from rich.text import Text
+
+    from clak.comp.help import HelpHighlighter
+
+    text = (
+        "subcommands:\n"
+        "  child                Run child\n"
+        "\n"
+        "positional arguments:\n"
+        "  NAME                 Who\n"
+        "\n"
+        "options:\n"
+        "  -h, --help            show this help message and exit\n"
+    )
+    styles = {span.style for span in HelpHighlighter()(Text(text)).spans}
+    assert styles >= {"argparse.groups", "argparse.cmds", "argparse.args"}
+
+
 def test_recursive_help_formatter_exported_from_clak():
     assert RecursiveHelpFormatter is CoreRecursiveHelpFormatter
 
@@ -586,6 +639,26 @@ def test_help_hide_parent_aligns_help_column():
     )
     assert "tool netmap" not in help_text
     assert tool_line.index("Docker helpers") == netmap_line.index("Map networks")
+
+
+def test_subcommand_help_aligns_with_option_help():
+    """Subcommand help text starts on the same column as option help."""
+    leaf = _leaf_parser()
+
+    class App(Parser):
+        child = Command(leaf, help="A child")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    child_line = next(
+        line for line in help_text.splitlines() if line.endswith("A child")
+    )
+    option_line = next(
+        line for line in help_text.splitlines() if "show this help message" in line
+    )
+    assert child_line.index("A child") == option_line.index("show this help message")
 
 
 def test_help_subcommands_grouped_top_omits_nested():
