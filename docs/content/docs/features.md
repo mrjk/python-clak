@@ -1,7 +1,8 @@
 # Features
 
-Clak extends Python’s `argparse` with a class-based API. If you know argparse,
-you already know most of Clak.
+Clak extends Python's `argparse` with a class-based API. If you know argparse,
+you already know most of Clak. How Clak relates to argparse, Click, Typer, and
+Cliff: [Comparison](comparison.md).
 
 ## Argparse-friendly core
 
@@ -36,6 +37,9 @@ Mix in only what you need:
 
 - Command-tree overview, `--help` / `-h`, customizable usage / description /
   epilog.
+- Optional `RichHelpMixin`: colored `--help` (Rich extra
+  `mrjk.clak[markdown]`). Markup in `help_description` / `help_epilog` when
+  color is on. Guide: [Rich help](help.md).
 - Named help groups: `Argument(..., option_group="Title")` or
   `argument_group="Title"` places flags under a titled section in `--help`
   (same title reuses one group). Exclusive groups:

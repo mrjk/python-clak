@@ -1,6 +1,7 @@
 title: Documentation
 nav:
     - Features: features.md
+    - Comparison: comparison.md
     - Views: views.md
     - Logging: logging.md
     - Config: config.md
