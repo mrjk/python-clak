@@ -12,6 +12,7 @@ These are the current **star features** — each has user documentation:
 | Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../docs/features.md), [Quickstart](../quickstart/quickstart.md) |
 | Optional `Arg` / `Opt` helpers (positionals vs flags) | [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers) |
 | Nested subcommands + command tree in `--help` | [Nested guide](../guides/guide_102.md) |
+| Optional Rich `--help` (`RichHelpMixin`) | [Rich help](../docs/help.md) |
 | Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
 | Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
 | Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../docs/exceptions.md) |

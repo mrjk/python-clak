@@ -377,8 +377,11 @@ Optional per-section `title` and `description` (third-item dict).
 The section name stays the machine id (`primary=`, envelope); titles are
 opt-in and are not inferred from the name. In human view, title and
 description are Rich markup when `CLAK_COLOR_BACKEND` is `auto` (and rich is
-installed) or `rich` (`[bold]Users[/bold]`). Machine json/yaml/csv keep the
-raw strings. `CLAK_COLOR_BACKEND=none` prints tags as-is.
+installed) or `rich` (`[bold]Users[/bold]`). The `===` chrome is dimmed when
+Rich is on. Machine json/yaml/csv keep the
+raw strings. `CLAK_COLOR_BACKEND=none` prints tags as-is. The same markup
+helper is used by `RichHelpMixin` for `--help` description/epilog; CompositeView
+does not require that mixin.
 
 ```python
 CompositeView(

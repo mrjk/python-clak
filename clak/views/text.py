@@ -7,6 +7,11 @@ from __future__ import annotations
 import textwrap
 
 from clak.exception import ClakUserError
+from clak.runtime.rich_style import (
+    make_rich_console,
+    resolve_syntax_theme,
+    syntax_kwargs,
+)
 from clak.runtime.settings import resolve_color_backend
 from clak.views.base import (
     DEFAULT_LINE_LENGTH,
@@ -15,7 +20,6 @@ from clak.views.base import (
     pformat_truncated,
     resolve_wrap_budget,
 )
-from clak.views.rich_style import make_rich_console, resolve_syntax_theme, syntax_kwargs
 
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 _DOCUTILS_INSTALL_HINT = "pip install 'mrjk.clak[rst]'"

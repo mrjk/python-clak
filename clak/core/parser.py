@@ -118,6 +118,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__config__help_epilog = MetaSetting(
         help="Message to display in help epilog",
     )
+    meta__config__help_formatter = MetaSetting(
+        help="argparse HelpFormatter class for --help",
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -214,12 +217,22 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             usage=usage,
             description=desc,
             epilog=epilog,
-            formatter_class=RecursiveHelpFormatter,
+            formatter_class=self.get_help_formatter_class(),
             add_help=self.add_help,
             exit_on_error=False,
             clak_instance=self,
         )
         return parser
+
+    def get_help_formatter_class(self):
+        """Return the argparse HelpFormatter class for this node.
+
+        Mixins set ``meta__help_formatter`` (or ``Meta.help_formatter``).
+        Unset walks parents, then ``RecursiveHelpFormatter``.
+        """
+        return self.query_cfg_parents(
+            "help_formatter", default=RecursiveHelpFormatter, include_self=True
+        )
 
     def __getitem__(self, key):
         return self.children[key]

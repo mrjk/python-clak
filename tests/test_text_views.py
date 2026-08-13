@@ -162,6 +162,7 @@ def test_markdown_view_mixin_meta_syntax_theme(monkeypatch, capsys):
         seen["result"] = result
         return result
 
+    monkeypatch.setattr("clak.runtime.rich_style.resolve_syntax_theme", _spy)
     monkeypatch.setattr("clak.views.rich_style.resolve_syntax_theme", _spy)
     monkeypatch.setattr("clak.views.text.resolve_syntax_theme", _spy)
 

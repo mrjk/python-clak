@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional, Tuple, TypeVar
 from clak.common import CleandocProxy, deindent_docstring
 from clak.core.argparse_ import (
     SUPPRESS,
-    RecursiveHelpFormatter,
     argparse,
     argparse_inject_as_subparser,
 )
@@ -376,7 +375,7 @@ class SubParser(ArgParseItem):
             parser_kwargs = dict(self.kwargs)
             parser_kwargs.update(
                 {
-                    "formatter_class": RecursiveHelpFormatter,
+                    "formatter_class": config.get_help_formatter_class(),
                     "add_help": parser_help_enabled,  # Add support for --help
                     "exit_on_error": False,
                     "help": parser_help,
@@ -421,6 +420,7 @@ class SubParser(ArgParseItem):
             subparser.usage = child_usage
             subparser.description = child_desc
             subparser.epilog = child_epilog
+            subparser.formatter_class = child.get_help_formatter_class()
 
             # pprint (subparser.__dict__)
 

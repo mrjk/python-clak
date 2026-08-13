@@ -15,7 +15,7 @@ Canonical public API (import from ``clak``):
 - Arg / Opt: optional sugar for positionals vs flags (Argument still accepts both)
 - Command: nested subcommand descriptor (alias of SubParser)
 
-Optional mixins (also from ``clak``): LoggingOptMixin,
+Optional mixins (also from ``clak``): LoggingOptMixin, RichHelpMixin,
 Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin, completion,
 XDGConfigMixin.
 
@@ -26,6 +26,7 @@ Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import XDGConfigMixin
+from clak.comp.help import RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.views import (
     CompositeViewMixin,
@@ -37,7 +38,13 @@ from clak.comp.views import (
     RstViewMixin,
     ShowViewMixin,
 )
-from clak.core.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
+from clak.core.argparse_ import (
+    ONE_OR_MORE,
+    OPTIONAL,
+    SUPPRESS,
+    ZERO_OR_MORE,
+    RecursiveHelpFormatter,
+)
 from clak.core.parser import Arg, Argument, Command, Opt, Parser, ParserNode, SubParser
 
 # Legacy / short aliases (prefer Command)
@@ -68,6 +75,8 @@ __all__ = [
     "ParserNode",
     "PprintViewMixin",
     "RawViewMixin",
+    "RecursiveHelpFormatter",
+    "RichHelpMixin",
     "RstViewMixin",
     "SUPPRESS",
     "ShowViewMixin",

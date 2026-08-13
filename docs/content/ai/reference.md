@@ -24,12 +24,12 @@ from clak import (
     Parser, Argument, Command,          # core
     Arg, Opt,                           # optional: positionals vs flags
     ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
-    LoggingOptMixin,
+    LoggingOptMixin, RichHelpMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin, DataViewMixin,
     RawViewMixin, MarkdownViewMixin, RstViewMixin, CompositeViewMixin,
     XDGConfigMixin,
     CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin,
-    OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, SUPPRESS,  # argparse constants
+    OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, SUPPRESS, RecursiveHelpFormatter,
 )
 from clak.exception import (
     ClakError, ClakUserError, ClakParseError, ClakExitError,
@@ -112,6 +112,7 @@ class App(Parser):
         help_usage = "..."
         help_description = "..."           # else class docstring
         help_epilog = "..."
+        help_formatter = RecursiveHelpFormatter  # or RichRecursiveHelpFormatter via RichHelpMixin
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
@@ -209,8 +210,9 @@ Markdown render needs mrjk.clak[markdown] (rich); RST render needs
 mrjk.clak[rst] (docutils). --format raw needs no extra package.
 Composite --format is table-scoped (view|yaml|json|csv); markdown source is
 in --format-scope all envelopes. Optional section meta:
-  (name, view, {title, description}) -> human === Title === plus plain
-  description; envelope fields only when set. Hide --expand-keys with
+  (name, view, {title, description}) -> human === Title === plus
+  description (Rich markup when backend allows; === chrome dimmed);
+  envelope fields only when set. Hide --expand-keys with
   view_cli_options when the composite primary is ShowView.
 
 Without a mixin / returned ClakView / Meta.cli_view, return values are not printed.
@@ -220,6 +222,23 @@ Manual view:
   return ListView(rows, columns=["name"])
 
 CLI flags override options set on a returned view (may log a warning).
+
+==============================================================================
+RICH HELP
+==============================================================================
+
+class App(RichHelpMixin, Parser):
+    class Meta:
+        help_description = "Hello [bold]World[/bold]"  # markup when color on
+        help_epilog = "..."
+
+No CLI flags. Needs mrjk.clak[markdown] (rich). Color: TTY stdout,
+CLAK_COLORS, CLAK_COLOR_BACKEND. Missing rich / none / non-TTY = plain
+RecursiveHelpFormatter. Root mixin applies to nested commands. Child opt-out:
+    class Meta:
+        help_formatter = RecursiveHelpFormatter  # child opt-out; from clak
+Argument help= stays literal. CompositeView title/description use the same
+markup helper without this mixin.
 
 ==============================================================================
 LOGGING

@@ -9,9 +9,9 @@ import os
 
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
+from clak.runtime.rich_style import make_rich_console, syntax_kwargs
 from clak.runtime.settings import CLAK_COLORS, resolve_color_backend
 from clak.views.base import ClakView
-from clak.views.rich_style import make_rich_console, syntax_kwargs
 
 DATA_FORMATS = frozenset({"json", "yaml"})
 

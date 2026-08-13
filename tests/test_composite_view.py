@@ -164,6 +164,7 @@ def test_composite_section_header_rich_markup(monkeypatch):
     pytest.importorskip("rich")
     from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
     from clak.views import CompositeView
+    from clak.views.base import strip_ansi
 
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
     out = CompositeView(
@@ -185,6 +186,7 @@ def test_composite_section_header_rich_markup(monkeypatch):
     assert "access" in out
     assert "\x1b[" in out
     assert not _has_background_csi(out)
+    assert "=== Users ===" in strip_ansi(out)
 
 
 def test_composite_section_header_markup_stays_raw_in_envelope(monkeypatch):

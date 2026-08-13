@@ -37,7 +37,7 @@ Optional YAML config / `--format yaml`:
 pip install 'mrjk.clak[config]'
 ```
 
-Optional markdown / RST terminal rendering:
+Optional markdown / RST terminal rendering (also colors `RichHelpMixin` `--help`):
 
 ```bash
 pip install 'mrjk.clak[markdown]'

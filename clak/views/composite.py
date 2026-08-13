@@ -8,6 +8,8 @@ import json
 from collections.abc import Mapping
 from typing import List, Optional, Sequence, Tuple
 
+from clak.runtime.rich_style import render_markup_text
+from clak.runtime.settings import color_backend_uses_rich
 from clak.views.base import (
     DEFAULT_FORMAT_SCOPE,
     DEFAULT_WIDTH_MODE,
@@ -19,7 +21,6 @@ from clak.views.base import (
     strip_ansi,
 )
 from clak.views.data import DataView
-from clak.views.rich_style import render_markup_text
 from clak.views.table import (
     ListView,
     ShowView,
@@ -80,7 +81,10 @@ def _format_section_header(meta: Mapping) -> str:
     lines = []
     title = meta.get("title")
     if title:
-        lines.append(render_markup_text(f"=== {title} ==="))
+        if color_backend_uses_rich():
+            lines.append(render_markup_text(f"[dim]===[/dim] {title} [dim]===[/dim]"))
+        else:
+            lines.append(f"=== {title} ===")
     description = meta.get("description")
     if description:
         lines.append(render_markup_text(description))

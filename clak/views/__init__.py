@@ -11,6 +11,10 @@ Functions:
     pformat_truncated: Format data with width constraints
 """
 
+from clak.runtime.rich_style import (
+    DEFAULT_SYNTAX_THEME,
+    resolve_syntax_theme,
+)
 from clak.views.base import (
     DEFAULT_FORMAT_SCOPE,
     DEFAULT_LINE_LENGTH,
@@ -36,10 +40,6 @@ from clak.views.data import (
     colorize_data_text,
     format_data_payload,
     resolve_data_format,
-)
-from clak.views.rich_style import (
-    DEFAULT_SYNTAX_THEME,
-    resolve_syntax_theme,
 )
 from clak.views.table import (
     FeatureFullViewer,

@@ -89,6 +89,8 @@ def cli_run(self, **_):
     self.show_help()
 ```
 
+For colored `--help`, mix in `RichHelpMixin` (see [Rich help](help.md)).
+
 ### 5. Command Organization Best Practices
 
 1. **Logical Grouping**:
