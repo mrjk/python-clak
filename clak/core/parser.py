@@ -26,12 +26,12 @@ from clak.core.argparse_ import (
     format_argument_error,
 )
 from clak.core.descriptors import (  # pylint: disable=unused-import
-    Arg,  # re-exported
+    Arg,
     ArgParseItem,
     Argument,
     FormatEnv,
     MetaSetting,
-    Opt,  # re-exported
+    Opt,
     SubParser,
     prepare_docstring,
 )
