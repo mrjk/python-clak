@@ -34,7 +34,7 @@ class AppMain(Parser):
 For structured `-v` / `-vv` logging tiers, prefer `LoggingOptMixin`
 (see [Logging](logging.md)) instead of a hand-rolled boolean flag.
 
-### 3. Named help groups and exclusive groups
+### 3. Named help groups and exclusive groups {#named-help-groups-and-exclusive-groups}
 
 Clak-only kwargs on `Argument` (stripped before `add_argument`):
 
