@@ -331,7 +331,14 @@ class ArgumentParserPlus(argparse.ArgumentParser):
     """
 
     def __init__(self, *args, clak_instance=None, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Python 3.14+ argparse colors --help on a TTY. Clak owns help color
+        # (RichRecursiveHelpFormatter after wrap), so pin argparse color off.
+        kwargs.setdefault("color", False)
+        try:
+            super().__init__(*args, **kwargs)
+        except TypeError:
+            kwargs.pop("color", None)
+            super().__init__(*args, **kwargs)
         self.clak_instance = clak_instance
 
     def error(self, message):

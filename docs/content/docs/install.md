@@ -75,7 +75,7 @@ JSON config files and `--format json` / `csv` work without extras (stdlib).
 
 Terminal rendering for `MarkdownView` needs `rich`; `RstView` needs `docutils`.
 `--format raw` needs no extra package. The same `rich` extra colors
-`RichHelpMixin` `--help` and CompositeView section titles.
+`--help` and CompositeView section titles.
 
 ```bash
 pip install 'mrjk.clak[markdown]'

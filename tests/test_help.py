@@ -1,4 +1,4 @@
-"""Tests for RichHelpMixin and help formatter selection."""
+"""Tests for default Rich help formatter and opt-out."""
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 
@@ -19,43 +19,67 @@ pytestmark = pytest.mark.tags("unit-tests")
 
 def _force_help_color(monkeypatch):
     pytest.importorskip("rich")
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr("clak.comp.help.CLAK_COLORS", True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
 
 
-class _PlainApp(Parser):
+class _DefaultApp(Parser):
     """Demo help."""
 
     def cli_run(self, **_):
         return None
 
 
-class _RichApp(RichHelpMixin, Parser):
+class _OptOutApp(Parser):
+    """Demo help."""
+
+    class Meta:
+        help_formatter = RecursiveHelpFormatter
+
+    def cli_run(self, **_):
+        return None
+
+
+class _MixinApp(RichHelpMixin, Parser):
     """Demo help."""
 
     def cli_run(self, **_):
         return None
 
 
-def test_plain_parser_uses_recursive_formatter():
-    """Default Parser keeps RecursiveHelpFormatter and no ANSI."""
-    app = _PlainApp(parse=False, add_help=True)
-    assert app.get_help_formatter_class() is RecursiveHelpFormatter
-    assert app.parser.formatter_class is RecursiveHelpFormatter
+def test_default_parser_uses_rich_formatter():
+    """Default Parser uses RichRecursiveHelpFormatter; no ANSI without TTY."""
+    app = _DefaultApp(parse=False, add_help=True)
+    assert app.get_help_formatter_class() is RichRecursiveHelpFormatter
+    assert app.parser.formatter_class is RichRecursiveHelpFormatter
     assert "\x1b[" not in app.parser.format_help()
 
 
-def test_mixin_non_tty_matches_plain():
-    plain = _PlainApp(parse=False, add_help=True).parser.format_help()
-    rich_help = _RichApp(parse=False, add_help=True).parser.format_help()
-    assert rich_help == plain
-    assert "\x1b[" not in rich_help
+def test_opt_out_tty_has_no_ansi(monkeypatch):
+    """Argparse 3.14 TTY color stays off; Clak owns help color."""
+    pytest.importorskip("rich")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("clak.comp.help.CLAK_COLORS", True)
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
+    help_text = _OptOutApp(parse=False, add_help=True).parser.format_help()
+    assert "\x1b[" not in help_text
 
 
-def test_mixin_forced_color_has_ansi(monkeypatch):
+def test_non_tty_matches_opt_out():
+    default_help = _DefaultApp(parse=False, add_help=True).parser.format_help()
+    opt_out = _OptOutApp(parse=False, add_help=True).parser.format_help()
+    mixin_help = _MixinApp(parse=False, add_help=True).parser.format_help()
+    assert default_help == opt_out
+    assert mixin_help == opt_out
+    assert "\x1b[" not in default_help
+
+
+def test_forced_color_has_ansi(monkeypatch):
     _force_help_color(monkeypatch)
-    help_text = _RichApp(parse=False, add_help=True).parser.format_help()
+    help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
     assert "\x1b[" in help_text
     assert not _has_background_csi(help_text)
     stripped = strip_ansi(help_text)
@@ -63,10 +87,18 @@ def test_mixin_forced_color_has_ansi(monkeypatch):
     assert "-h" in stripped or "--help" in stripped
 
 
-def test_mixin_markup_description_and_epilog(monkeypatch):
+def test_mixin_forced_color_matches_default(monkeypatch):
+    _force_help_color(monkeypatch)
+    default_help = _DefaultApp(parse=False, add_help=True).parser.format_help()
+    mixin_help = _MixinApp(parse=False, add_help=True).parser.format_help()
+    assert mixin_help == default_help
+    assert "\x1b[" in mixin_help
+
+
+def test_markup_description_and_epilog(monkeypatch):
     _force_help_color(monkeypatch)
 
-    class App(RichHelpMixin, Parser):
+    class App(Parser):
         class Meta:
             help_description = "Hello [bold]World[/bold]"
             help_epilog = "See [cyan]docs[/cyan]"
@@ -82,8 +114,8 @@ def test_mixin_markup_description_and_epilog(monkeypatch):
     assert "\x1b[" in help_text
 
 
-def test_mixin_markup_stays_literal_without_tty():
-    class App(RichHelpMixin, Parser):
+def test_markup_stays_literal_without_tty():
+    class App(Parser):
         class Meta:
             help_description = "Hello [bold]World[/bold]"
             help_epilog = "See [cyan]docs[/cyan]"
@@ -97,12 +129,12 @@ def test_mixin_markup_stays_literal_without_tty():
     assert "\x1b[" not in help_text
 
 
-def test_root_mixin_applies_to_child_parser():
+def test_default_applies_to_child_parser():
     class Child(Parser):
         def cli_run(self, **_):
             return None
 
-    class Root(RichHelpMixin, Parser):
+    class Root(Parser):
         child = Command(Child, help="Run child")
 
         def cli_run(self, **_):
@@ -124,7 +156,7 @@ def test_child_meta_opts_out_of_rich_formatter():
         def cli_run(self, **_):
             return None
 
-    class Root(RichHelpMixin, Parser):
+    class Root(Parser):
         child = Command(Child, help="Run child")
 
         def cli_run(self, **_):
@@ -135,34 +167,66 @@ def test_child_meta_opts_out_of_rich_formatter():
     assert app.children["child"].parser.formatter_class is RecursiveHelpFormatter
 
 
-def test_mixin_color_backend_none_is_plain(monkeypatch):
+def test_mixin_reopts_child_after_parent_opt_out():
+    class Child(RichHelpMixin, Parser):
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        class Meta:
+            help_formatter = RecursiveHelpFormatter
+
+        child = Command(Child, help="Run child")
+
+        def cli_run(self, **_):
+            return None
+
+    app = Root(parse=False, add_help=True)
+    assert app.parser.formatter_class is RecursiveHelpFormatter
+    assert app.children["child"].parser.formatter_class is RichRecursiveHelpFormatter
+
+
+def test_color_backend_none_is_plain(monkeypatch):
     pytest.importorskip("rich")
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr("clak.comp.help.CLAK_COLORS", True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
-    help_text = _RichApp(parse=False, add_help=True).parser.format_help()
-    assert help_text == _PlainApp(parse=False, add_help=True).parser.format_help()
+    help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
+    assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()
     assert "\x1b[" not in help_text
 
 
-def test_mixin_clak_colors_off_is_plain(monkeypatch):
+def test_clak_colors_off_is_plain(monkeypatch):
     pytest.importorskip("rich")
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr("clak.comp.help.CLAK_COLORS", False)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
-    help_text = _RichApp(parse=False, add_help=True).parser.format_help()
-    assert help_text == _PlainApp(parse=False, add_help=True).parser.format_help()
+    help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
+    assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()
     assert "\x1b[" not in help_text
 
 
-def test_mixin_colored_command_tree(monkeypatch):
+def test_no_color_is_plain(monkeypatch):
+    pytest.importorskip("rich")
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr("clak.comp.help.CLAK_COLORS", True)
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
+    help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
+    assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()
+    assert "\x1b[" not in help_text
+
+
+def test_colored_command_tree(monkeypatch):
     _force_help_color(monkeypatch)
 
     class Child(Parser):
         def cli_run(self, **_):
             return None
 
-    class Root(RichHelpMixin, Parser):
+    class Root(Parser):
         """Root with a child."""
 
         child = Command(Child, help="Run child")

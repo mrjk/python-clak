@@ -112,7 +112,7 @@ class App(Parser):
         help_usage = "..."
         help_description = "..."           # else class docstring
         help_epilog = "..."
-        help_formatter = RecursiveHelpFormatter  # or RichRecursiveHelpFormatter via RichHelpMixin
+        help_formatter = RecursiveHelpFormatter  # opt out of colored --help
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
@@ -227,18 +227,22 @@ CLI flags override options set on a returned view (may log a warning).
 RICH HELP
 ==============================================================================
 
-class App(RichHelpMixin, Parser):
+Colored --help is the Parser default when Rich is installed and stdout is a
+TTY. No mixin required.
+
+class App(Parser):
     class Meta:
         help_description = "Hello [bold]World[/bold]"  # markup when color on
         help_epilog = "..."
 
-No CLI flags. Needs mrjk.clak[markdown] (rich). Color: TTY stdout,
-CLAK_COLORS, CLAK_COLOR_BACKEND. Missing rich / none / non-TTY = plain
-RecursiveHelpFormatter. Root mixin applies to nested commands. Child opt-out:
+No CLI flags. Needs mrjk.clak[markdown] (rich). Color: TTY stdout, NO_COLOR,
+CLAK_COLORS, CLAK_COLOR_BACKEND. Missing rich / none / NO_COLOR / non-TTY =
+plain RecursiveHelpFormatter layout. Opt out:
     class Meta:
-        help_formatter = RecursiveHelpFormatter  # child opt-out; from clak
+        help_formatter = RecursiveHelpFormatter  # from clak
+RichHelpMixin is optional (re-opt-in a child after a parent opt-out).
 Argument help= stays literal. CompositeView title/description use the same
-markup helper without this mixin.
+markup helper.
 
 ==============================================================================
 LOGGING

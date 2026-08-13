@@ -7,7 +7,7 @@ This module provides core component mixins for extending parser functionality:
 - CompRenderOptMixin: Adds option completion support to parsers
 - XDGConfigMixin: Adds XDG Base Directory path CLI flags and config-file loading
 - LoggingOptMixin: Adds structured logging configuration
-- RichHelpMixin: Optional Rich-colored --help
+- RichHelpMixin: Optional re-opt-in for Rich-colored --help after a parent opt-out
 - Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin: Auto CLI views + options
 
 These components can be mixed into parser classes to add specific features.

@@ -21,7 +21,6 @@ from clak import exception
 from clak.common import ObjectNamespace
 from clak.core.argparse_ import (
     ArgumentParserPlus,
-    RecursiveHelpFormatter,
     argparse,
     format_argument_error,
 )
@@ -228,10 +227,17 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         """Return the argparse HelpFormatter class for this node.
 
         Mixins set ``meta__help_formatter`` (or ``Meta.help_formatter``).
-        Unset walks parents, then ``RecursiveHelpFormatter``.
+        Unset walks parents, then ``RichRecursiveHelpFormatter``.
+        Opt out with ``Meta.help_formatter = RecursiveHelpFormatter``.
         """
+        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
+            RichRecursiveHelpFormatter,
+        )
+
         return self.query_cfg_parents(
-            "help_formatter", default=RecursiveHelpFormatter, include_self=True
+            "help_formatter",
+            default=RichRecursiveHelpFormatter,
+            include_self=True,
         )
 
     def __getitem__(self, key):

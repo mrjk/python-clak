@@ -43,19 +43,29 @@ def syntax_kwargs(theme=None) -> dict:
     }
 
 
-def make_rich_console(rich_console, *, width=None):
+def make_rich_console(rich_console, *, width=None, theme=None):
     """Build a capture-friendly Console with fg-only markdown code styles.
 
     Auto-detects color depth; falls back to truecolor when detection yields
     none (dumb TERM / pytest capture) because the caller already opted in.
+
+    *theme* is a style dict or a Rich ``Theme``. Default is markdown code
+    fg styles.
     """
     from rich.theme import Theme  # pylint: disable=import-outside-toplevel
 
+    if theme is None:
+        resolved_theme = Theme(_MARKDOWN_FG_STYLES)
+    elif isinstance(theme, dict):
+        resolved_theme = Theme(theme)
+    else:
+        resolved_theme = theme
     console_kwargs = {
         "force_terminal": True,
+        "highlight": False,
         "soft_wrap": True,
         "no_color": False,
-        "theme": Theme(_MARKDOWN_FG_STYLES),
+        "theme": resolved_theme,
     }
     if width is not None:
         console_kwargs["width"] = width

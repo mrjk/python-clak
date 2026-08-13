@@ -49,7 +49,7 @@ Optional:
 ```bash
 pip install 'mrjk.clak[colors]'   # coloredlogs for LoggingOptMixin
 pip install 'mrjk.clak[config]'   # PyYAML for YAML config / --format yaml
-pip install 'mrjk.clak[markdown]' # rich for MarkdownView and RichHelpMixin
+pip install 'mrjk.clak[markdown]' # rich for MarkdownView and colored --help
 pip install 'mrjk.clak[rst]'      # docutils for RstView
 ```
 
@@ -113,7 +113,7 @@ class MainApp(Parser):
 | Component | Mixin / class | Docs |
 | --- | --- | --- |
 | Tables / structured output | `ListViewMixin`, `ShowViewMixin`, `PprintViewMixin` | [Views](https://mrjk.github.io/python-clak/docs/views/) |
-| Colored `--help` | `RichHelpMixin` | [Rich help](https://mrjk.github.io/python-clak/docs/help/) |
+| Colored `--help` | default (Rich extra, TTY) | [Colored help](https://mrjk.github.io/python-clak/docs/help/) |
 | Logging + `-v` | `LoggingOptMixin` | [Logging](https://mrjk.github.io/python-clak/docs/logging/) |
 | XDG paths + config file | `XDGConfigMixin` | [Config](https://mrjk.github.io/python-clak/docs/config/) |
 | Shell completion scripts | `CompCmdRender` | [Completion](https://mrjk.github.io/python-clak/docs/completion/) |

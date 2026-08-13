@@ -1,28 +1,28 @@
-"""Optional Rich-colored ``--help``.
+"""Rich-colored ``--help`` (default formatter; opt out via Meta).
 
-``RichHelpMixin`` swaps the argparse formatter. No CLI flags. Color follows
-``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and whether Rich is
-importable. Missing Rich degrades to plain ``RecursiveHelpFormatter`` output.
+``RichRecursiveHelpFormatter`` is the Parser default. Color follows
+``NO_COLOR``, ``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and
+whether Rich is importable. Missing Rich degrades to plain
+``RecursiveHelpFormatter`` layout (no ANSI).
 """
 
 from __future__ import annotations
 
+import os
 import sys
 
 from clak.core.argparse_ import RecursiveHelpFormatter
-from clak.runtime.rich_style import render_markup_text
+from clak.runtime.rich_style import make_rich_console, render_markup_text
 from clak.runtime.settings import CLAK_COLORS, color_backend_uses_rich
 
 try:
     import rich.console as rich_console
     from rich.highlighter import RegexHighlighter
     from rich.text import Text
-    from rich.theme import Theme
 except ImportError:
     rich_console = None
     RegexHighlighter = object
     Text = None
-    Theme = None
 
 _HELP_STYLES = {
     "argparse.groups": "bold",
@@ -50,7 +50,9 @@ class HelpHighlighter(RegexHighlighter):  # pylint: disable=too-few-public-metho
 
 
 def help_uses_rich() -> bool:
-    """Whether ``--help`` should emit ANSI (mixin formatter calls this)."""
+    """Whether ``--help`` should emit ANSI."""
+    if os.environ.get("NO_COLOR"):
+        return False
     if not CLAK_COLORS:
         return False
     if not sys.stdout.isatty():
@@ -60,19 +62,11 @@ def help_uses_rich() -> bool:
 
 def _colorize_help(text: str, width: int) -> str:
     """Apply fg-only argparse styles without rewrapping *text*."""
-    if rich_console is None or Text is None or Theme is None:
+    if rich_console is None or Text is None:
         return text
     lines = text.splitlines() or [""]
     console_width = max(width, max(len(line) for line in lines), 80)
-    console = rich_console.Console(
-        force_terminal=True,
-        color_system="truecolor",
-        width=console_width,
-        highlight=False,
-        soft_wrap=True,
-        no_color=False,
-        theme=Theme(_HELP_STYLES),
-    )
+    console = make_rich_console(rich_console, width=console_width, theme=_HELP_STYLES)
     styled = HelpHighlighter()(Text(text))
     with console.capture() as capture:
         console.print(styled, end="", overflow="ignore", crop=False, highlight=False)
@@ -99,6 +93,10 @@ class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
 
 
 class RichHelpMixin:  # pylint: disable=too-few-public-methods
-    """Opt-in Rich ``--help``. Put left of ``Parser``. No CLI flags."""
+    """Same default as ``Parser`` (Rich help formatter).
+
+    Optional. Useful to re-opt-in a child after a parent sets
+    ``Meta.help_formatter = RecursiveHelpFormatter``.
+    """
 
     meta__help_formatter = RichRecursiveHelpFormatter

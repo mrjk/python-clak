@@ -108,7 +108,7 @@ class Meta:
 | Tables / json/csv/yaml from return value | ListViewMixin / ShowViewMixin / PprintViewMixin / DataViewMixin |
 | Plain / markdown / rst text | RawViewMixin / MarkdownViewMixin / RstViewMixin |
 | Primary table + extras | CompositeViewMixin + return CompositeView(...) |
-| Colored --help | RichHelpMixin (mrjk.clak[markdown]) |
+| Colored --help | default when Rich + TTY (mrjk.clak[markdown]); opt out Meta.help_formatter = RecursiveHelpFormatter |
 | -v logging + self.logger | LoggingOptMixin |
 | XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
 | Emit shell completion script | CompCmdRender as a Command |
@@ -118,7 +118,7 @@ Views: return data from cli_run; mixin prints it.
 Logging: configure Meta.log_levels as cumulative tiers of "LEVEL|logger".
 Config: JSON always; YAML needs mrjk.clak[config]. Not merged into args.
 MarkdownView needs mrjk.clak[markdown]; RstView needs mrjk.clak[rst].
-RichHelpMixin --help uses the same markdown extra.
+Colored --help uses the same markdown extra (TTY; opt out RecursiveHelpFormatter).
 Completion: generates argcomplete shellcode; runtime autocomplete during parse is not fully wired yet.
 
 ## Anti-patterns (do not generate)

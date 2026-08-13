@@ -89,7 +89,8 @@ def cli_run(self, **_):
     self.show_help()
 ```
 
-For colored `--help`, mix in `RichHelpMixin` (see [Rich help](help.md)).
+For colored `--help`, see [Colored help](help.md). Opt out with
+`Meta.help_formatter = RecursiveHelpFormatter`.
 
 ### 5. Command Organization Best Practices
 

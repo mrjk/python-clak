@@ -75,9 +75,9 @@ class App(Parser):
 **Rich backend:** `CLAK_COLOR_BACKEND` is `none` / `rich` / `auto` (default
 `auto`). Env only; no CLI flag yet. `none` never uses Rich (DataView stays
 plain even with `--color`; MarkdownView `format=view` prints source; Composite
-headers stay literal; `RichHelpMixin` `--help` stays plain). `rich` requires
+headers stay literal; `--help` stays plain). `rich` requires
 the `rich` package. `auto` uses Rich when it is installed. Colored `--help`
-also needs `RichHelpMixin` and a TTY stdout.
+also needs a TTY stdout (and is off when `NO_COLOR` is set).
 
 
 ## Part 2 - Facts (`ctx.facts`) - optional sugar
