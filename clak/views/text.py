@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import re
 import textwrap
 
 from clak.exception import ClakUserError
@@ -139,47 +138,54 @@ def render_rst_text(text: str, line_length=None, term_width=None, stdout_tty=Non
     """Render reStructuredText source to plain text via docutils."""
     docutils_core = require_docutils()
     wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
-    parts = docutils_core.publish_parts(
+    document = docutils_core.publish_doctree(
         source=text,
-        writer="html",
         settings_overrides={
             "report_level": 5,
             "halt_level": 5,
-            "stylesheet_path": None,
-            "embed_stylesheet": False,
         },
     )
-    title = parts.get("title") or ""
-    body = parts.get("body") or parts.get("html_body") or ""
-    chunks = []
-    if title:
-        chunks.append(_html_to_plain(title) if "<" in title else title.strip())
-    if body:
-        chunks.append(_html_to_plain(body))
-    plain = "\n\n".join(chunk for chunk in chunks if chunk).strip()
+    plain = _rst_doctree_to_text(document).strip()
     if wrap and budget is not None:
         return textwrap.fill(plain, width=budget, replace_whitespace=False)
     return plain
 
 
-def _html_to_plain(html: str) -> str:
-    """Very small HTML-to-text for docutils HTML writer output."""
-    text = re.sub(r"(?is)<script[^>]*>.*?</script>", "", html)
-    text = re.sub(r"(?is)<style[^>]*>.*?</style>", "", text)
-    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
-    text = re.sub(r"(?i)</p\s*>", "\n\n", text)
-    text = re.sub(r"(?i)</h[1-6]\s*>", "\n\n", text)
-    text = re.sub(r"(?i)</li\s*>", "\n", text)
-    text = re.sub(r"(?s)<[^>]+>", "", text)
-    text = (
-        text.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
-        .replace("&quot;", '"')
-        .replace("&#39;", "'")
-    )
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
+def _rst_doctree_to_text(node) -> str:
+    """Walk a docutils doctree into readable plain text."""
+    import docutils.nodes as docnodes  # pylint: disable=import-outside-toplevel
+
+    def walk(n, list_prefix=None):
+        if isinstance(n, (docnodes.system_message, docnodes.comment)):
+            return ""
+        if isinstance(n, docnodes.Text):
+            return str(n)
+        if isinstance(n, (docnodes.title, docnodes.subtitle, docnodes.paragraph)):
+            return "".join(walk(c) for c in n.children).strip()
+        if isinstance(n, docnodes.literal_block):
+            return "".join(walk(c) for c in n.children).rstrip()
+        if isinstance(n, docnodes.bullet_list):
+            return "\n".join(walk(child, list_prefix="- ") for child in n.children)
+        if isinstance(n, docnodes.enumerated_list):
+            return "\n".join(
+                walk(child, list_prefix=f"{idx}. ")
+                for idx, child in enumerate(n.children, 1)
+            )
+        if isinstance(n, docnodes.list_item):
+            body = "\n".join(part for part in (walk(c) for c in n.children) if part)
+            prefix = list_prefix or "- "
+            lines = body.split("\n") if body else [""]
+            out = [prefix + lines[0]]
+            indent = " " * len(prefix)
+            out.extend(f"{indent}{line}" if line else line for line in lines[1:])
+            return "\n".join(out)
+        if isinstance(n, (docnodes.document, docnodes.section, docnodes.block_quote)):
+            parts = [walk(c) for c in n.children]
+            return "\n\n".join(part for part in parts if part)
+        parts = [walk(c) for c in getattr(n, "children", [])]
+        return "".join(part for part in parts if part)
+
+    return walk(node)
 
 
 class PprintView(ClakView):

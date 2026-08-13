@@ -89,4 +89,7 @@ pylint = "^3.3.3"
 pythonpath = [
   ".", "tests"
 ]
+markers = [
+  "tags: classification tags (pytest-tagging)",
+]
 

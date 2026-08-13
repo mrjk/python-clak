@@ -78,16 +78,7 @@ def parse_sort_columns(value):
         raise TypeError(
             f"sort_columns must be a string or sequence, got {type(value).__name__}"
         )
-    cols = []
-    for part in value.split(","):
-        part = part.strip()
-        if not part:
-            continue
-        try:
-            cols.append(int(part))
-        except ValueError:
-            cols.append(part)
-    return cols
+    return parse_columns(value)
 
 
 def normalize_sort_columns(value):
@@ -401,7 +392,7 @@ def _sort_sequence_of_mappings(items, sort_columns=None, sort_mode="asc"):
     return [items[row[0]] for row in sorted_indexed]
 
 
-class FeatureFullViewer(ClakView):
+class TableView(ClakView):
     "Table view base: shared settings for Show and List"
 
     settings_default = {
@@ -416,11 +407,14 @@ class FeatureFullViewer(ClakView):
     }
 
 
-class ShowView(FeatureFullViewer):
+FeatureFullViewer = TableView
+
+
+class ShowView(TableView):
     "Render show data"
 
     settings_default = {
-        **FeatureFullViewer.settings_default,
+        **TableView.settings_default,
         "add_index": True,
     }
 
@@ -448,11 +442,11 @@ class ShowView(FeatureFullViewer):
         return self._output(rendered, stdout=stdout)
 
 
-class ListView(FeatureFullViewer):
+class ListView(TableView):
     "Render list data"
 
     settings_default = {
-        **FeatureFullViewer.settings_default,
+        **TableView.settings_default,
         "expand_keys": True,
         "add_index": None,
     }

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import textwrap
 from collections.abc import Mapping
 from pprint import pformat
@@ -26,6 +27,13 @@ WRAP_MODES = frozenset({"last", "all", "first"})
 DEFAULT_WRAP_MODE = "last"
 FORMAT_SCOPES = frozenset({"first", "all"})
 DEFAULT_FORMAT_SCOPE = "first"
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI color codes for width measurements."""
+    return _ANSI_RE.sub("", text)
 
 
 class ClakView:

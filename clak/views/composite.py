@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import json
-import re
 from collections.abc import Mapping
 from typing import List, Optional, Sequence, Tuple
 
@@ -17,13 +16,14 @@ from clak.views.base import (
     OUTPUT_FORMATS,
     ClakView,
     resolve_view_width,
+    strip_ansi,
 )
 from clak.views.data import DataView
 from clak.views.rich_style import render_markup_text
 from clak.views.table import (
-    FeatureFullViewer,
     ListView,
     ShowView,
+    TableView,
     _project_item_columns,
     _project_list_columns,
 )
@@ -35,7 +35,6 @@ _PRIMARY_TABLE_SETTINGS = frozenset(
     {"columns", "sort_columns", "sort_mode", "add_index"}
 )
 _LIST_ONLY_SETTINGS = frozenset({"expand_keys"})
-_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 Section = Tuple[str, ClakView, dict]
 
@@ -48,10 +47,6 @@ _SECTION_KINDS = (
     (PprintView, "pprint"),
     (DataView, "data"),
 )
-
-
-def _strip_ansi(text: str) -> str:
-    return _ANSI_RE.sub("", text)
 
 
 def _section_kind(view: ClakView) -> str:
@@ -204,7 +199,7 @@ class CompositeView(ClakView):
         child = {key: settings[key] for key in _SHARED_SETTINGS if key in settings}
         if fmt is not None:
             child["format"] = fmt
-        if is_primary and isinstance(view, FeatureFullViewer):
+        if is_primary and isinstance(view, TableView):
             for key in _PRIMARY_TABLE_SETTINGS:
                 if key not in settings:
                     continue
@@ -262,7 +257,7 @@ class CompositeView(ClakView):
             )
             text = view.render(stdout=False, **child_kw) or ""
             first = text.splitlines()[0] if text else ""
-            naturals.append(len(_strip_ansi(first)))
+            naturals.append(len(strip_ansi(first)))
         return naturals
 
     def _equalize_table_width_settings(self, sections, settings, primary_name):
@@ -305,7 +300,7 @@ class CompositeView(ClakView):
     def _section_data(self, view, settings, *, is_primary):
         """Payload for envelope export (apply primary column projection)."""
         data = view.payload
-        if not (is_primary and isinstance(view, FeatureFullViewer)):
+        if not (is_primary and isinstance(view, TableView)):
             return data
         columns = settings.get("columns")
         if columns is None:

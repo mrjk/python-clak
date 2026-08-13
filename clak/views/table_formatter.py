@@ -15,12 +15,12 @@ Classes:
 import csv
 import io
 import json
-import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
 from clak.common import replace_tabs
 from clak.runtime.settings import CLAK_COLORS
+from clak.views.base import strip_ansi
 
 SORT_MODES = frozenset({"asc", "desc"})
 
@@ -245,11 +245,6 @@ def _apply_prettytable_width(  # pylint: disable=too-many-arguments,too-many-pos
     )
 
 
-def _strip_ansi(text):
-    """Remove ANSI color codes for width measurements."""
-    return re.sub(r"\x1b\[[0-9;]*m", "", text)
-
-
 def _resolve_wrap_fields(wrap_spec, headers):
     """Resolve wrap keyword or column specs to displayed header names."""
     if not headers:
@@ -341,7 +336,7 @@ def _apply_column_wrap(
     if not natural_widths:
         return
 
-    plain = _strip_ansi(measured)
+    plain = strip_ansi(measured)
     border_line = plain.splitlines()[0] if plain else ""
     natural_border = len(border_line)
 

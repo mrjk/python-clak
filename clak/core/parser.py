@@ -86,13 +86,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     Attributes:
         arguments_dict (dict): Dictionary of argument name to ArgParseItem
         children (dict): Dictionary of subcommand name to subcommand class
-        inject_as_subparser (bool): Whether to inject as subparser vs direct
         meta__name (str): ParserNode name
     """
 
     arguments_dict: dict[str, ArgParseItem] = {}
     children: dict[str, type] = {}  # Dictionary of subcommand name to subcommand class
-    inject_as_subparser: bool = True
 
     meta__name: str = NOT_SET
 
@@ -156,9 +154,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             name (str): ParserNode name
             key (str): ParserNode key
             parser (ArgumentParser): Existing parser to use
-            inject_as_subparser (bool): Whether to inject as subparser
+            inject_as_subparser (bool): Ignored. Kept so existing callers
+                do not TypeError. Only ``USE_SUBPARSERS`` in
+                ``clak.core.descriptors`` controls argparse inject.
             proc_name (str): Process name
         """
+        del inject_as_subparser
 
         self.logger = logger
 
@@ -167,7 +168,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
         self.key = key
         self.fkey = self.get_fname(attr="key")
-        self.inject_as_subparser = inject_as_subparser
         self.proc_name = proc_name
         self.add_help = add_help
 
@@ -231,9 +231,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     @property
     def subparsers(self):
         """Lazily create and return the subparsers object."""
-        # if not self.inject_as_subparser:
-        #     return self.parser
-
         if self._subparsers is None:
             level = len(self.get_hierarchy())
             self._subparsers = self.parser.add_subparsers(
@@ -733,11 +730,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 method for method in dir(node) if method.startswith(fn_hook_prefix)
             ]
             for hook_name in cls_hooks:
-                if not hook_name in hook_list:
-                    hook_fn = getattr(node, hook_name, None)
-                    if hook_fn is not None:
-                        # Hooks order should be preserved with dict
-                        hook_list[hook_name] = hook_fn
+                hook_fn = getattr(node, hook_name, None)
+                if hook_fn is not None:
+                    # Last node with this name wins (leaf mixin rebinds root)
+                    hook_list[hook_name] = hook_fn
 
             # Update ctx with node attributes
             ctx["cli_parent"] = hierarchy[-2] if len(hierarchy) > 1 else None

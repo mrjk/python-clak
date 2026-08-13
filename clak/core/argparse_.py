@@ -16,6 +16,7 @@ versions of core classes.
 
 import argparse
 import logging
+import textwrap
 from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 
 # from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
@@ -264,8 +265,18 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         bullet: str = "  "
 
         help_position = min(self._action_max_length + 2, self._max_help_position)
-        # help_width = max(self._width - help_position, 11)
+        help_width = max(self._width - help_position, 11)
         action_width = help_position - self._current_indent - 2
+
+        def format_cmd_line(cmd, help_msg, prefix=""):
+            if not help_msg:
+                return f"{prefix}{cmd}\n"
+            if len(cmd) >= action_width:
+                wrapped = textwrap.wrap(help_msg, help_width) or [""]
+                lines = [f"{prefix}{cmd}"]
+                lines.extend(f"{' ' * help_position}{chunk}" for chunk in wrapped)
+                return "".join(f"{line}\n" for line in lines)
+            return f"{prefix}{cmd:<{action_width}}{help_msg}\n"
 
         def add_subparser_to_parts(
             parser: argparse.ArgumentParser,
@@ -282,10 +293,13 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                         cmd = f"{prefix}{subaction.dest}"
                         if subaction.help != argparse.SUPPRESS:
                             help_msg = subaction.help or ""
-                            line = f"{_indent}{bullet}"
-                            # TOFIX: Check if line > help_width
-                            line = f"{line}{cmd:<{action_width}}{help_msg}\n"
-                            parts.append(line)
+                            parts.append(
+                                format_cmd_line(
+                                    cmd,
+                                    help_msg,
+                                    prefix=f"{_indent}{bullet}",
+                                )
+                            )
                             cmd = f"{cmd}"
 
                         add_subparser_to_parts(
@@ -294,14 +308,10 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
         # Format all commands with alignment
         for subaction in action._choices_actions:
-            # pprint(subaction.__dict__)
-
             choice = action.choices[subaction.dest]
             if subaction.help != argparse.SUPPRESS:
                 help_msg = subaction.help or ""
-                # TOFIX: Check if line > help_width
-                line = f"{bullet}{subaction.dest:<{action_width}}{help_msg}\n"
-                parts.append(line)
+                parts.append(format_cmd_line(subaction.dest, help_msg, prefix=bullet))
             add_subparser_to_parts(
                 choice, prefix=f"{subaction.dest} ", level=1, indent=""
             )

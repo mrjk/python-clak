@@ -342,6 +342,31 @@ def test_child_command_attr_overrides_parent():
     assert app.dispatch(["sub"]) == "B"
 
 
+def test_help_long_subcommand_name_wraps():
+    """Long subcommand names put help on the next line instead of smashing."""
+
+    class Leaf(Parser):
+        "Does a useful thing."
+
+        def cli_run(self, **_):
+            return None
+
+    class App(Parser):
+        "Root."
+
+        very_long_subcommand_name_that_overflows_help = Command(
+            Leaf, help="does a useful thing"
+        )
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    name = "very_long_subcommand_name_that_overflows_help"
+    assert name in help_text
+    assert "does a useful thing" in help_text
+    for line in help_text.splitlines():
+        if name in line:
+            assert "does a useful thing" not in line
+
+
 # def test_nested_subcommands():
 #     """Test nested subcommand structure."""
 #     def leaf_run(ctx, **kwargs):

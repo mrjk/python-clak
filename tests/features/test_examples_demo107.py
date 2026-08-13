@@ -65,7 +65,7 @@ def test_demo107_docstring_cli(
 
     exit_code = 0
     try:
-        demo107_app.dispatch(cli_args, exit=True)
+        demo107_app.dispatch(cli_args)
     except SystemExit as e:
         exit_code = e.code
     except Exception as e:
@@ -98,7 +98,7 @@ def test_demo107_docstring_cli_regression(
     # Run the command and capture results
     err = None
     try:
-        demo107_app.dispatch(cli_args, exit=True)
+        demo107_app.dispatch(cli_args)
     except SystemExit as e:
         err = e
     except Exception as e:

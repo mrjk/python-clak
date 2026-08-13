@@ -77,7 +77,7 @@ def test_demo104_nested_cli(
 
     exit_code = 0
     try:
-        demo104_app.dispatch(cli_args, exit=True)
+        demo104_app.dispatch(cli_args)
     except SystemExit as e:
         exit_code = e.code
     except Exception as e:
@@ -111,7 +111,7 @@ def test_demo104_nested_cli_regression(
     # Run the command and capture results
     err = None
     try:
-        demo104_app.dispatch(cli_args, exit=True)
+        demo104_app.dispatch(cli_args)
     except SystemExit as e:
         err = e
     except Exception as e:
