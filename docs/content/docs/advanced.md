@@ -83,6 +83,12 @@ Subcommand grouping is formatter metadata (not a second `add_subparsers`).
 without members are omitted. Commands with no `command_group` stay under
 leftover `subcommands:`. Ungrouped CLIs keep a single `subcommands:` list.
 
+`--help` lists nested children by default (`Meta.help_subcommands = "all"`).
+Set `"top"` on the root (inherited; a child may override) for immediate
+children only. Nested names hide the parent path by default
+(`Meta.help_hide_parent = True`); set `False` for flattened paths such as
+`tool leaf`. Grouping and listing depth are independent.
+
 ```python
 from clak import Command, Parser
 

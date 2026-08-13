@@ -16,8 +16,10 @@ versions of core classes.
 
 import argparse
 import logging
+import re
 import textwrap
 from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
+from dataclasses import dataclass
 
 # from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 from gettext import gettext as _
@@ -196,6 +198,45 @@ def format_argument_error(err: argparse.ArgumentError) -> str:
     return f"Could not parse command line: {detail}"
 
 
+HELP_SUBCOMMANDS_TOP = "top"
+HELP_SUBCOMMANDS_ALL = "all"
+HELP_SUBCOMMANDS_CHOICES = frozenset({HELP_SUBCOMMANDS_TOP, HELP_SUBCOMMANDS_ALL})
+HELP_NESTED_INDENT = "  "
+
+
+@dataclass
+class HelpLayout:
+    """Formatter listing policy, stashed on argparse ``_SubParsersAction``.
+
+    Per-command membership stays on the choice action
+    (``_clak_command_group``). Missing stash means these defaults.
+    """
+
+    subcommands: str = HELP_SUBCOMMANDS_ALL
+    hide_parent: bool = True
+    command_groups: tuple = ()
+
+    def __post_init__(self):
+        if self.subcommands not in HELP_SUBCOMMANDS_CHOICES:
+            raise ValueError(
+                "help_subcommands must be 'top' or 'all', " f"got {self.subcommands!r}"
+            )
+        if not isinstance(self.hide_parent, bool):
+            raise ValueError(
+                "help_hide_parent must be True or False, " f"got {self.hide_parent!r}"
+            )
+        if not isinstance(self.command_groups, tuple):
+            self.command_groups = tuple(self.command_groups or ())
+
+
+def help_layout_for(action) -> HelpLayout:
+    """Return stashed layout, or defaults if the action has none."""
+    layout = getattr(action, "_clak_help", None)
+    if layout is None:
+        return HelpLayout()
+    return layout
+
+
 # Inherit from Raw formatter.
 class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """A recursive help formatter to help command discovery."""
@@ -247,9 +288,11 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         return help_msg
 
     @staticmethod
-    def _grouped_subcommand_sections(action):
+    def _grouped_subcommand_sections(action, layout=None):
         """Yield (title, choice actions) for named, unknown-key, then leftover."""
-        named_groups = getattr(action, "_clak_command_groups", ()) or ()
+        if layout is None:
+            layout = help_layout_for(action)
+        named_groups = layout.command_groups or ()
         named_titles = dict(named_groups)
         named_keys = [key for key, _title in named_groups]
 
@@ -278,8 +321,47 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         if leftover:
             yield "subcommands:", leftover
 
+    @staticmethod
+    def _nested_cmd_label(prefix, dest, hide_parent, level=0):
+        if hide_parent:
+            return f"{HELP_NESTED_INDENT * level}{dest}"
+        return f"{prefix}{dest}"
+
+    def _max_subcommand_label_width(self, action, list_nested, hide_parent):
+        """Longest left label among listed subcommands (nested when enabled)."""
+        widest = 0
+
+        def walk(parser, prefix, level):
+            nonlocal widest
+            for act in parser._actions:
+                if not isinstance(act, argparse._SubParsersAction):
+                    continue
+                for subaction in act._choices_actions:
+                    if subaction.help != argparse.SUPPRESS:
+                        widest = max(
+                            widest,
+                            len(
+                                self._nested_cmd_label(
+                                    prefix, subaction.dest, hide_parent, level
+                                )
+                            ),
+                        )
+                    if list_nested:
+                        walk(
+                            act.choices[subaction.dest],
+                            f"{prefix}{subaction.dest} ",
+                            level + 1,
+                        )
+
+        for subaction in action._choices_actions:
+            if subaction.help != argparse.SUPPRESS:
+                widest = max(widest, len(subaction.dest))
+            if list_nested:
+                walk(action.choices[subaction.dest], f"{subaction.dest} ", 1)
+        return widest
+
     # Ensure all subparsers are shown
-    def _format_action(self, action):
+    def _format_action(self, action):  # pylint: disable=too-many-locals
         "Override and improve helper output"
 
         # Notes:
@@ -293,13 +375,25 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
             out = super()._format_action(action)
             return out
 
+        layout = help_layout_for(action)
+        list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
+        hide_parent = layout.hide_parent
+
         # Get the original format parts
         parts = []
         bullet: str = "  "
 
         help_position = min(self._action_max_length + 2, self._max_help_position)
-        help_width = max(self._width - help_position, 11)
         action_width = help_position - self._current_indent - 2
+        action_width = max(
+            action_width,
+            self._max_subcommand_label_width(action, list_nested, hide_parent) + 2,
+        )
+        max_action_width = self._max_help_position - self._current_indent - 2
+        if max_action_width > 0:
+            action_width = min(action_width, max_action_width)
+        help_position = action_width + self._current_indent + 2
+        help_width = max(self._width - help_position, 11)
 
         def format_cmd_line(cmd, help_msg, prefix=""):
             if not help_msg:
@@ -323,20 +417,27 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                 if isinstance(act, argparse._SubParsersAction):
                     for subaction in act._choices_actions:
                         choice = act.choices[subaction.dest]
-                        cmd = f"{prefix}{subaction.dest}"
+                        full_cmd = f"{prefix}{subaction.dest}"
                         if subaction.help != argparse.SUPPRESS:
                             help_msg = subaction.help or ""
                             parts.append(
                                 format_cmd_line(
-                                    cmd,
+                                    self._nested_cmd_label(
+                                        prefix,
+                                        subaction.dest,
+                                        hide_parent,
+                                        level,
+                                    ),
                                     help_msg,
                                     prefix=f"{_indent}{bullet}",
                                 )
                             )
-                            cmd = f"{cmd}"
 
                         add_subparser_to_parts(
-                            choice, prefix=f"{cmd} ", level=level + 1, indent=indent
+                            choice,
+                            prefix=f"{full_cmd} ",
+                            level=level + 1,
+                            indent=indent,
                         )
 
         def append_choice(subaction):
@@ -344,9 +445,10 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
             if subaction.help != argparse.SUPPRESS:
                 help_msg = subaction.help or ""
                 parts.append(format_cmd_line(subaction.dest, help_msg, prefix=bullet))
-            add_subparser_to_parts(
-                choice, prefix=f"{subaction.dest} ", level=1, indent=""
-            )
+            if list_nested:
+                add_subparser_to_parts(
+                    choice, prefix=f"{subaction.dest} ", level=1, indent=""
+                )
 
         grouped = any(
             getattr(subaction, "_clak_command_group", None)
@@ -359,12 +461,23 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                 parts.insert(0, "\nsubcommands:\n")
             return "".join(parts)
 
-        for title, subactions in self._grouped_subcommand_sections(action):
+        for title, subactions in self._grouped_subcommand_sections(action, layout):
             parts.append(f"\n{title}\n")
             for subaction in subactions:
                 append_choice(subaction)
 
         return "".join(parts)
+
+    def format_help(self):
+        """Drop an empty ``positional arguments:`` heading.
+
+        Subparsers live in that argparse group, but Clak prints them under
+        ``subcommands:``. When there are no real positionals, the empty
+        heading is noise.
+        """
+        text = super().format_help()
+        heading = _("positional arguments")
+        return re.sub(rf"(?m)^{re.escape(heading)}:\n+(?! )", "", text)
 
 
 class ArgumentParserPlus(argparse.ArgumentParser):

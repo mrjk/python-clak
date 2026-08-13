@@ -90,6 +90,8 @@ class Root(Parser):
 # CLI: prog child
 # Optional: Meta.command_groups = (("base", "subcommands (base):"),)
 #   and Command(Child, command_group="base") for help sections (formatter only).
+# Optional: Meta.help_subcommands = "top"  # default "all" lists nested children
+# Optional: Meta.help_hide_parent = False  # default True hides parent path in nested listing
 
 ## Errors (basic)
 
@@ -111,6 +113,7 @@ class Meta:
 | Plain / markdown / rst text | RawViewMixin / MarkdownViewMixin / RstViewMixin |
 | Primary table + extras | CompositeViewMixin + return CompositeView(...) |
 | Colored --help | default when Rich + TTY (mrjk.clak[markdown]); opt out Meta.help_formatter = RecursiveHelpFormatter |
+| Nested --help listing | Meta.help_subcommands = "all" (default) or "top"; Meta.help_hide_parent = True (default) hides parent path |
 | -v logging + self.logger | LoggingOptMixin |
 | XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
 | Emit shell completion script | CompCmdRender as a Command |

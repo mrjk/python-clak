@@ -27,7 +27,9 @@ Cliff: [Comparison](comparison.md).
 ## Nested (git-like) commands
 
 - Each subcommand is a `Parser`, bound with `Command`.
-- Root `--help` lists the command tree; each node has its own help text.
+- Root `--help` lists nested subcommands (`Meta.help_subcommands = "all"`,
+  parent path hidden). Set `"top"` for immediate children only. Each node
+  has its own help text.
 
 ## Optional components
 
@@ -36,7 +38,9 @@ Mix in only what you need:
 ### Help
 
 - Command-tree overview, `--help` / `-h`, customizable usage / description /
-  epilog.
+  epilog. Default listing is nested children
+  (`Meta.help_subcommands = "all"`, parent path hidden unless
+  `Meta.help_hide_parent = False`; `"top"` for immediate children only).
 - Colored `--help` by default when Rich is installed and stdout is a TTY
   (`mrjk.clak[markdown]`). Markup in `help_description` / `help_epilog` when
   color is on. Opt out: `Meta.help_formatter = RecursiveHelpFormatter`.

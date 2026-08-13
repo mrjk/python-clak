@@ -113,6 +113,9 @@ class App(Parser):
         help_description = "..."           # else class docstring
         help_epilog = "..."
         help_formatter = RecursiveHelpFormatter  # opt out of colored --help
+        help_subcommands = "all"           # default; "top" for immediate children
+        help_hide_parent = True            # False: show "tool netmap" paths
+        command_groups = (("base", "subcommands (base):"),)
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
@@ -344,6 +347,12 @@ choice actions); not a second add_subparsers. Ungrouped CLIs keep one
 subcommands: list. Leftover commands with no command_group stay under
 subcommands:. Per-command (does not inherit to children). Do not set
 Meta.help_formatter to group commands.
+
+Meta.help_subcommands = "all" (default) lists nested commands.
+"top" lists immediate children only. Meta.help_hide_parent = True (default)
+shows the leaf name indented two spaces per depth (not tool netmap). Set
+False for flattened paths. Inherited; a child may override. Independent of
+command_groups. Do not set Meta.help_formatter to change listing layout.
 
 Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 

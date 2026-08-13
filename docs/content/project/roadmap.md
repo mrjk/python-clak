@@ -11,7 +11,7 @@ These are the current **star features** — each has user documentation:
 | --- | --- |
 | Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../docs/features.md), [Quickstart](../quickstart/quickstart.md) |
 | Optional `Arg` / `Opt` helpers (positionals vs flags) | [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers) |
-| Nested subcommands + command tree in `--help` | [Nested guide](../guides/guide_102.md) |
+| Nested subcommands + `--help` listing (`top` / `all`) | [Nested guide](../guides/guide_102.md), [Help](../docs/help.md) |
 | Colored `--help` (Rich extra; TTY) | [Colored help](../docs/help.md) |
 | Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
 | Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
@@ -37,6 +37,9 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 - [x] Subcommand help sections via `Meta.command_groups` and
   `Command(..., command_group="key")` (formatter metadata; not a second
   `add_subparsers`)
+- [x] Subcommand listing depth via `Meta.help_subcommands` (`all` default,
+  `top` for immediate children; `Meta.help_hide_parent` defaults True)
+- [ ] `--help-all` / shorter `-h` (end-user flags; listing depth is Meta today)
 - [ ] Intermixed optional/positional parsing
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments))
 - [ ] Deeper use of argparse extension / plugin hooks

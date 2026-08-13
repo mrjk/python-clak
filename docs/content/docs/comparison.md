@@ -33,7 +33,8 @@ flowchart LR
 
 1. **Git-like nested CLIs.** Each subcommand is a `Parser` bound with
    `Command`. Parent options are visible to child `cli_run`. Root `--help`
-   lists the command tree.
+   lists nested subcommands (`Meta.help_subcommands = "all"`, parent path
+   hidden; `"top"` for immediate children only).
 2. **Structure at scale.** Share options and behavior with class inheritance
    and mixins (`LoggingOptMixin`, view mixins) instead of duplicating flags
    on every function.

@@ -20,7 +20,9 @@ from typing import Any, Dict, List, Optional, Union
 from clak import exception
 from clak.common import ObjectNamespace
 from clak.core.argparse_ import (
+    HELP_SUBCOMMANDS_ALL,
     ArgumentParserPlus,
+    HelpLayout,
     argparse,
     format_argument_error,
 )
@@ -119,6 +121,18 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     )
     meta__config__help_formatter = MetaSetting(
         help="argparse HelpFormatter class for --help",
+    )
+    meta__config__help_subcommands = MetaSetting(
+        help=(
+            "How --help lists subcommands: 'all' (nested children, default) "
+            "or 'top' (immediate children only). Inherited; a child may override."
+        ),
+    )
+    meta__config__help_hide_parent = MetaSetting(
+        help=(
+            "When listing nested subcommands, replace the parent path with "
+            "spaces so only the leaf name is shown (default True)."
+        ),
     )
     meta__config__command_groups = MetaSetting(
         help=(
@@ -264,8 +278,22 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 parser_class=ArgumentParserPlus,
             )
             command_groups = self.query_cfg_inst("command_groups", default=())
+            help_subcommands = self.query_cfg_parents(
+                "help_subcommands",
+                default=HELP_SUBCOMMANDS_ALL,
+                include_self=True,
+            )
+            help_hide_parent = self.query_cfg_parents(
+                "help_hide_parent",
+                default=True,
+                include_self=True,
+            )
             # pylint: disable=protected-access
-            self._subparsers._clak_command_groups = tuple(command_groups)
+            self._subparsers._clak_help = HelpLayout(
+                subcommands=help_subcommands,
+                hide_parent=help_hide_parent,
+                command_groups=tuple(command_groups),
+            )
         return self._subparsers
 
     # Argument management
