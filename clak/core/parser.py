@@ -539,9 +539,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             if isinstance(err, exc_type):
                 self._run_exception_handler(handler, err)
 
-        # 3. Clak parse errors — show usage first
+        # 3. Clak parse errors — show usage first (leaf parser when known)
         if isinstance(err, exception.ClakParseError):
-            self.show_usage()
+            if err.parser is not None:
+                err.parser.print_usage()
+            else:
+                self.show_usage()
             print(f"{err}", file=sys.stderr)
             sys.exit(err.rc)
 
@@ -630,7 +633,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             args = self.parse_args(args)
             args = args.__dict__
         except argparse.ArgumentError as err:
-            error = exception.ClakParseError(format_argument_error(err))
+            error = exception.ClakParseError(
+                format_argument_error(err),
+                parser=getattr(err, "clak_parser", None),
+            )
             # raise exception.ClakParseError(msg) from err
 
         if not error:

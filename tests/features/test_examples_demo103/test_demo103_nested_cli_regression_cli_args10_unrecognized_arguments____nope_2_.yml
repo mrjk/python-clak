@@ -1,8 +1,10 @@
 cli_args:
 - command2
+- Alice
+- --nope
 err: '2'
 output: 'usage: demo103-test command2 [-h] [--alias ALIASES] NAME
 
-  Could not parse command line: the following arguments are required: NAME
+  Could not parse command line: unrecognized arguments: --nope
 
   '

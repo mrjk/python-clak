@@ -502,14 +502,29 @@ class ArgumentParserPlus(argparse.ArgumentParser):
     def error(self, message):
         if getattr(self, "exit_on_error", True):
             return super().error(message)
-        raise argparse.ArgumentError(None, message)
+        err = argparse.ArgumentError(None, message)
+        err.clak_parser = self
+        raise err
+
+    def parse_known_args(self, args=None, namespace=None):
+        # Python 3.12+ raises ArgumentError from _parse_known_args (missing
+        # required args, invalid choice) without calling error(). Stamp this
+        # parser so nested failures keep leaf usage. Inner (child) stamps win.
+        try:
+            return super().parse_known_args(args, namespace)
+        except argparse.ArgumentError as err:
+            if getattr(err, "clak_parser", None) is None:
+                err.clak_parser = self
+            raise
 
     def parse_args(self, args=None, namespace=None):
-        args, argv = self.parse_known_args(args, namespace)
+        parsed, argv = self.parse_known_args(args, namespace)
         if argv:
             msg = _("unrecognized arguments: %s") % " ".join(argv)
             if self.exit_on_error:
                 self.error(msg)
-            else:
-                raise argparse.ArgumentError(None, msg)
-        return args
+            err = argparse.ArgumentError(None, msg)
+            leaf = getattr(parsed, "__cli_self__", None)
+            err.clak_parser = getattr(leaf, "parser", None) or self
+            raise err
+        return parsed

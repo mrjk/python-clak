@@ -55,6 +55,8 @@ TEST_PARAMETERS = [
     (["command2"], "the following arguments are required: NAME", 2),
     # Test with debug flag
     (["--debug", "command1"], "Run Command 1: Hello", 0),
+    # Nested unknown flag prints leaf usage (not root {command1,command2})
+    (["command2", "Alice", "--nope"], "unrecognized arguments: --nope", 2),
 ]
 
 

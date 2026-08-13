@@ -1,0 +1,9 @@
+cli_args:
+- command2
+- Alice
+- --nope
+exit_code: 2
+output: "\n\n  RAN: /app/python-clak/tests/features/demo_features/demo103_nested.py\
+  \ command2 Alice --nope\n\n  STDOUT:\nusage: demo103_nested.py command2 [-h] [--alias\
+  \ ALIASES] NAME\nCould not parse command line: unrecognized arguments: --nope\n\n\
+  \n  STDERR:\n"

@@ -30,6 +30,10 @@ class ClakParseError(ClakUserError):
 
     rc = 2
 
+    def __init__(self, message=None, advice=None, parser=None):
+        self.parser = parser
+        super().__init__(message, advice)
+
 
 class ClakExitError(ClakUserError):
     "Raised when there is a exit"

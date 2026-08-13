@@ -65,6 +65,8 @@ TEST_PARAMETERS = [
     (["--debug", "command1", "Charlie"], "Run Command 1: Hello Charlie", 0),
     # Test sub2b command (should raise NotImplementedError)
     (["command1", "sub2", "sub2", "sub2b"], "No 'cli_run' method found", 31),
+    # Nested unknown flag prints leaf usage (not root {command1,command2})
+    (["command2", "Alice", "--nope"], "unrecognized arguments: --nope", 2),
 ]
 
 

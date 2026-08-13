@@ -669,3 +669,90 @@ def test_format_env():
 #         assert mock_run.called
 #     except SystemExit as e:
 #         pytest.fail(f"SystemExit was raised with code {e.code}")
+
+
+def _nested_parse_error_app():
+    """Root -> group -> leaf, plus a sibling command with a required NAME."""
+
+    class Leaf(Parser):
+        foo = Argument("--foo", help="Leaf option")
+
+        def cli_run(self, **_):
+            return None
+
+    class Group(Parser):
+        leaf = Command(Leaf, help="Leaf command")
+
+        def cli_run(self, **_):
+            return None
+
+    class Command2(Parser):
+        name = Argument("NAME", help="Name")
+
+        def cli_run(self, **_):
+            return None
+
+    class App(Parser):
+        group = Command(Group, help="Group command")
+        command2 = Command(Command2, help="Needs NAME")
+
+        def cli_run(self, **_):
+            return None
+
+    return App(parse=False, proc_name="app")
+
+
+def _dispatch_output(app, cli_args, capsys):
+    with pytest.raises(SystemExit) as exc:
+        app.dispatch(cli_args)
+    captured = capsys.readouterr()
+    return exc.value.code, captured.out + captured.err
+
+
+def test_nested_unknown_flag_prints_leaf_usage(capsys):
+    """Leftover tokens on a nested command print that leaf usage, not root."""
+    app = _nested_parse_error_app()
+    rc, output = _dispatch_output(app, ["group", "leaf", "--nope"], capsys)
+    assert rc == 2
+    assert "usage:" in output
+    assert "group leaf" in output
+    assert "{group" not in output
+    assert "unrecognized arguments: --nope" in output
+
+
+def test_nested_missing_positional_prints_leaf_usage(capsys):
+    """Missing required arg on a nested command prints that command usage."""
+    app = _nested_parse_error_app()
+    rc, output = _dispatch_output(app, ["command2"], capsys)
+    assert rc == 2
+    assert "usage:" in output
+    assert "command2" in output
+    assert "{group" not in output
+    assert "the following arguments are required: NAME" in output
+
+
+def test_invalid_top_level_command_prints_root_usage(capsys):
+    """Unknown top-level command still prints root usage with the command set."""
+    app = _nested_parse_error_app()
+    rc, output = _dispatch_output(app, ["nope"], capsys)
+    assert rc == 2
+    assert "usage:" in output
+    assert "{group" in output
+    assert "invalid choice" in output
+
+
+def test_one_level_unknown_flag_prints_root_usage(capsys):
+    """A one-level CLI unknown flag still prints that parser's usage."""
+
+    class App(Parser):
+        foo = Argument("--foo", help="An option")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, proc_name="app")
+    rc, output = _dispatch_output(app, ["--nope"], capsys)
+    assert rc == 2
+    assert "usage:" in output
+    assert "usage: app" in output
+    assert "unrecognized arguments: --nope" in output
