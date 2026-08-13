@@ -194,31 +194,16 @@ class _ViewMixinBase(PluginHelpers):
             return f"{base} Available: {available}"
         return f"{base}. Available: {available}"
 
-    def add_arguments(self, arguments: dict = None):
-        """Like ParserNode.add_arguments, but skips disabled view CLI options."""
-        arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
-        if not isinstance(arguments, dict):
-            raise TypeError(f"Got {type(arguments)} instead of dict")
-
+    def _skip_argument_names(self) -> Set[str]:
         enabled = self._enabled_view_options()
-        skip = _VIEW_CLI_OPTION_DESTS - enabled
+        return _VIEW_CLI_OPTION_DESTS - enabled
 
-        for cls in self.__class__.__mro__:
-            for name, value in vars(cls).items():
-                if isinstance(value, Argument) and name not in arguments:
-                    if name in skip:
-                        continue
-                    value.destination = name
-                    arguments[name] = value
-
-        arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
-
-        for key, arg in arguments.items():
-            if key in ("columns", "sort_columns", "wrap"):
-                arg = copy.copy(arg)
-                arg.kwargs = dict(arg.kwargs)
-                arg.kwargs["help"] = self._column_flag_help(arg.kwargs.get("help", ""))
-            self.add_argument(key, arg)
+    def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+        if key in ("columns", "sort_columns", "wrap"):
+            arg = copy.copy(arg)
+            arg.kwargs = dict(arg.kwargs)
+            arg.kwargs["help"] = self._column_flag_help(arg.kwargs.get("help", ""))
+        return arg
 
     @staticmethod
     def _args_get(args: Any, key: str, default=None):

@@ -125,6 +125,14 @@ def test_opt_dest_derived_flag_allowed():
     assert opt.args == ()
 
 
+def test_arg_empty_names_rejected():
+    """Arg() with no positional name must not become a dest-derived flag."""
+    with pytest.raises(ValueError, match="requires a positional name"):
+        Arg()
+    with pytest.raises(ValueError, match="requires a positional name"):
+        Arg(help="Who to greet")
+
+
 def test_option_group_reuses_same_title():
     """Same option_group title reuses one argparse argument group."""
 
@@ -307,6 +315,31 @@ def test_basic_subcommand():
         assert result == "subcmd_executed"
     except SystemExit as e:
         pytest.fail(f"SystemExit was raised with code {e.code}")
+
+
+def test_child_command_attr_overrides_parent():
+    """Subclass Command attr wins over the parent (same as Argument MRO)."""
+
+    class LeafA(Parser):
+        def cli_run(self, **_):
+            return "A"
+
+    class LeafB(Parser):
+        def cli_run(self, **_):
+            return "B"
+
+    class Parent(Parser):
+        sub = Command(LeafA, help="parent")
+
+        def cli_run(self, **_):
+            return None
+
+    class Child(Parent):
+        sub = Command(LeafB, help="child")
+
+    app = Child(parse=False, add_help=False)
+    assert app.children["sub"].__class__ is LeafB
+    assert app.dispatch(["sub"]) == "B"
 
 
 # def test_nested_subcommands():

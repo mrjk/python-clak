@@ -238,7 +238,23 @@ class Argument(ArgParseItem):
 
 def _check_arg_opt_names(args, expect_option: bool, cls_name: str) -> None:
     """Reject mixed positional names and option flags on Arg/Opt."""
+    if not expect_option and not args:
+        raise ValueError(
+            f"{cls_name}() requires a positional name. "
+            "Use Opt() or Argument() for dest-derived flags."
+        )
     for arg in args:
+        is_flag = str(arg).startswith("-")
+        if expect_option and not is_flag:
+            raise ValueError(
+                f"{cls_name}() is for option flags, got positional {arg!r}. "
+                "Use Arg() or Argument() for positionals."
+            )
+        if not expect_option and is_flag:
+            raise ValueError(
+                f"{cls_name}() is for positional arguments, got option flag "
+                f"{arg!r}. Use Opt() or Argument() for flags."
+            )
         is_flag = str(arg).startswith("-")
         if expect_option and not is_flag:
             raise ValueError(
@@ -255,10 +271,10 @@ def _check_arg_opt_names(args, expect_option: bool, cls_name: str) -> None:
 class Arg(Argument):
     """Optional sugar for a positional argument.
 
-    Same ``*args`` / ``**kwargs`` as :class:`Argument`, but every name must
-    be a positional (no leading ``-``). ``Argument`` still accepts both
-    positionals and flags; use ``Arg`` only when you want that distinction
-    checked at class definition time.
+    Same ``*args`` / ``**kwargs`` as :class:`Argument`, but at least one
+    positional name is required (no leading ``-``). Empty ``Arg()`` is
+    rejected; dest-derived flags belong on ``Opt`` / ``Argument``.
+    ``Argument`` still accepts both positionals and flags.
     """
 
     def __init__(self, *args, **kwargs):
@@ -269,10 +285,10 @@ class Arg(Argument):
 class Opt(Argument):
     """Optional sugar for an option flag.
 
-    Same ``*args`` / ``**kwargs`` as :class:`Argument`, but every name must
-    start with ``-`` / ``--``. ``Argument`` still accepts both positionals
-    and flags; use ``Opt`` only when you want that distinction checked at
-    class definition time.
+    Same ``*args`` / ``**kwargs`` as :class:`Argument`. When names are
+    given, every name must start with ``-`` / ``--``. Empty ``Opt()`` is
+    allowed: the attribute name becomes a dest-derived flag (``--attr``
+    or ``-x``). ``Argument`` still accepts both positionals and flags.
     """
 
     def __init__(self, *args, **kwargs):
@@ -476,10 +492,13 @@ def prepare_docstring(
     try:
         text = text.format(**variables)
     except KeyError as err:
-        print(f"Error formatting docstring: {err}")
-        print(f"Variables: {variables}")
-        print(f"Text: {text}")
-        raise err
+        logger.exception(
+            "Error formatting docstring: %s; variables=%s; text=%s",
+            err,
+            variables,
+            text,
+        )
+        raise
 
     return text
 

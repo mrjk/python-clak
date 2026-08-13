@@ -911,6 +911,30 @@ def test_view_cli_options_invalid_type_raises():
         App(parse=False, add_help=False)
 
 
+def test_view_logging_xdg_mixin_composition():
+    """View mixin leftmost still runs logging and XDG add_arguments."""
+    from clak.comp.config import XDGConfigMixin
+    from clak.comp.logging import LoggingOptMixin
+
+    class App(ListViewMixin, LoggingOptMixin, XDGConfigMixin, Parser):
+        class Meta:
+            app_name = "demo-app"
+            log_colors_env = "DEMO_LOG_COLORS"
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    flags = _option_flags(app)
+    assert "--columns" in flags
+    assert "-v" in flags
+    assert "--conf-file" in flags
+    help_text = app.parser.format_help()
+    assert "DEMO_LOG_COLORS" in help_text
+    conf = next(a.default for a in app.parser._actions if a.dest == "xdg_config")
+    assert "demo-app" in str(conf)
+
+
 # ---------------------------------------------------------------------------
 # Mixins — explicit view + CLI override
 # ---------------------------------------------------------------------------

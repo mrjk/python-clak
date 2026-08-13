@@ -233,8 +233,8 @@ class Node:
 
         if not declared:
             msg = (
-                f"Missing 'meta__config__{name}',"
-                + "this option has not been declared in any parents of'{repr(self)}'"
+                f"Missing 'meta__config__{name}', "
+                f"this option has not been declared in any parents of {self!r}"
             )
             raise MissingMetaError(msg)
 
@@ -265,8 +265,8 @@ class Node:
         # if not hasattr(self, f"meta__config__{name}"):
         if raise_on_undeclared and getattr(self, f"meta__config__{name}", None) is None:
             msg = (
-                f"Missing 'meta__config__{name}',"
-                " this option has not been declared '{repr(self)}'"
+                f"Missing 'meta__config__{name}', "
+                f"this option has not been declared {self!r}"
             )
             raise MissingMetaError(msg)
 

@@ -280,7 +280,9 @@ class LoggingOptMixin(PluginHelpers):
 
     def add_arguments(self, arguments: dict = None):
         """Format ``--log-colors`` help with ``Meta.log_colors_env``, then register."""
-        arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
+        if arguments is None:
+            arguments = getattr(self, "meta__arguments_dict", None)
+        arguments = dict(arguments or {})
         env_name = self.query_cfg_parents(
             "log_colors_env", default=DEFAULT_LOG_COLORS_ENV, include_self=True
         )
@@ -478,9 +480,6 @@ class LoggingOptMixin(PluginHelpers):
             log_name = f"{log_prefix}{suffix}"
         instance.logger = logging.getLogger(log_name)
         logger.debug("Enable logging for '%s': %s", instance, log_name)
-
-        # Register plugin methods
-        self.hook_register("test_logger", instance)
 
         logger.debug("Logging hook loaded for %s", instance)
 

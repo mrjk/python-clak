@@ -140,16 +140,13 @@ class CompRenderCmdMixin(CompRenderMixin):
 class CompRenderOptMixin(CompRenderMixin):
     """Completion options support mixin.
 
-    Adds option completion support to parsers by providing a --completion flag
-    that generates shell completion code. When used, outputs the appropriate
-    completion code for the configured shell.
+    Adds a ``--completion`` flag that prints bash argcomplete shellcode
+    instead of running the command. Prefer :class:`CompCmdRender` as a
+    ``completion`` subcommand when you need ``--shell`` / ``--executable``.
 
-    The mixin adds:
-    - --completion flag to generate shell completion code
-    - Default completion behavior configuration
-    - Shell-specific completion code generation
+    Example::
 
-    Supports bash (default), zsh, tcsh, fish and powershell shells.
+        my-app --completion
     """
 
     completion_cmd = Argument(
@@ -159,24 +156,11 @@ class CompRenderOptMixin(CompRenderMixin):
     )
 
     def cli_run(self, ctx, **kwargs):
-        """Completion options support mixin.
+        """Print bash completion shellcode when ``--completion`` is set.
 
-        Adds option completion support to parsers by providing:
-        - --completion flag to generate shell completion code
-        - Default completion behavior configuration
-        - Shell-specific completion code generation
+        Example::
 
-        The mixin adds a --completion argument that when used will output the appropriate
-        shell completion code. It supports:
-        - bash (default)
-        - zsh
-        - tcsh
-        - fish
-        - powershell
-
-        Example:
-            my-app --completion  # Outputs bash completion code
-            my-app --completion --shell zsh  # Outputs zsh completion code
+            my-app --completion
         """
 
         args = ctx.args

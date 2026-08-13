@@ -278,3 +278,19 @@ def test_node_query_cfg_parents():
     # Test raising ConfigurationError
     with pytest.raises(ConfigurationError):
         child.query_cfg_parents("nonexistent")
+
+
+def test_missing_meta_error_interpolates_node_repr():
+    """MissingMetaError must include the node repr, not a literal placeholder."""
+    node = Node(name="leaf")
+    with pytest.raises(MissingMetaError) as exc:
+        node.query_cfg_parents("nope")
+    msg = str(exc.value)
+    assert "{repr(self)}" not in msg
+    assert repr(node) in msg
+
+    with pytest.raises(MissingMetaError) as exc:
+        node.query_cfg_inst("nope", raise_on_undeclared=True)
+    msg = str(exc.value)
+    assert "{repr(self)}" not in msg
+    assert repr(node) in msg

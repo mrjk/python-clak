@@ -246,6 +246,14 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     # Argument management
     # ========================
 
+    def _skip_argument_names(self) -> set:
+        """Names of class Argument attrs to omit (view mixins override)."""
+        return set()
+
+    def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+        """Hook to adjust an argument before attach (view mixins override)."""
+        return arg
+
     def add_arguments(self, arguments: dict = None):
         """Initialize all argument options defined for this parser.
 
@@ -255,14 +263,22 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         3. Adds internal arguments like __cli_self__
         4. Creates all argument parser entries
         """
-        arguments = arguments or getattr(self, "meta__arguments_dict", {}) or {}
+        if arguments is None:
+            arguments = getattr(self, "meta__arguments_dict", None)
+        if arguments is None:
+            arguments = {}
         if not isinstance(arguments, dict):
             raise TypeError(f"Got {type(arguments)} instead of dict")
+        arguments = dict(arguments)
+
+        skip = self._skip_argument_names()
 
         # Add arguments from class attributes including inherited ones
         for cls in self.__class__.__mro__:
             for name, value in vars(cls).items():
                 if isinstance(value, Argument) and name not in arguments:
+                    if name in skip:
+                        continue
                     value.destination = name
                     arguments[name] = value
 
@@ -271,8 +287,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Create all options
         for key, arg in arguments.items():
+            arg = self._prepare_argument(key, arg)
             self.add_argument(key, arg)
-            # arg.attach_arg_to_parser(key, self)
 
     def add_argument(
         self, key: str, arg: Optional[Argument] = None, **kwargs: Any
@@ -305,15 +321,18 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         3. Creates parser entries for all subcommands
         """
 
-        subcommands = subcommands or getattr(self, "meta__subcommands_dict", {}) or {}
+        if subcommands is None:
+            subcommands = getattr(self, "meta__subcommands_dict", None)
+        if subcommands is None:
+            subcommands = {}
         if not isinstance(subcommands, dict):
             raise TypeError(f"Got {type(subcommands)} instead of dict")
+        subcommands = dict(subcommands)
 
-        # Add arguments from class attributes that are Command instances
+        # Collect Command instances from class attributes (child wins)
         for cls in self.__class__.__mro__:
             for attr_name, attr_value in cls.__dict__.items():
-                if isinstance(attr_value, Command):
-                    # Store the attribute name as the key in the Fn instance
+                if isinstance(attr_value, Command) and attr_name not in subcommands:
                     attr_value.destination = attr_name
                     subcommands[attr_name] = attr_value
 

@@ -180,8 +180,8 @@ python script2.py --force --config custom.yaml --color blue \
 positionals. `Opt` and `Arg` are **optional** sugar if you want that
 difference checked when the class is defined:
 
-- `Opt(...)` : option flags only (`-` / `--`)
-- `Arg(...)` : positional names only (no leading `-`)
+- `Opt(...)` : option flags only (`-` / `--`); empty `Opt()` derives `--attr` from the field name
+- `Arg(...)` : positional names only (no leading `-`); at least one name is required
 
 Mixing names raises `ValueError` (`Arg("--flag")`, `Opt("NAME")`, or both
 kinds in one call). Same kwargs as `Argument` / `add_argument()`. You never

@@ -196,7 +196,9 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
 
     def add_arguments(self, arguments: dict = None):
         """Apply XDG defaults from app name / env, then register arguments."""
-        arguments = dict(arguments or getattr(self, "meta__arguments_dict", {}) or {})
+        if arguments is None:
+            arguments = getattr(self, "meta__arguments_dict", None)
+        arguments = dict(arguments or {})
         paths = resolve_xdg_paths(self._xdg_app_name())
 
         for attr_name, path_key in self._XDG_ARG_DEFAULTS:
