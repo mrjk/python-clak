@@ -90,7 +90,6 @@ tasks:
     cmds:
       - task: test_pytest
       - task: test_regressions
-      - task: test_report
       # - task: test_lab
       # - task: test_examples
       - task: test_lint_full
@@ -115,13 +114,15 @@ tasks:
       - "{{.PY}} pytest tests/ --force-regen"
 
   test_pytest:
-    desc: Test with pytest
+    desc: Test with pytest (unit + coverage)
+    aliases:
+      - test_report
     once: true
     preconditions:
       - sh: '{{.PY}} python -c "import pytest_tagging"'
         msg: "Incomplete Poetry env (pytest-tagging missing). Run: task setup"
     cmds:
-      - "{{.PY}} pytest tests/ -vv --tags unit-tests examples-unit examples-regressions"
+      - "{{.PY}} pytest tests/ -vv --cov=clak --cov-report term-missing --tags unit-tests examples-unit"
 
   test_regressions:
     desc: Test for regressions (slow)
@@ -134,18 +135,7 @@ tasks:
       - sh: '{{.PY}} python -c "import pytest_tagging"'
         msg: "Incomplete Poetry env (pytest-tagging missing). Run: task setup"
     cmds:
-      - "{{.PY}} pytest tests/ --tags examples-regressions"
-      - "{{.PY}} pytest tests/ --tags examples-regressions-cli"
-
-  test_report:
-    desc: Report tests
-    once: true
-    preconditions:
-      - sh: '{{.PY}} python -c "import pytest_tagging"'
-        msg: "Incomplete Poetry env (pytest-tagging missing). Run: task setup"
-    cmds:
-      # - pytest tests --tb no -vv -q
-      - "{{.PY}} pytest tests/ --tb no -q --cov=clak --cov-report term-missing --tags examples-unit unit-tests"
+      - "{{.PY}} pytest tests/ --tags examples-regressions examples-regressions-cli"
 
   test_matrix:
     desc: Run pytest matrix (3.10–3.14) via mise + isolated .venvs

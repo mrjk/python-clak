@@ -111,17 +111,13 @@ run_tests() {
     return 1
   fi
 
-  echo "=== pytest (unit + regressions) @ ${ver} ==="
+  echo "=== pytest (unit) @ ${ver} ==="
   with_matrix_venv "$venv_dir" env CLAK_COLORS=false \
-    "$pytest_bin" tests/ -vv --tags unit-tests examples-unit examples-regressions
+    "$pytest_bin" tests/ -vv --tags unit-tests examples-unit
 
-  echo "=== pytest (examples-regressions) @ ${ver} ==="
+  echo "=== pytest (regressions + CLI regressions) @ ${ver} ==="
   with_matrix_venv "$venv_dir" env CLAK_COLORS=false \
-    "$pytest_bin" tests/ --tags examples-regressions
-
-  echo "=== pytest (examples-regressions-cli) @ ${ver} ==="
-  with_matrix_venv "$venv_dir" env CLAK_COLORS=false \
-    "$pytest_bin" tests/ --tags examples-regressions-cli
+    "$pytest_bin" tests/ --tags examples-regressions examples-regressions-cli
 }
 
 FAILED=()
