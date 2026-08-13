@@ -1,6 +1,6 @@
 """Tests for default Rich help formatter and opt-out."""
 
-# pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
+# pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods,protected-access
 
 import re
 import sys
@@ -275,3 +275,185 @@ def test_help_highlight_skips_prose_flags():
 
 def test_recursive_help_formatter_exported_from_clak():
     assert RecursiveHelpFormatter is CoreRecursiveHelpFormatter
+
+
+def _leaf_parser():
+    class Leaf(Parser):
+        def cli_run(self, **_):
+            return None
+
+    return Leaf
+
+
+def test_ungrouped_commands_keep_single_subcommands_list():
+    """No command_group on any child: today's single subcommands: list."""
+
+    class Child(Parser):
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        alpha = Command(Child, help="First")
+        beta = Command(Child, help="Second")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = Root(parse=False, add_help=True).parser.format_help()
+    assert help_text.count("subcommands:") == 1
+    assert "subcommands (base):" not in help_text
+    assert "alpha" in help_text
+    assert "beta" in help_text
+
+
+def test_command_groups_named_and_leftover():
+    """Named Meta sections, empty key omitted, ungrouped leftover subcommands:."""
+    leaf = _leaf_parser()
+
+    class App(Parser):
+        class Meta:
+            command_groups = (
+                ("base", "subcommands (base):"),
+                ("empty", "subcommands (empty):"),
+                ("dynamic", "subcommands (dynamic):"),
+            )
+
+        tool = Command(leaf, command_group="base", help="Tools")
+        render = Command(leaf, command_group="dynamic", help="Render")
+        orphan = Command(leaf, help="Leftover")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "subcommands (base):" in help_text
+    assert "subcommands (dynamic):" in help_text
+    assert "subcommands (empty):" not in help_text
+    assert help_text.count("subcommands:") == 1
+    base_idx = help_text.index("subcommands (base):")
+    dynamic_idx = help_text.index("subcommands (dynamic):")
+    leftover_idx = help_text.index("\nsubcommands:\n")
+    assert base_idx < dynamic_idx < leftover_idx
+    assert help_text.index("tool", base_idx) < dynamic_idx
+    assert help_text.index("render", dynamic_idx) < leftover_idx
+    assert leftover_idx < help_text.index("orphan", leftover_idx)
+
+
+def test_command_group_unknown_key_after_named():
+    """Keys not in Meta.command_groups become {key}: after named sections."""
+    leaf = _leaf_parser()
+
+    class App(Parser):
+        class Meta:
+            command_groups = (("base", "subcommands (base):"),)
+
+        tool = Command(leaf, command_group="base", help="Tools")
+        extra = Command(leaf, command_group="extra", help="Unknown key")
+        orphan = Command(leaf, help="Leftover")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    base_idx = help_text.index("subcommands (base):")
+    extra_idx = help_text.index("\nextra:\n")
+    leftover_idx = help_text.index("\nsubcommands:\n")
+    assert base_idx < extra_idx < leftover_idx
+    after_title = help_text[extra_idx + len("\nextra:\n") :]
+    assert after_title.lstrip().startswith("extra")
+
+
+def test_command_groups_do_not_inherit_to_child():
+    """Grouping is per-command; a child without Meta keeps subcommands:."""
+    leaf_cls = _leaf_parser()
+
+    class ToolGroup(Parser):
+        leaf = Command(leaf_cls, help="A leaf")
+
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        class Meta:
+            command_groups = (("base", "subcommands (base):"),)
+
+        tool = Command(ToolGroup, command_group="base", help="Tools")
+
+        def cli_run(self, **_):
+            return None
+
+    app = Root(parse=False, add_help=True)
+    root_help = app.parser.format_help()
+    child_help = app.children["tool"].parser.format_help()
+    assert "subcommands (base):" in root_help
+    assert "subcommands (base):" not in child_help
+    assert "subcommands:" in child_help
+    assert "leaf" in child_help
+
+
+def test_command_groups_keep_nested_listing():
+    """Nested children still list under their parent command."""
+    leaf_cls = _leaf_parser()
+
+    class ToolGroup(Parser):
+        leaf = Command(leaf_cls, help="A leaf")
+
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        class Meta:
+            command_groups = (("base", "subcommands (base):"),)
+
+        tool = Command(ToolGroup, command_group="base", help="Tools")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = Root(parse=False, add_help=True).parser.format_help()
+    base_idx = help_text.index("subcommands (base):")
+    assert "tool leaf" in help_text
+    assert help_text.index("tool leaf", base_idx) > base_idx
+
+
+def test_help_highlight_grouped_subcommand_titles():
+    """Parenthetical subcommand section titles match like subcommands:."""
+    text = (
+        "usage: app [-h]\n"
+        "\n"
+        "subcommands (base):\n"
+        "  tool                 Tools\n"
+        "\n"
+        "subcommands:\n"
+        "  orphan               Orphan\n"
+    )
+    groups = []
+    for pattern in _HELP_HIGHLIGHTS:
+        if "?P<groups>" not in pattern:
+            continue
+        groups.extend(match.group("groups") for match in re.finditer(pattern, text))
+    assert "subcommands (base):" in groups
+    assert "subcommands:" in groups
+
+
+def test_grouped_help_forced_color_has_ansi(monkeypatch):
+    _force_help_color(monkeypatch)
+    leaf = _leaf_parser()
+
+    class App(Parser):
+        class Meta:
+            command_groups = (("base", "subcommands (base):"),)
+
+        tool = Command(leaf, command_group="base", help="Tools")
+        orphan = Command(leaf, help="Leftover")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "\x1b[" in help_text
+    stripped = strip_ansi(help_text)
+    assert "subcommands (base):" in stripped
+    assert "subcommands:" in stripped
+    assert "tool" in stripped
+    assert "orphan" in stripped

@@ -246,12 +246,45 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                     help_msg += " (default: %(default)s)"
         return help_msg
 
+    @staticmethod
+    def _grouped_subcommand_sections(action):
+        """Yield (title, choice actions) for named, unknown-key, then leftover."""
+        named_groups = getattr(action, "_clak_command_groups", ()) or ()
+        named_titles = dict(named_groups)
+        named_keys = [key for key, _title in named_groups]
+
+        by_group = {}
+        for subaction in action._choices_actions:
+            group_key = getattr(subaction, "_clak_command_group", None)
+            by_group.setdefault(group_key, []).append(subaction)
+
+        for key in named_keys:
+            members = by_group.get(key)
+            if members:
+                yield named_titles[key], members
+
+        unknown_keys = []
+        for subaction in action._choices_actions:
+            group_key = getattr(subaction, "_clak_command_group", None)
+            if group_key is None or group_key in named_titles:
+                continue
+            if group_key not in unknown_keys:
+                unknown_keys.append(group_key)
+        for key in unknown_keys:
+            title = key if str(key).endswith(":") else f"{key}:"
+            yield title, by_group.get(key)
+
+        leftover = by_group.get(None)
+        if leftover:
+            yield "subcommands:", leftover
+
     # Ensure all subparsers are shown
     def _format_action(self, action):
         "Override and improve helper output"
 
         # Notes:
-        # Why not use add_argument_group()?
+        # Subcommand sections are formatter metadata (command_group), not
+        # argparse add_argument_group / a second add_subparsers.
         # - See: https://docs.python.org/3/library/argparse.html#argument-groups
         # Implement register for subcommands:
         # - See: https://docs.python.org/3/library/argparse.html#registering-custom-types-or-actions
@@ -306,8 +339,7 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                             choice, prefix=f"{cmd} ", level=level + 1, indent=indent
                         )
 
-        # Format all commands with alignment
-        for subaction in action._choices_actions:
+        def append_choice(subaction):
             choice = action.choices[subaction.dest]
             if subaction.help != argparse.SUPPRESS:
                 help_msg = subaction.help or ""
@@ -316,8 +348,21 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
                 choice, prefix=f"{subaction.dest} ", level=1, indent=""
             )
 
-        if len(parts) > 0:
-            parts.insert(0, "\nsubcommands:\n")
+        grouped = any(
+            getattr(subaction, "_clak_command_group", None)
+            for subaction in action._choices_actions
+        )
+        if not grouped:
+            for subaction in action._choices_actions:
+                append_choice(subaction)
+            if len(parts) > 0:
+                parts.insert(0, "\nsubcommands:\n")
+            return "".join(parts)
+
+        for title, subactions in self._grouped_subcommand_sections(action):
+            parts.append(f"\n{title}\n")
+            for subaction in subactions:
+                append_choice(subaction)
 
         return "".join(parts)
 

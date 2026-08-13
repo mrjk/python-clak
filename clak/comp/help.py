@@ -35,7 +35,7 @@ _HELP_STYLES = {
 _HELP_HIGHLIGHTS = (
     r"(?m)^(?P<groups>usage:)",
     r"(?m)^(?P<groups>(?:positional arguments|options|subcommands):)",
-    r"(?m)^(?P<groups>[A-Za-z][\w /-]+:\s*$)",
+    r"(?m)^(?P<groups>[A-Za-z][\w /()-]+:\s*$)",
     r"(?m)^\s+(?P<args>-{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?"
     r"(?:, -{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?)*)",
     r"(?P<default>\(default: [^)]*\))",

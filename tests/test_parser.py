@@ -278,6 +278,27 @@ def test_exclusive_group_nests_under_option_group():
         app.parse_args(["--quiet", "--verbose"])
 
 
+def test_command_group_kwarg_not_passed_to_argparse():
+    """command_group= is Clak-only and must not reach add_parser."""
+
+    class Child(Parser):
+        def cli_run(self, **_):
+            return None
+
+    class App(Parser):
+        child = Command(Child, command_group="base", help="A child")
+
+        def cli_run(self, **_):
+            return None
+
+    app = App(parse=False, add_help=True)
+    assert "child" in app.parser.format_help()
+    app.parse_args(["child"])
+    # pylint: disable=protected-access
+    choice = app.subparsers._choices_actions[-1]
+    assert choice._clak_command_group == "base"
+
+
 @patch("sys.argv", ["prog", "--help"])
 def test_help_display(capsys):
     """Test help text display."""

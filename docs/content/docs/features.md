@@ -44,7 +44,9 @@ Mix in only what you need:
 - Named help groups: `Argument(..., option_group="Title")` or
   `argument_group="Title"` places flags under a titled section in `--help`
   (same title reuses one group). Exclusive groups:
-  `Argument(..., exclusive_group="key")` for XOR. See
+  `Argument(..., exclusive_group="key")` for XOR. Subcommand sections:
+  `Meta.command_groups` plus `Command(..., command_group="key")` (formatter
+  metadata, not a second `add_subparsers`). See
   [Nested commands](advanced.md#named-help-groups-and-exclusive-groups).
 
 ### Views

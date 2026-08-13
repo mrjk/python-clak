@@ -338,6 +338,13 @@ kwargs on one Argument). View mixins use option_group="Output options".
 Argument(..., exclusive_group="key") maps to add_mutually_exclusive_group
 (at most one member; required=False). May combine with a help-group kwarg.
 
+Command(..., command_group="key") plus Meta.command_groups = ((key, title), ...)
+splits --help subcommand lists. Formatter metadata only (stash on argparse
+choice actions); not a second add_subparsers. Ungrouped CLIs keep one
+subcommands: list. Leftover commands with no command_group stay under
+subcommands:. Per-command (does not inherit to children). Do not set
+Meta.help_formatter to group commands.
+
 Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 
 ==============================================================================

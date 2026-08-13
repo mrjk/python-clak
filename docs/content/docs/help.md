@@ -32,6 +32,11 @@ class App(Parser):
 A child inherits the root formatter. After a parent opt-out, a child can
 re-opt-in with `RichHelpMixin` (left of `Parser`).
 
+Subcommand sections (`Meta.command_groups` + `Command(..., command_group=)`)
+are layout on that command only. Do not set `Meta.help_formatter` just to
+group children; grouping is not a formatter class. See
+[Named help groups](advanced.md#named-help-groups-and-exclusive-groups).
+
 `help_description` and `help_epilog` accept Rich markup when color is on
 (`[bold]Name[/bold]`). Argument `help=` stays literal. CompositeView section
 `title` / `description` use the same markup helper; see

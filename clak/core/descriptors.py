@@ -301,6 +301,15 @@ class SubParser(ArgParseItem):
     This class handles creation of nested command structures, allowing for hierarchical
     command-line interfaces. It supports both subparser and injection modes.
 
+    Most keyword arguments are passed through to
+    :meth:`argparse._SubParsersAction.add_parser`. Clak-only kwargs (stripped
+    before argparse):
+
+    - ``command_group``: Optional key for a subcommand help section. Pair with
+      ``Meta.command_groups`` on the parent Parser. Formatter metadata only;
+      not a second ``add_subparsers``. Commands with no key stay under
+      leftover ``subcommands:``.
+
     Attributes:
         meta__help_flags (bool): Whether to enable -h and --help support
         meta__usage (str): Custom usage message
@@ -382,6 +391,7 @@ class SubParser(ArgParseItem):
                     # "aliases": parser_aliases,
                 }
             )
+            command_group = parser_kwargs.pop("command_group", None)
             # if parser_help is not None:
             #     parser_kwargs["help"] = parser_help
 
@@ -390,6 +400,8 @@ class SubParser(ArgParseItem):
                 key,
                 **parser_kwargs,
             )
+            # pylint: disable=protected-access
+            config.subparsers._choices_actions[-1]._clak_command_group = command_group
 
             # Create an instance of the command class with the subparser
             child = self.cls(parent=config, parser=subparser, key=key)

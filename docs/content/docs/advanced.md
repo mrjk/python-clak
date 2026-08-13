@@ -77,6 +77,39 @@ class App(Parser):
 the default options section and `--format` / `--columns` under
 **Output options**. Passing both `--json` and `--yaml` is a parse error.
 
+Subcommand grouping is formatter metadata (not a second `add_subparsers`).
+`Meta.command_groups` is ordered `(key, title)` pairs on that Parser only.
+`Command(..., command_group="key")` is stripped before `add_parser`. Keys
+without members are omitted. Commands with no `command_group` stay under
+leftover `subcommands:`. Ungrouped CLIs keep a single `subcommands:` list.
+
+```python
+from clak import Command, Parser
+
+class ToolGroup(Parser):
+    def cli_run(self, **_):
+        return None
+
+class RenderCmd(Parser):
+    def cli_run(self, **_):
+        return None
+
+class OrphanCmd(Parser):
+    def cli_run(self, **_):
+        return None
+
+class App(Parser):
+    class Meta:
+        command_groups = (
+            ("base", "subcommands (base):"),
+            ("dynamic", "subcommands (dynamic):"),
+        )
+
+    tool = Command(ToolGroup, command_group="base")
+    render = Command(RenderCmd, command_group="dynamic")
+    orphan = Command(OrphanCmd)
+```
+
 ### 4. Custom Help Messages
 
 Override the default help behavior:

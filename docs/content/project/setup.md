@@ -61,8 +61,8 @@ Useful subsets:
 | Task | What it runs |
 |------|----------------|
 | `task setup` | Bootstrap mise tools + `.venv` (`--with dev,docs`) |
-| `task test_pytest` | Unit + example unit/regression tags |
-| `task test_regressions` | Example regressions (incl. CLI; `CLAK_COLORS=false`) |
+| `task test_pytest` | Unit + example unit tags, with coverage |
+| `task test_regressions` | Example regressions (in-process + CLI; `CLAK_COLORS=false`) |
 | `task test_lint_full` | Lint + docs checks |
 | `task fix_regressions` | `pytest --force-regen` for regression fixtures |
 | `task clean` | Remove `.venv`, `.venvs`, caches, build artifacts |

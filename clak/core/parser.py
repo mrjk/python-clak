@@ -120,6 +120,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     meta__config__help_formatter = MetaSetting(
         help="argparse HelpFormatter class for --help",
     )
+    meta__config__command_groups = MetaSetting(
+        help=(
+            "Ordered (key, title) pairs for subcommand help sections. "
+            "Formatter metadata only; not a second add_subparsers."
+        ),
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -257,6 +263,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 help="Available commands",
                 parser_class=ArgumentParserPlus,
             )
+            command_groups = self.query_cfg_inst("command_groups", default=())
+            # pylint: disable=protected-access
+            self._subparsers._clak_command_groups = tuple(command_groups)
         return self._subparsers
 
     # Argument management

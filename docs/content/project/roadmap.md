@@ -34,6 +34,9 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
   (breaking rename from the old `group=` kwarg)
 - [x] Exclusive groups via `Argument(..., exclusive_group="key")`
   ([mutual exclusion](https://docs.python.org/3/library/argparse.html#mutual-exclusion))
+- [x] Subcommand help sections via `Meta.command_groups` and
+  `Command(..., command_group="key")` (formatter metadata; not a second
+  `add_subparsers`)
 - [ ] Intermixed optional/positional parsing
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments))
 - [ ] Deeper use of argparse extension / plugin hooks

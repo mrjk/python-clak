@@ -72,7 +72,8 @@ Details that stay the same:
   `ONE_OR_MORE`.
 - Help groups: `option_group` / `argument_group` map to
   `add_argument_group`. `exclusive_group` maps to a mutually exclusive
-  group.
+  group. `Command(..., command_group=)` plus `Meta.command_groups` is
+  formatter-only (one `add_subparsers`).
 - Parse errors come from argparse (`ArgumentError`); Clak wraps them for a
   stable message.
 - The help formatter subclasses `argparse.RawDescriptionHelpFormatter`.

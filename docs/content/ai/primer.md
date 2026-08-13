@@ -88,6 +88,8 @@ class Root(Parser):
     child = Command(Child, help="Run child")
 
 # CLI: prog child
+# Optional: Meta.command_groups = (("base", "subcommands (base):"),)
+#   and Command(Child, command_group="base") for help sections (formatter only).
 
 ## Errors (basic)
 
