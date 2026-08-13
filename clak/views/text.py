@@ -8,6 +8,7 @@ import re
 import textwrap
 
 from clak.exception import ClakUserError
+from clak.runtime.settings import resolve_color_backend
 from clak.views.base import (
     DEFAULT_LINE_LENGTH,
     TEXT_FORMATS,
@@ -233,7 +234,7 @@ class MarkdownView(ClakView):
             )
         merged_theme = settings.pop("theme", None)
         theme = self.settings.get("theme") or merged_theme
-        if fmt == "raw":
+        if fmt == "raw" or resolve_color_backend() == "none":
             rendered = _wrap_text(text, **settings)
         else:
             rendered = render_markdown_text(text, theme=theme, **settings)

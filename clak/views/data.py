@@ -9,7 +9,7 @@ import os
 
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
-from clak.runtime.settings import CLAK_COLORS
+from clak.runtime.settings import CLAK_COLORS, resolve_color_backend
 from clak.views.base import ClakView
 from clak.views.rich_style import make_rich_console, syntax_kwargs
 
@@ -123,7 +123,11 @@ def colorize_data_text(
 
     Syntax color is foreground-only (terminal background is left as-is).
     Theme: explicit *theme* > ``CLAK_SYNTAX_THEME`` > ``ansi_dark``.
+    ``CLAK_COLOR_BACKEND=none`` skips Rich even when ``color=True``.
     """
+    if resolve_color_backend() == "none":
+        return text
+
     want_color = resolve_bool_option(
         color,
         auto=lambda: bool(CLAK_COLORS)

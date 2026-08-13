@@ -19,6 +19,7 @@ from clak.views.base import (
     resolve_view_width,
 )
 from clak.views.data import DataView
+from clak.views.rich_style import render_markup_text
 from clak.views.table import (
     FeatureFullViewer,
     ListView,
@@ -80,14 +81,14 @@ def _as_section_meta(raw) -> dict:
 
 
 def _format_section_header(meta: Mapping) -> str:
-    """Human header: ``=== Title ===`` then optional plain description."""
+    """Human header: ``=== Title ===`` then optional description (Rich markup)."""
     lines = []
     title = meta.get("title")
     if title:
-        lines.append(f"=== {title} ===")
+        lines.append(render_markup_text(f"=== {title} ==="))
     description = meta.get("description")
     if description:
-        lines.append(description)
+        lines.append(render_markup_text(description))
     return "\n".join(lines)
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+from clak.runtime.settings import color_backend_uses_rich
+
 DEFAULT_SYNTAX_THEME = "ansi_dark"
 CLAK_SYNTAX_THEME_ENV = "CLAK_SYNTAX_THEME"
 
@@ -61,3 +63,15 @@ def make_rich_console(rich_console, *, width=None):
     if console.color_system is None:
         console = rich_console.Console(**console_kwargs, color_system="truecolor")
     return console
+
+
+def render_markup_text(text: str) -> str:
+    """Render Rich markup to ANSI, or return *text* unchanged when Rich is off."""
+    if not text or not color_backend_uses_rich():
+        return text
+    import rich.console as rich_console  # pylint: disable=import-outside-toplevel
+
+    console = make_rich_console(rich_console)
+    with console.capture() as capture:
+        console.print(text, markup=True, highlight=False)
+    return capture.get().rstrip("\n")

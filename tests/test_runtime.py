@@ -228,3 +228,49 @@ def test_ctx_runtime_attached_on_dispatch(monkeypatch):
     assert seen["runtime"].interactive is True
     assert seen["narrow"] == 100
     assert seen["facts"] is not None
+
+
+def test_resolve_color_backend_default_and_env(monkeypatch):
+    from clak.runtime.settings import (
+        CLAK_COLOR_BACKEND_ENV,
+        DEFAULT_COLOR_BACKEND,
+        color_backend_uses_rich,
+        resolve_color_backend,
+    )
+
+    monkeypatch.delenv(CLAK_COLOR_BACKEND_ENV, raising=False)
+    assert resolve_color_backend() == DEFAULT_COLOR_BACKEND
+    assert resolve_color_backend("") == "auto"
+    assert resolve_color_backend("  ") == "auto"
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
+    assert resolve_color_backend() == "none"
+    assert color_backend_uses_rich() is False
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "RICH")
+    assert resolve_color_backend() == "rich"
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
+    assert resolve_color_backend() == "auto"
+
+
+def test_resolve_color_backend_invalid(monkeypatch):
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV, resolve_color_backend
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "rainbow")
+    with pytest.raises(ValueError, match="CLAK_COLOR_BACKEND"):
+        resolve_color_backend()
+    with pytest.raises(TypeError, match="color backend must be a string"):
+        resolve_color_backend(1)
+
+
+def test_color_backend_rich_missing_raises(monkeypatch):
+    from clak.exception import ClakUserError
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV, color_backend_uses_rich
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "rich")
+    monkeypatch.setattr("clak.runtime.settings._rich_importable", lambda: False)
+    with pytest.raises(ClakUserError) as exc:
+        color_backend_uses_rich()
+    assert "rich" in str(exc.value.message).lower()
+    assert "pip install" in (exc.value.advice or "")

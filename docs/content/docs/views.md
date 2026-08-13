@@ -373,9 +373,12 @@ class App(CompositeViewMixin, Parser):
         )
 ```
 
-Optional per-section `title` and plain-text `description` (third-item dict).
+Optional per-section `title` and `description` (third-item dict).
 The section name stays the machine id (`primary=`, envelope); titles are
-opt-in and are not inferred from the name:
+opt-in and are not inferred from the name. In human view, title and
+description are Rich markup when `CLAK_COLOR_BACKEND` is `auto` (and rich is
+installed) or `rich` (`[bold]Users[/bold]`). Machine json/yaml/csv keep the
+raw strings. `CLAK_COLOR_BACKEND=none` prints tags as-is.
 
 ```python
 CompositeView(

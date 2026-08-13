@@ -4,10 +4,16 @@ import os
 import sys
 
 from clak.common import resolve_bool_option, to_boolean
+from clak.exception import ClakUserError
 from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
 
 CLAK_DEBUG = to_boolean(os.environ.get("CLAK_DEBUG", False))
 CLAK_COLORS = to_boolean(os.environ.get("CLAK_COLORS", True))
+
+COLOR_BACKENDS = frozenset({"none", "rich", "auto"})
+CLAK_COLOR_BACKEND_ENV = "CLAK_COLOR_BACKEND"
+DEFAULT_COLOR_BACKEND = "auto"
+_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 
 # Optional override for ``--log-colors`` default. Unset means "auto".
 _CLAK_LOG_COLORS_RAW = os.environ.get("CLAK_LOG_COLORS")
@@ -27,6 +33,61 @@ LOG_FORMAT = "[%(levelname)8s] %(message)s"
 
 # Sentinel so callers can pass ``env_value=None`` (unset) vs omit the arg.
 _UNSET = object()
+
+
+def _normalize_color_backend(raw) -> str:
+    """Return ``none`` / ``rich`` / ``auto``; empty means auto."""
+    if raw is None:
+        return DEFAULT_COLOR_BACKEND
+    if not isinstance(raw, str):
+        raise TypeError(f"color backend must be a string, got {type(raw).__name__}")
+    key = raw.strip().lower()
+    if not key:
+        return DEFAULT_COLOR_BACKEND
+    if key not in COLOR_BACKENDS:
+        raise ValueError(
+            f"CLAK_COLOR_BACKEND must be one of {sorted(COLOR_BACKENDS)}, got {raw!r}"
+        )
+    return key
+
+
+def resolve_color_backend(value=None) -> str:
+    """Resolve ``none`` / ``rich`` / ``auto``.
+
+    Explicit *value* wins; otherwise ``CLAK_COLOR_BACKEND``; unset/empty is auto.
+    """
+    if value is not None:
+        return _normalize_color_backend(value)
+    return _normalize_color_backend(os.environ.get(CLAK_COLOR_BACKEND_ENV))
+
+
+def _rich_importable() -> bool:
+    try:
+        import rich  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
+    except ImportError:
+        return False
+    return True
+
+
+def color_backend_uses_rich(value=None) -> bool:
+    """Whether Rich should be used for optional color/markup.
+
+    * ``none``: never.
+    * ``rich``: yes; missing package raises ClakUserError.
+    * ``auto``: yes when rich is importable.
+    """
+    backend = resolve_color_backend(value)
+    if backend == "none":
+        return False
+    available = _rich_importable()
+    if backend == "rich":
+        if not available:
+            raise ClakUserError(
+                "CLAK_COLOR_BACKEND=rich requires the rich package",
+                advice=f"Install with: {_RICH_INSTALL_HINT}",
+            )
+        return True
+    return available
 
 
 def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):

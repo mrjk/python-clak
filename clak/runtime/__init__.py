@@ -19,21 +19,29 @@ from clak.runtime.runtime import (
     detect_runtime,
 )
 from clak.runtime.settings import (
+    CLAK_COLOR_BACKEND_ENV,
     CLAK_COLORS,
     CLAK_DEBUG,
     CLAK_LOG_COLORS,
+    COLOR_BACKENDS,
+    DEFAULT_COLOR_BACKEND,
     LOG_FORMAT,
     LOG_STYLES,
     apply_coloredlogs_defaults,
+    color_backend_uses_rich,
+    resolve_color_backend,
     resolve_log_colors,
 )
 
 __all__ = [
+    "CLAK_COLOR_BACKEND_ENV",
     "CLAK_COLORS",
     "CLAK_CUSTOM_LEVEL_STYLES",
     "CLAK_CUSTOM_LEVELS",
     "CLAK_DEBUG",
     "CLAK_LOG_COLORS",
+    "COLOR_BACKENDS",
+    "DEFAULT_COLOR_BACKEND",
     "COLOR_16",
     "COLOR_256",
     "COLOR_NONE",
@@ -48,8 +56,10 @@ __all__ = [
     "RuntimeInfo",
     "add_logging_level",
     "apply_coloredlogs_defaults",
+    "color_backend_uses_rich",
     "detect_facts",
     "detect_runtime",
     "register_clak_log_levels",
+    "resolve_color_backend",
     "resolve_log_colors",
 ]

@@ -1073,6 +1073,17 @@ def test_markdown_view_renders_with_rich(capsys):
     assert "# Hello" not in out
 
 
+def test_markdown_view_backend_none_stays_source(monkeypatch):
+    pytest.importorskip("rich")
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
+    rendered = MarkdownView(MD_SAMPLE).render(stdout=False)
+    assert "# Hello" in rendered
+    assert "**bold**" in rendered
+    assert "\x1b[" not in rendered
+
+
 def _has_background_csi(text: str) -> bool:
     """True if *text* sets a token/pane background (not default-bg or underline)."""
     if "\x1b[48;" in text:
@@ -1332,9 +1343,11 @@ def test_composite_show_view_primary_with_markdown():
     assert "=== Docs ===" not in out
 
 
-def test_composite_section_title_and_description():
+def test_composite_section_title_and_description(monkeypatch):
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
     from clak.views import CompositeView
 
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
     out = CompositeView(
         [
             (
@@ -1351,6 +1364,75 @@ def test_composite_section_title_and_description():
     ).render(stdout=False)
     assert out.startswith("=== Users ===\nPeople with access.\n\n")
     assert "=== Notes ===\n\nhello notes" in out
+
+
+def test_composite_section_header_rich_markup(monkeypatch):
+    pytest.importorskip("rich")
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
+    from clak.views import CompositeView
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
+    out = CompositeView(
+        [
+            (
+                "users",
+                ListView([{"name": "ada"}]),
+                {
+                    "title": "[bold]Users[/bold]",
+                    "description": "People with [cyan]access[/cyan].",
+                },
+            ),
+        ],
+        width="min",
+    ).render(stdout=False)
+    assert "[bold]" not in out
+    assert "[cyan]" not in out
+    assert "Users" in out
+    assert "access" in out
+    assert "\x1b[" in out
+    assert not _has_background_csi(out)
+
+
+def test_composite_section_header_markup_stays_raw_in_envelope(monkeypatch):
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
+    from clak.views import CompositeView
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
+    out = CompositeView(
+        [
+            (
+                "users",
+                ListView([{"name": "ada"}]),
+                {
+                    "title": "[bold]Users[/bold]",
+                    "description": "People with [cyan]access[/cyan].",
+                },
+            ),
+        ],
+        format="json",
+        format_scope="all",
+    ).render(stdout=False)
+    payload = json.loads(out)
+    assert payload["sections"][0]["title"] == "[bold]Users[/bold]"
+    assert payload["sections"][0]["description"] == "People with [cyan]access[/cyan]."
+
+
+def test_composite_section_header_backend_none_keeps_tags(monkeypatch):
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
+    from clak.views import CompositeView
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
+    out = CompositeView(
+        [
+            (
+                "users",
+                RawView("body"),
+                {"title": "[bold]Users[/bold]"},
+            ),
+        ]
+    ).render(stdout=False)
+    assert "=== [bold]Users[/bold] ===" in out
+    assert "\x1b[" not in out
 
 
 def test_composite_section_meta_in_envelope_json():

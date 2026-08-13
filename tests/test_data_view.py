@@ -169,6 +169,18 @@ def test_data_view_explicit_color_with_rich():
     assert "\x1b[" in rendered
 
 
+def test_data_view_backend_none_skips_color(monkeypatch):
+    pytest.importorskip("rich")
+    from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
+
+    monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
+    rendered = DataView(PAYLOAD, format="json", color=True, stdout_tty=True).render(
+        stdout=False
+    )
+    assert rendered.startswith("{")
+    assert "\x1b[" not in rendered
+
+
 def _has_background_csi(text: str) -> bool:
     """True if *text* sets a token/pane background (not default-bg or underline)."""
     if "\x1b[48;" in text:
