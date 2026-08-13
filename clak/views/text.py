@@ -160,30 +160,34 @@ def _rst_doctree_to_text(node) -> str:
             return ""
         if isinstance(n, docnodes.Text):
             return str(n)
+
+        children = getattr(n, "children", [])
         if isinstance(n, (docnodes.title, docnodes.subtitle, docnodes.paragraph)):
-            return "".join(walk(c) for c in n.children).strip()
-        if isinstance(n, docnodes.literal_block):
-            return "".join(walk(c) for c in n.children).rstrip()
-        if isinstance(n, docnodes.bullet_list):
-            return "\n".join(walk(child, list_prefix="- ") for child in n.children)
-        if isinstance(n, docnodes.enumerated_list):
-            return "\n".join(
+            text = "".join(walk(c) for c in children).strip()
+        elif isinstance(n, docnodes.literal_block):
+            text = "".join(walk(c) for c in children).rstrip()
+        elif isinstance(n, docnodes.bullet_list):
+            text = "\n".join(walk(child, list_prefix="- ") for child in children)
+        elif isinstance(n, docnodes.enumerated_list):
+            text = "\n".join(
                 walk(child, list_prefix=f"{idx}. ")
-                for idx, child in enumerate(n.children, 1)
+                for idx, child in enumerate(children, 1)
             )
-        if isinstance(n, docnodes.list_item):
-            body = "\n".join(part for part in (walk(c) for c in n.children) if part)
+        elif isinstance(n, docnodes.list_item):
+            body = "\n".join(part for part in (walk(c) for c in children) if part)
             prefix = list_prefix or "- "
             lines = body.split("\n") if body else [""]
             out = [prefix + lines[0]]
             indent = " " * len(prefix)
             out.extend(f"{indent}{line}" if line else line for line in lines[1:])
-            return "\n".join(out)
-        if isinstance(n, (docnodes.document, docnodes.section, docnodes.block_quote)):
-            parts = [walk(c) for c in n.children]
-            return "\n\n".join(part for part in parts if part)
-        parts = [walk(c) for c in getattr(n, "children", [])]
-        return "".join(part for part in parts if part)
+            text = "\n".join(out)
+        elif isinstance(n, (docnodes.document, docnodes.section, docnodes.block_quote)):
+            parts = [walk(c) for c in children]
+            text = "\n\n".join(part for part in parts if part)
+        else:
+            parts = [walk(c) for c in children]
+            text = "".join(part for part in parts if part)
+        return text
 
     return walk(node)
 

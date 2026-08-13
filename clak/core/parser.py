@@ -247,7 +247,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         """Names of class Argument attrs to omit (view mixins override)."""
         return set()
 
-    def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+    def _prepare_argument(  # pylint: disable=unused-argument
+        self, key: str, arg: Argument
+    ) -> Argument:
         """Hook to adjust an argument before attach (view mixins override)."""
         return arg
 
