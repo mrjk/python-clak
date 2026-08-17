@@ -8,15 +8,14 @@ import pytest
 
 from clak import DataViewMixin, Parser
 from clak.exception import ClakUserError
-from clak.runtime.rich_style import CLAK_SYNTAX_THEME_ENV, DEFAULT_SYNTAX_THEME
-from clak.views import (
-    CompositeView,
-    DataView,
-    format_data_payload,
-    resolve_data_format,
+from clak.runtime.rich_style import (
+    CLAK_SYNTAX_THEME_ENV,
+    DEFAULT_SYNTAX_THEME,
     resolve_syntax_theme,
 )
+from clak.views import CompositeView, DataView
 from clak.views.composite import _section_kind
+from clak.views.data import format_data_payload, resolve_data_format
 
 pytestmark = pytest.mark.tags("unit-tests")
 

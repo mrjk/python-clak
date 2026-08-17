@@ -54,13 +54,14 @@ from clak.views import (
     RawView,
     RstView,
     ShowView,
+)
+from clak.views.base import normalize_width_mode, parse_line_length
+from clak.views.table import (
     normalize_columns,
     normalize_sort_columns,
-    normalize_width_mode,
     normalize_wrap,
     normalize_wrap_min,
     parse_columns,
-    parse_line_length,
     parse_sort_columns,
     parse_wrap,
 )

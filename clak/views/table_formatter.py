@@ -19,19 +19,22 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
 from clak.common import replace_tabs
+from clak.exception import ClakUserError
 from clak.runtime.settings import CLAK_COLORS
 from clak.views.base import strip_ansi
 
 SORT_MODES = frozenset({"asc", "desc"})
+_YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
 
 
 def require_yaml():
-    """Import PyYAML or raise a clear InstallError-style ImportError."""
+    """Import PyYAML or raise ClakUserError with the config extra hint."""
     try:
         import yaml  # pylint: disable=import-outside-toplevel
     except ImportError as err:
-        raise ImportError(
-            "PyYAML is required for --format yaml. Install with: pip install pyyaml"
+        raise ClakUserError(
+            "YAML output requires the PyYAML package",
+            advice=f"Install with: {_YAML_INSTALL_HINT}",
         ) from err
     return yaml
 

@@ -4,14 +4,13 @@ import logging
 
 import pytest
 
-from clak.views import (
-    merge_view_settings,
+from clak.views.base import merge_view_settings, resolve_view_width
+from clak.views.table import (
     normalize_wrap,
     normalize_wrap_min,
     parse_columns,
     parse_sort_columns,
     parse_wrap,
-    resolve_view_width,
 )
 
 pytestmark = pytest.mark.tags("unit-tests")
@@ -64,7 +63,7 @@ def test_normalize_wrap_and_wrap_min():
 
 
 def test_normalize_sort_columns_accepts_sequence():
-    from clak.views import normalize_sort_columns
+    from clak.views.table import normalize_sort_columns
 
     assert normalize_sort_columns(["name", -1]) == ["name", -1]
     assert normalize_sort_columns("role,-1") == ["role", -1]
@@ -72,7 +71,7 @@ def test_normalize_sort_columns_accepts_sequence():
 
 
 def test_normalize_columns_accepts_sequence():
-    from clak.views import normalize_columns
+    from clak.views.table import normalize_columns
 
     assert normalize_columns(["name", "role"]) == ["name", "role"]
     assert normalize_columns("name,role") == ["name", "role"]

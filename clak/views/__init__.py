@@ -1,20 +1,10 @@
-"""
-View classes for command line output formatting.
+"""View classes for command line output formatting.
 
-Classes:
-    ClakView: Base view class for rendering command output
-    ShowView / ListView: Table-oriented views
-    PprintView / RawView / MarkdownView / RstView: Text views
-    DataView: Structured JSON / YAML dumps
-
-Functions:
-    pformat_truncated: Format data with width constraints
+Public names are the view classes and a few format/width constants.
+Helpers (`parse_columns`, `merge_view_settings`, `require_yaml`, ...) live in
+the submodules (`clak.views.table`, `clak.views.base`, ...).
 """
 
-from clak.runtime.rich_style import (
-    DEFAULT_SYNTAX_THEME,
-    resolve_syntax_theme,
-)
 from clak.views.base import (
     DEFAULT_FORMAT_SCOPE,
     DEFAULT_LINE_LENGTH,
@@ -26,45 +16,11 @@ from clak.views.base import (
     WIDTH_MODES,
     WRAP_MODES,
     ClakView,
-    merge_view_settings,
-    normalize_width_mode,
-    parse_line_length,
-    pformat_truncated,
-    resolve_line_length,
-    resolve_view_width,
 )
-from clak.views.composite import CompositeView, normalize_sections
-from clak.views.data import (
-    DATA_FORMATS,
-    DataView,
-    colorize_data_text,
-    format_data_payload,
-    resolve_data_format,
-)
-from clak.views.table import (
-    ListView,
-    ShowView,
-    TableView,
-    format_list_payload,
-    format_show_payload,
-    normalize_columns,
-    normalize_sort_columns,
-    normalize_wrap,
-    normalize_wrap_min,
-    parse_columns,
-    parse_sort_columns,
-    parse_wrap,
-)
-from clak.views.text import (
-    MarkdownView,
-    PprintView,
-    RawView,
-    RstView,
-    render_markdown_text,
-    render_rst_text,
-    require_docutils,
-    require_rich,
-)
+from clak.views.composite import CompositeView
+from clak.views.data import DATA_FORMATS, DataView
+from clak.views.table import ListView, ShowView, TableView
+from clak.views.text import MarkdownView, PprintView, RawView, RstView
 
 __all__ = [
     "ClakView",
@@ -72,7 +28,6 @@ __all__ = [
     "DATA_FORMATS",
     "DEFAULT_FORMAT_SCOPE",
     "DEFAULT_LINE_LENGTH",
-    "DEFAULT_SYNTAX_THEME",
     "DEFAULT_WIDTH_MODE",
     "DEFAULT_WRAP_MODE",
     "DataView",
@@ -88,28 +43,4 @@ __all__ = [
     "TableView",
     "WIDTH_MODES",
     "WRAP_MODES",
-    "colorize_data_text",
-    "format_data_payload",
-    "format_list_payload",
-    "format_show_payload",
-    "merge_view_settings",
-    "normalize_columns",
-    "normalize_sections",
-    "normalize_sort_columns",
-    "normalize_width_mode",
-    "normalize_wrap",
-    "normalize_wrap_min",
-    "parse_columns",
-    "parse_line_length",
-    "parse_sort_columns",
-    "parse_wrap",
-    "pformat_truncated",
-    "render_markdown_text",
-    "render_rst_text",
-    "require_docutils",
-    "require_rich",
-    "resolve_data_format",
-    "resolve_line_length",
-    "resolve_syntax_theme",
-    "resolve_view_width",
 ]

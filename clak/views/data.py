@@ -12,10 +12,10 @@ from clak.exception import ClakUserError
 from clak.runtime.rich_style import make_rich_console, syntax_kwargs
 from clak.runtime.settings import CLAK_COLORS, resolve_color_backend
 from clak.views.base import ClakView
+from clak.views.table_formatter import require_yaml
 
 DATA_FORMATS = frozenset({"json", "yaml"})
 
-_YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 
 
@@ -25,18 +25,6 @@ def _yaml_available() -> bool:
     except ImportError:
         return False
     return True
-
-
-def require_yaml_for_data():
-    """Import PyYAML or raise ClakUserError with install advice."""
-    try:
-        import yaml  # pylint: disable=import-outside-toplevel
-    except ImportError as err:
-        raise ClakUserError(
-            "YAML output requires the PyYAML package",
-            advice=f"Install with: {_YAML_INSTALL_HINT}",
-        ) from err
-    return yaml
 
 
 def require_rich_for_data():
@@ -67,7 +55,7 @@ def resolve_data_format(fmt=None) -> str:
             f"Unsupported format {fmt!r}, choose one of: {sorted(DATA_FORMATS)}"
         )
     if fmt == "yaml":
-        require_yaml_for_data()
+        require_yaml()
     return fmt
 
 
@@ -95,7 +83,7 @@ def format_data_payload(payload, *, fmt=None, compact=False, anchors=True):
             text += "\n"
         return text, resolved
 
-    yaml = require_yaml_for_data()
+    yaml = require_yaml()
     dumper = _yaml_dumper(yaml, anchors=bool(anchors))
     text = yaml.dump(
         payload,

@@ -40,7 +40,8 @@ from clak.core.nodes import NOT_SET, Node
 from clak.runtime.facts import detect_facts
 from clak.runtime.runtime import detect_runtime
 from clak.runtime.settings import CLAK_DEBUG
-from clak.views import ClakView, merge_view_settings
+from clak.views import ClakView
+from clak.views.base import merge_view_settings
 
 logger = logging.getLogger(__name__)
 
