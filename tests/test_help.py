@@ -806,3 +806,85 @@ def test_grouped_help_forced_color_has_ansi(monkeypatch):
     assert "subcommands:" in stripped
     assert "tool" in stripped
     assert "orphan" in stripped
+
+
+def test_rst_literals_stripped_from_root_docstring_and_epilog():
+    """Root class docstring and help_epilog drop RST double backticks."""
+
+    class App(Parser):
+        """Root uses ``cmd`` in description."""
+
+        class Meta:
+            help_epilog = "See ``cmd`` for more."
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "``" not in help_text
+    assert "cmd" in help_text
+
+
+def test_rst_literals_stripped_from_nested_child_listing():
+    """Child class docstring literals are clean on parent listing and child --help."""
+
+    class Child(Parser):
+        """Wraps ``docker run``."""
+
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        child = Command(Child)
+
+        def cli_run(self, **_):
+            return None
+
+    app = Root(parse=False, add_help=True)
+    root_help = app.parser.format_help()
+    child_help = app.children["child"].parser.format_help()
+    assert "``" not in root_help
+    assert "docker run" in root_help
+    assert "``" not in child_help
+    assert "docker run" in child_help
+
+
+def test_rst_literals_stripped_from_argument_help():
+    """Argument help= literals are stripped on child --help."""
+
+    class Child(Parser):
+        secret = Argument("--secret", help="masked unless ``--reveal``")
+
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        child = Command(Child, help="A child")
+
+        def cli_run(self, **_):
+            return None
+
+    child_help = Root(parse=False, add_help=True).children["child"].parser.format_help()
+    assert "``" not in child_help
+    assert "--reveal" in child_help
+    assert "masked unless" in child_help
+
+
+def test_rst_literals_stripped_on_forced_color(monkeypatch):
+    """TTY color path also strips RST double backticks from rendered help."""
+    _force_help_color(monkeypatch)
+
+    class App(Parser):
+        """Uses ``cmd`` on a TTY."""
+
+        class Meta:
+            help_epilog = "See ``cmd``."
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    assert "\x1b[" in help_text
+    stripped = strip_ansi(help_text)
+    assert "``" not in stripped
+    assert "cmd" in stripped

@@ -476,10 +476,13 @@ class RecursiveHelpFormatter(argparse.RawDescriptionHelpFormatter):
         Subparsers live in that argparse group, but Clak prints them under
         ``subcommands:``. When there are no real positionals, the empty
         heading is noise.
+
+        RST double-backtick literals are stripped from rendered help.
         """
         text = super().format_help()
         heading = _("positional arguments")
-        return re.sub(rf"(?m)^{re.escape(heading)}:\n+(?! )", "", text)
+        text = re.sub(rf"(?m)^{re.escape(heading)}:\n+(?! )", "", text)
+        return text.replace("``", "")
 
 
 class ArgumentParserPlus(argparse.ArgumentParser):

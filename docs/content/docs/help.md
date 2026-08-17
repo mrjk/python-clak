@@ -63,7 +63,9 @@ formatter class. See
 [Named help groups](advanced.md#named-help-groups-and-exclusive-groups).
 
 `help_description` and `help_epilog` accept Rich markup when color is on
-(`[bold]Name[/bold]`). Argument `help=` stays literal. CompositeView section
+(`[bold]Name[/bold]`). Argument `help=` stays literal. RST `` ``literals`` `` are
+stripped from rendered `--help` (not converted to Rich). Argument `help=` is
+included because the formatter strips the full text. CompositeView section
 `title` / `description` use the same markup helper; see
 [Views](views.md#multiple-sections-compositeview).
 
