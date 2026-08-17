@@ -5,8 +5,9 @@ Public imports remain available from ``clak``, ``clak.parser``, and
 ``clak.core.descriptors``.
 """
 
+import inspect
 import logging
-from typing import Any, Dict, Optional, Tuple, TypeVar
+from typing import Any, Dict, Optional, Tuple
 
 from clak.common import CleandocProxy, deindent_docstring
 from clak.core.argparse_ import (
@@ -25,7 +26,28 @@ logger = logging.getLogger(__name__)
 USE_SUBPARSERS = True
 # USE_SUBPARSERS = False    # BETA - Do not enable this, it is slower
 
-T = TypeVar("T")  # For generic type hints
+def _kwargs_for_add_argument(kwargs: dict, parser) -> dict:
+    """Drop kwargs the resolved action class does not accept."""
+    action = kwargs.get("action")
+    if action is None:
+        return kwargs
+    action_cls = action
+    if isinstance(action, str):
+        getter = getattr(parser, "_registry_get", None)
+        if getter is not None:
+            action_cls = getter("action", action, action)
+    if not isinstance(action_cls, type):
+        return kwargs
+    try:
+        params = inspect.signature(action_cls.__init__).parameters
+    except (TypeError, ValueError):
+        return kwargs
+    accepts_kwargs = any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
+    if "required" not in params and not accepts_kwargs:
+        kwargs.pop("required", None)
+    return kwargs
 
 
 class ArgParseItem(Fn):
@@ -162,14 +184,23 @@ class Argument(ArgParseItem):
       (``add_mutually_exclusive_group``). Same key reuses one XOR set
       (``required=False``). May nest under a help section when a help-group
       kwarg is also set.
+    - ``propagate``: Copy this flag onto descendant parsers (default True).
+      Set False to keep it on this parser only.
     """
 
-    def attach_arg_to_parser(self, key: str, config: "ParserNode") -> argparse.Action:
+    def attach_arg_to_parser(
+        self,
+        key: str,
+        config: "ParserNode",
+        attach_overrides: Optional[dict] = None,
+    ) -> argparse.Action:
         """Create and add an argument to the parser.
 
         Args:
             key (str): The argument key/name
             config (ParserNode): The parser configuration object
+            attach_overrides (dict): Kwargs applied only to this attach
+                (not stored on the shared Argument descriptor).
 
         Returns:
             argparse.Action: The created argument parser action
@@ -177,6 +208,8 @@ class Argument(ArgParseItem):
         parser = config.parser
         args, kwargs = self.build_params(key)
         kwargs = dict(kwargs)
+        if attach_overrides:
+            kwargs.update(attach_overrides)
         if not isinstance(args, tuple):
             raise TypeError(
                 f"Args must be a tuple for {self.__class__.__name__}: {type(args)}"
@@ -185,6 +218,7 @@ class Argument(ArgParseItem):
         argument_group_title = kwargs.pop("argument_group", None)
         option_group_title = kwargs.pop("option_group", None)
         exclusive_key = kwargs.pop("exclusive_group", None)
+        kwargs.pop("propagate", None)
 
         if argument_group_title is not None and option_group_title is not None:
             raise ValueError(
@@ -230,7 +264,7 @@ class Argument(ArgParseItem):
                 )
             target = exclusive_groups[exclusive_cache_key]
 
-        target.add_argument(*args, **kwargs)
+        target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
 
         return parser
 

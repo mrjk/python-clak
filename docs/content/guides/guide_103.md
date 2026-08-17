@@ -44,12 +44,18 @@ class MyApp(Parser):
         help_description = "My CLI"     # override docstring-based description
         known_exceptions = [MyDomainError]
         parse_intermixed = False        # argparse leftover errors after a flag
+        propagate_options = False       # parent flags before the subcommand only
 ```
 
 `Meta.parse_intermixed` defaults to `True` (Unix mix of that command's flags
 and positionals). Inherited; a child may override. It applies to leaf
 parsers only (command path stays ordered). See
 [Intermixed flags and positionals](../docs/advanced.md#parse-intermixed).
+
+`Meta.propagate_options` defaults to `True` (ancestor flags are valid on
+descendants; leaf `--help` shows `parent options:`). Opt out per flag with
+`propagate=False`. See
+[Ancestor flags on descendants](../docs/advanced.md#propagate-options).
 
 Exception-related settings: [Error handling](../docs/exceptions.md).
 Logging / views / config each document their own `Meta` keys on their guides.

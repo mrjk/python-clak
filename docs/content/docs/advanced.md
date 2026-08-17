@@ -19,7 +19,11 @@ class SpecificCommand(BaseCommand):
 
 ### 2. Argument Inheritance
 
-Global arguments are accessible to subcommands:
+Ancestor flags are copied onto descendant parsers by default
+(`propagate=True`). Opt out per flag with `propagate=False`. `cli_run` on a
+leaf still receives parent dests, and the flags may appear before or after
+the subcommand name. See
+[Ancestor flags on descendants](#propagate-options).
 
 ```python
 class AppMain(Parser):
@@ -33,6 +37,7 @@ class AppMain(Parser):
 
 For structured `-v` / `-vv` logging tiers, prefer `LoggingOptMixin`
 (see [Logging](logging.md)) instead of a hand-rolled boolean flag.
+A mixin is optional when the flag already sits on a parent parser.
 
 ### 3. Named help groups and exclusive groups {#named-help-groups-and-exclusive-groups}
 
@@ -43,6 +48,7 @@ Clak-only kwargs on `Argument` (stripped before `add_argument`):
 | `option_group="Title"` | Help section (typical for options) |
 | `argument_group="Title"` | Help section (typical for positionals) |
 | `exclusive_group="key"` | At most one member may be set (argparse mutual exclusion) |
+| `propagate=False` | Do not copy this flag onto descendant parsers |
 
 `option_group` and `argument_group` are the same feature under two names: the same
 title string reuses one `add_argument_group`. Do not set both on one Argument.
@@ -167,12 +173,51 @@ class App(Parser):
         parse_intermixed = False
 ```
 
-Parent flags still belong to the parent parser. They work before the next
-subcommand (`app --verbose grep foo`), not after, unless the child also
-defines them. Nodes with subcommands keep standard parse for themselves
-(argparse cannot intermix `add_subparsers`). `nargs="..."` remainder is
-incompatible and falls back to standard parse. Do not mix a flag and a
-positional in one `exclusive_group` when using intermixed parse.
+Parent flags are copied onto descendants by default (see
+[Ancestor flags on descendants](#propagate-options)). Nodes with
+subcommands keep standard parse for themselves (argparse cannot intermix
+`add_subparsers`). `nargs="..."` remainder is incompatible and falls back to
+standard parse. Do not mix a flag and a positional in one `exclusive_group`
+when using intermixed parse.
+
+### Ancestor flags on descendants {#propagate-options}
+
+Ancestor **flags** (not positionals) are copied onto descendant parsers at
+build time. Default on. Both placements work without redeclaring the option
+on the leaf:
+
+```text
+app --verbose grep foo
+app grep --verbose foo
+```
+
+```python
+verbose = Opt("--verbose", action="store_true")  # propagates
+quiet = Opt("--quiet", action="store_true", propagate=False)  # opt out
+```
+
+Opt out with `propagate=False`. Argparse's own `-h` / `--help` is not a
+Clak Argument, so it is not copied.
+
+Copies use `default=argparse.SUPPRESS` so a value set on the parent is not
+reset when the leaf does not see the flag. Leaf `--help` lists them in a
+dedicated `parent options:` section (rename with
+`Meta.propagate_options_group`). Closer ancestor wins when the same dest or
+option strings appear on more than one node. The same command class under
+two roots only inherits flags from that instance's parent chain.
+
+Disable all copying on a node (inherited; a child may set `True` again):
+
+```python
+class App(Parser):
+    class Meta:
+        propagate_options = False
+```
+
+Required parent flags still must appear **before** the subcommand (argparse
+validates them on the parent first). Exclusive groups do not span parse
+stages. Mixin/class inheritance still shares flags across unrelated
+commands; this feature is the command tree.
 
 ### 4. Custom Help Messages
 

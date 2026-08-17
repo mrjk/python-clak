@@ -136,6 +136,8 @@ Completion: generates argcomplete shellcode; runtime autocomplete during parse i
   argument_group=). Exclusive XOR: exclusive_group="key" (shipped).
   Intermixed flags/positionals: on by default (leaf only; command path
   stays ordered). Opt out: Meta.parse_intermixed = False.
+  Ancestor flags on descendants: on by default. Leaf --help: parent options:.
+  Opt out per flag: propagate=False. Disable all: Meta.propagate_options = False.
 
 ## When this file is not enough
 

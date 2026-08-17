@@ -5,7 +5,10 @@ This is a demo of a main application with two subcommands. This example illustra
 reuse arguments from from other classes.
 
 Purpose: 
-  -Illustrate subcommands and arguments reusability via Python class inheritance
+  -Illustrate subcommands and arguments reusability via Python class inheritance.
+  Mixin/base-class options still work. Flags defined only on a parent parser
+  are also copied onto descendants by default (propagate=False to opt out);
+  a mixin is optional when the flag already sits on the parent.
 """
 
 from clak import Argument, Command, Parser

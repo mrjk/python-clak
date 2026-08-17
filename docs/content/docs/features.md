@@ -20,6 +20,11 @@ Cliff: [Comparison](comparison.md).
 - Unix-style mix of a command's flags and positionals (default on).
   Opt out: `Meta.parse_intermixed = False`. No-op on nodes with
   subcommands. See [Advanced](advanced.md#parse-intermixed).
+- Ancestor flags are copied onto descendants (default on). Use them before
+  or after the subcommand without redeclaring. Leaf `--help` lists them
+  under `parent options:`. Opt out per flag: `propagate=False`.
+  Disable all: `Meta.propagate_options = False`. See
+  [Advanced](advanced.md#propagate-options).
 
 ## Class-based structure
 

@@ -65,6 +65,43 @@ def _exit_broken_pipe(rc=1):
 # Backwards-compatible aliases (preferred public name is Command via clak.__init__)
 Command = SubParser
 
+PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
+
+
+def _flag_propagates(arg: Argument) -> bool:
+    """True when this flag should be copied onto descendant parsers."""
+    return bool(arg.kwargs.get("propagate", True))
+
+
+def _suppress_attach_overrides(arg: Argument, extra: Optional[dict] = None) -> dict:
+    """Attach-time overrides so a copy does not overwrite an outer dest.
+
+    Do not set required unless the source flag is required: some argparse
+    actions reject the required= keyword.
+    """
+    overrides = {"default": argparse.SUPPRESS}
+    if arg.kwargs.get("required"):
+        overrides["required"] = False
+    if extra:
+        overrides.update(extra)
+    return overrides
+
+
+def _argument_flag_strings(arg: Argument, dest: str) -> tuple[str, ...]:
+    """Option strings for a flag Argument, or empty if it is positional."""
+    if dest.startswith("__"):
+        return ()
+    if arg.args:
+        if str(arg.args[0]).startswith("-"):
+            return tuple(str(name) for name in arg.args)
+        return ()
+    if not dest:
+        return ()
+    if len(dest) <= 2:
+        return (f"-{dest}",)
+    return (f"--{dest}",)
+
+
 # Main parser object
 
 
@@ -147,6 +184,18 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             "No-op on parsers with subcommands or nargs=REMAINDER."
         ),
     )
+    meta__config__propagate_options = MetaSetting(
+        help=(
+            "Copy eligible ancestor flags onto this parser (default True). "
+            "Inherited; a child may set False. Per-flag opt-out: propagate=False."
+        ),
+    )
+    meta__config__propagate_options_group = MetaSetting(
+        help=(
+            "Help section title for propagated ancestor flags "
+            "(default 'parent options'). Inherited; a child may override."
+        ),
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -221,6 +270,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         # Init _subparsers
         self._subparsers = None
+        self.local_flag_arguments: dict[str, Argument] = {}
 
         # Add arguments and subcommands
         # meta__arguments_dict = {}
@@ -327,6 +377,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         2. Collects arguments defined as class attributes
         3. Adds internal arguments like __cli_self__
         4. Creates all argument parser entries
+        5. Copies ancestor flags onto this parser when inherit is on
         """
         if arguments is None:
             arguments = getattr(self, "meta__arguments_dict", None)
@@ -350,19 +401,89 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         # Add __cli_self__ argument
         arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
 
-        # Create all options
+        ancestor_dests, ancestor_strings = self._ancestor_flag_index()
+        local_flags: dict[str, Argument] = {}
+
         for key, arg in arguments.items():
             arg = self._prepare_argument(key, arg)
-            self.add_argument(key, arg)
+            overrides = None
+            flag_strings = _argument_flag_strings(arg, key)
+            if flag_strings:
+                local_flags[key] = arg
+                if key in ancestor_dests or (ancestor_strings & set(flag_strings)):
+                    overrides = _suppress_attach_overrides(arg)
+            self.add_argument(key, arg, attach_overrides=overrides)
+
+        self.local_flag_arguments = local_flags
+
+        if self.query_cfg_parents(
+            "propagate_options", default=True, include_self=True
+        ):
+            self._attach_inherited_parent_flags(arguments, local_flags)
+
+    def _ancestor_flag_index(self) -> tuple[set[str], set[str]]:
+        """Dests and option strings from ancestors' locally defined flags."""
+        dests: set[str] = set()
+        strings: set[str] = set()
+        node = self.parent
+        while node:
+            for dest, arg in node.local_flag_arguments.items():
+                dests.add(dest)
+                strings.update(_argument_flag_strings(arg, dest))
+            node = node.parent
+        return dests, strings
+
+    def _attach_inherited_parent_flags(
+        self, arguments: dict, local_flags: dict[str, Argument]
+    ) -> None:
+        """Copy closest ancestor flags onto this parser (default=SUPPRESS)."""
+        seen_dests = set(arguments)
+        seen_strings: set[str] = set()
+        for dest, arg in local_flags.items():
+            seen_strings.update(_argument_flag_strings(arg, dest))
+
+        group = self.query_cfg_parents(
+            "propagate_options_group",
+            default=PROPAGATE_OPTIONS_GROUP_DEFAULT,
+            include_self=True,
+        )
+        group_extra = {
+            "option_group": group,
+            "argument_group": None,
+        }
+
+        node = self.parent
+        while node:
+            for dest, arg in node.local_flag_arguments.items():
+                if dest in seen_dests:
+                    continue
+                if not _flag_propagates(arg):
+                    continue
+                strings = _argument_flag_strings(arg, dest)
+                if not strings or (seen_strings & set(strings)):
+                    continue
+                self.add_argument(
+                    dest,
+                    arg,
+                    attach_overrides=_suppress_attach_overrides(arg, extra=group_extra),
+                )
+                seen_dests.add(dest)
+                seen_strings.update(strings)
+            node = node.parent
 
     def add_argument(
-        self, key: str, arg: Optional[Argument] = None, **kwargs: Any
+        self,
+        key: str,
+        arg: Optional[Argument] = None,
+        attach_overrides: Optional[dict] = None,
+        **kwargs: Any,
     ) -> None:
         """Add an argument to this parser.
 
         Args:
             key (str): The key/name for the argument
             arg (Argument): The argument object to add
+            attach_overrides (dict): Kwargs applied only to this attach
             **kwargs (Any): Additional keyword arguments to pass to add_argument()
 
         This method adds a new argument to the parser. The argument can be either a
@@ -372,7 +493,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         if arg is None:
             arg = Argument(**kwargs)
 
-        arg.attach_arg_to_parser(key, self)
+        arg.attach_arg_to_parser(key, self, attach_overrides=attach_overrides)
 
     # Subcommand management
     # ========================

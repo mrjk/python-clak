@@ -117,6 +117,8 @@ class App(Parser):
         help_hide_parent = True            # False: show "tool netmap" paths
         command_groups = (("base", "subcommands (base):"),)
         parse_intermixed = False           # opt out: argparse leftover errors
+        propagate_options = False          # disable ancestor flag copy
+        propagate_options_group = "parent options"  # leaf --help section title
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
@@ -342,6 +344,9 @@ kwargs on one Argument). View mixins use option_group="Output options".
 Argument(..., exclusive_group="key") maps to add_mutually_exclusive_group
 (at most one member; required=False). May combine with a help-group kwarg.
 
+Argument(..., propagate=False) keeps a flag on that parser only (default
+True).
+
 Command(..., command_group="key") plus Meta.command_groups = ((key, title), ...)
 splits --help subcommand lists. Formatter metadata only (stash on argparse
 choice actions); not a second add_subparsers. Ungrouped CLIs keep one
@@ -359,9 +364,16 @@ Meta.parse_intermixed = True (default) lets a command's own flags and
 positionals appear in any order (Unix style). Inherited; set False for
 argparse leftover errors after a flag (typical with nargs=* / nargs=+).
 No-op on parsers with subcommands or nargs remainder (falls back to
-standard parse). Command path stays ordered. Parent flags still belong to
-the parent (before the subcommand name unless the child also defines them).
-Do not mix a flag and a positional in one exclusive_group with this on.
+standard parse). Command path stays ordered. Do not mix a flag and a
+positional in one exclusive_group with this on.
+
+Meta.propagate_options = True (default) copies ancestor flags onto
+descendants (not positionals). Opt out per flag: propagate=False. Leaf
+--help lists copies under parent options: (Meta.propagate_options_group).
+Copies use default=SUPPRESS. Closer ancestor wins on dest / option-string
+collision. Required parent flags still must appear before the subcommand.
+Disable all: Meta.propagate_options = False. Same class under two roots
+only inherits that tree's flags.
 
 Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 
