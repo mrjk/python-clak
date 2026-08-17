@@ -24,7 +24,11 @@ def _grep_leaf():
 
 
 def test_intermixed_default_collects_positionals_after_flag():
-    """Default on: later positionals join nargs=* after a flag."""
+    """Default on: later positionals join nargs=* after a flag.
+
+    Must not RecursionError on Python 3.10–3.11, where stdlib intermixed
+    parse calls parse_known_args internally.
+    """
 
     class App(_grep_leaf()):
         pass

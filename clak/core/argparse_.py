@@ -531,6 +531,10 @@ class ArgumentParserPlus(argparse.ArgumentParser):
 
     def _use_intermixed(self):
         """True when Meta.parse_intermixed is on and this parser can intermix."""
+        # Python 3.10–3.11 parse_known_intermixed_args calls parse_known_args
+        # twice. Those reentrant calls must use standard parse, not intermixed.
+        if getattr(self, "_intermixed_reentrant", False):
+            return False
         inst = self.clak_instance
         if inst is None:
             return False
@@ -549,7 +553,11 @@ class ArgumentParserPlus(argparse.ArgumentParser):
         # skip it. Set False to restore argparse leftover errors after a flag.
         try:
             if self._use_intermixed():
-                return super().parse_known_intermixed_args(args, namespace)
+                self._intermixed_reentrant = True
+                try:
+                    return super().parse_known_intermixed_args(args, namespace)
+                finally:
+                    self._intermixed_reentrant = False
             return super().parse_known_args(args, namespace)
         except argparse.ArgumentError as err:
             if getattr(err, "clak_parser", None) is None:
