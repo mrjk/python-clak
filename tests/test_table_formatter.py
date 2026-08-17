@@ -388,10 +388,7 @@ def test_table_width_no_wrap_when_not_tty():
     assert len(lines[0]) > 40
 
 
-_LONG_NOTE = (
-    "127.0.0.1:80->80/tcp, 127.0.0.1:443->443/tcp, "
-    "127.0.0.1:8080->8080/tcp"
-)
+_LONG_NOTE = "127.0.0.1:80->80/tcp, 127.0.0.1:443->443/tcp, " "127.0.0.1:8080->8080/tcp"
 
 
 def _first_border(output: str) -> str:
@@ -399,9 +396,7 @@ def _first_border(output: str) -> str:
 
 
 def _render_list_table(data, **kwargs):
-    return _plain_table(
-        TableListFormatter().render(data, expand_keys=True, **kwargs)
-    )
+    return _plain_table(TableListFormatter().render(data, expand_keys=True, **kwargs))
 
 
 def test_table_width_terminal_wraps_long_last_cell_to_term_width():

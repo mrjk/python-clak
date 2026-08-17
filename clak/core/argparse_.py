@@ -511,6 +511,7 @@ class ArgumentParserPlus(argparse.ArgumentParser):
             kwargs.pop("color", None)
             super().__init__(*args, **kwargs)
         self.clak_instance = clak_instance
+        self._intermixed_reentrant = False
 
     def error(self, message):
         if getattr(self, "exit_on_error", True):
@@ -533,7 +534,7 @@ class ArgumentParserPlus(argparse.ArgumentParser):
         """True when Meta.parse_intermixed is on and this parser can intermix."""
         # Python 3.10–3.11 parse_known_intermixed_args calls parse_known_args
         # twice. Those reentrant calls must use standard parse, not intermixed.
-        if getattr(self, "_intermixed_reentrant", False):
+        if self._intermixed_reentrant:
             return False
         inst = self.clak_instance
         if inst is None:
