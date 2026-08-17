@@ -1,11 +1,11 @@
-"""Tests for ctx.facts / clak.facts."""
+"""Tests for ctx.facts / clak.runtime.facts."""
 
 import logging
 import time
 
 import pytest
 
-from clak.facts import (
+from clak.runtime.facts import (
     DEFAULT_FACTS_TIMEOUT,
     FactsInfo,
     detect_facts,
@@ -26,7 +26,7 @@ def test_parse_facts_timeout_defaults():
 
 
 def test_detect_facts_is_lazy_shell():
-    from clak.facts import _UNSET
+    from clak.runtime.facts import _UNSET
 
     facts = detect_facts(timeout=-1)
     assert isinstance(facts, FactsInfo)

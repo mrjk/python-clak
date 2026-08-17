@@ -6,7 +6,7 @@ from pprint import pprint
 
 import pytest
 
-from clak.table_formatter import (
+from clak.views.table_formatter import (
     TableListFormatter,
     TableShowFormatter,
     resolve_column_index,

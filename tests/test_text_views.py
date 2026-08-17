@@ -2,6 +2,7 @@
 
 import pytest
 
+from clak import Parser
 from clak.comp.views import (
     ListViewMixin,
     MarkdownViewMixin,
@@ -9,7 +10,6 @@ from clak.comp.views import (
     RstViewMixin,
 )
 from clak.exception import ClakUserError
-from clak.parser import Parser
 from clak.views import MarkdownView, RawView, RstView
 from tests.view_fixtures import USERS, _has_background_csi, _option_flags
 
@@ -150,7 +150,7 @@ def test_markdown_view_monokai_theme_has_no_background_csi():
 
 def test_markdown_view_mixin_meta_syntax_theme(monkeypatch, capsys):
     pytest.importorskip("rich")
-    from clak.views.rich_style import CLAK_SYNTAX_THEME_ENV, resolve_syntax_theme
+    from clak.runtime.rich_style import CLAK_SYNTAX_THEME_ENV, resolve_syntax_theme
 
     monkeypatch.setenv(CLAK_SYNTAX_THEME_ENV, "vim")
     seen = {}

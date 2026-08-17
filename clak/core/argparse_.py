@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from gettext import gettext as _
 from types import SimpleNamespace
 
-
 logger = logging.getLogger(__name__)
 
 

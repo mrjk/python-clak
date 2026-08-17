@@ -5,7 +5,7 @@ This module contains function-based tests for the core node classes and utilitie
 
 import pytest
 
-from clak.nodes import (
+from clak.core.nodes import (
     NOT_SET,
     UNSET_ARG,
     ConfigurationError,

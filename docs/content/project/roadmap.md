@@ -67,6 +67,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 ### Composition
 
 - [ ] Assemble multiple CLIs from different Python packages into one command tree
+- [ ] Invoke another command from `cli_run` (`run_cmd` / command forwarding)
 
 ### Packaging / project
 

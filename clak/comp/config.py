@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from clak.common import ObjectNamespace
-from clak.exception import ClakUserError
 from clak.core.descriptors import Argument, MetaSetting
+from clak.exception import ClakUserError
 
 logger = logging.getLogger(__name__)
 

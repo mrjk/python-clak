@@ -5,6 +5,7 @@ import os
 
 import pytest
 
+from clak import Parser
 from clak.comp import config as config_mod
 from clak.comp.config import (
     XDGConfigMixin,
@@ -14,7 +15,6 @@ from clak.comp.config import (
     xdg_dir,
 )
 from clak.exception import ClakUserError
-from clak.parser import Parser
 
 pytestmark = pytest.mark.tags("unit-tests")
 

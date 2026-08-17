@@ -6,12 +6,11 @@ from unittest.mock import patch
 
 import pytest
 
+from clak import Argument, Parser
 from clak.comp import logging as logging_plugin
 from clak.comp.logging import LoggingOptMixin, get_app_logger
-from clak.descriptors import Argument
 from clak.exception import ClakAppError
-from clak.parser import Parser
-from clak.settings import resolve_log_colors
+from clak.runtime.settings import resolve_log_colors
 
 pytestmark = pytest.mark.tags("unit-tests")
 

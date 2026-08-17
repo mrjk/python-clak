@@ -72,9 +72,9 @@ import os
 from types import SimpleNamespace
 
 from clak.common import to_boolean
-from clak.exception import ClakAppError
 from clak.core.descriptors import Argument, MetaSetting
 from clak.core.plugins import PluginHelpers
+from clak.exception import ClakAppError
 from clak.runtime.log_levels import register_clak_log_levels
 from clak.runtime.settings import (
     CLAK_COLORS,

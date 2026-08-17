@@ -5,8 +5,8 @@ import logging
 
 import pytest
 
+from clak import Argument, Command, Parser
 from clak.comp.views import ListViewMixin, PprintViewMixin, ShowViewMixin
-from clak.parser import Argument, Command, Parser
 from clak.views import ListView
 from tests.view_fixtures import USERS, USERS_UNSORTED, _option_flags
 

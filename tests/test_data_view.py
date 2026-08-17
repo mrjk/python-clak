@@ -8,6 +8,7 @@ import pytest
 
 from clak import DataViewMixin, Parser
 from clak.exception import ClakUserError
+from clak.runtime.rich_style import CLAK_SYNTAX_THEME_ENV, DEFAULT_SYNTAX_THEME
 from clak.views import (
     CompositeView,
     DataView,
@@ -16,7 +17,6 @@ from clak.views import (
     resolve_syntax_theme,
 )
 from clak.views.composite import _section_kind
-from clak.views.rich_style import CLAK_SYNTAX_THEME_ENV, DEFAULT_SYNTAX_THEME
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -199,7 +199,7 @@ def _has_background_csi(text: str) -> bool:
 
 def _spy_syntax_theme(monkeypatch):
     seen = {}
-    from clak.views.rich_style import resolve_syntax_theme as real
+    from clak.runtime.rich_style import resolve_syntax_theme as real
 
     def _spy(theme=None):
         result = real(theme)

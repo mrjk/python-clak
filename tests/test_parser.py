@@ -1,4 +1,4 @@
-"""Unit tests for the clak.parser module.
+"""Unit tests for the parser (Parser, Argument, Command).
 
 This module contains test cases for the parser functionality including:
 - Basic argument parsing
@@ -17,17 +17,9 @@ from unittest.mock import patch
 
 import pytest
 
-from clak.descriptors import FormatEnv, first_doc_line, prepare_docstring
+from clak import Arg, Argument, Command, Opt, Parser, ParserNode, SubParser
+from clak.core.descriptors import FormatEnv, first_doc_line, prepare_docstring
 from clak.exception import ClakError, ClakParseError, ClakUserError
-from clak.parser import (
-    Arg,
-    Argument,
-    Command,
-    Opt,
-    Parser,
-    ParserNode,
-    SubParser,
-)
 
 pytestmark = pytest.mark.tags("unit-tests")
 

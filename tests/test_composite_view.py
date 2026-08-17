@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from clak.parser import Parser
+from clak import Parser
 from clak.views import ListView, MarkdownView, RawView, ShowView
 from tests.view_fixtures import _has_background_csi, _option_flags
 
