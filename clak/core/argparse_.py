@@ -18,7 +18,15 @@ import argparse
 import logging
 import re
 import textwrap
-from argparse import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
+from argparse import (
+    ONE_OR_MORE,
+    OPTIONAL,
+    PARSER,
+    REMAINDER,
+    SUPPRESS,
+    ZERO_OR_MORE,
+    ArgumentError,
+)
 from dataclasses import dataclass
 
 # from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
@@ -511,11 +519,37 @@ class ArgumentParserPlus(argparse.ArgumentParser):
         err.clak_parser = self
         raise err
 
+    def _supports_intermixed(self):
+        """True when argparse intermixed parse can run on this parser.
+
+        Subparsers (nargs=PARSER) and remainder positionals are incompatible.
+        """
+        for action in self._get_positional_actions():
+            if action.nargs in (PARSER, REMAINDER):
+                return False
+        return True
+
+    def _use_intermixed(self):
+        """True when Meta.parse_intermixed is on and this parser can intermix."""
+        inst = self.clak_instance
+        if inst is None:
+            return False
+        if not inst.query_cfg_parents(
+            "parse_intermixed", default=True, include_self=True
+        ):
+            return False
+        return self._supports_intermixed()
+
     def parse_known_args(self, args=None, namespace=None):
         # Python 3.12+ raises ArgumentError from _parse_known_args (missing
         # required args, invalid choice) without calling error(). Stamp this
         # parser so nested failures keep leaf usage. Inner (child) stamps win.
+        # Meta.parse_intermixed (default True) uses parse_known_intermixed_args
+        # on leaves (no subparsers / remainder); parents with Command children
+        # skip it. Set False to restore argparse leftover errors after a flag.
         try:
+            if self._use_intermixed():
+                return super().parse_known_intermixed_args(args, namespace)
             return super().parse_known_args(args, namespace)
         except argparse.ArgumentError as err:
             if getattr(err, "clak_parser", None) is None:

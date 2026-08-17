@@ -117,6 +117,10 @@ Let's update our previous example with more fields:
 
 8. **Variable number of arguments** (`aliases`):
    - Variable number (`aliases`): Uses `nargs="*"` for zero or more
+   - Flags may appear among those values (`app NAME --force ALIAS`). That is
+     Clak's default intermixed parse. Opt out with
+     `Meta.parse_intermixed = False` if leftover words after a flag should
+     error. See [Intermixed flags and positionals](../docs/advanced.md#parse-intermixed).
 
 9. **Run method** (`cli_run`):
    - This method is executed when the command is run.

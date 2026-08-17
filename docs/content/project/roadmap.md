@@ -40,8 +40,10 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 - [x] Subcommand listing depth via `Meta.help_subcommands` (`all` default,
   `top` for immediate children; `Meta.help_hide_parent` defaults True)
 - [ ] `--help-all` / shorter `-h` (end-user flags; listing depth is Meta today)
-- [ ] Intermixed optional/positional parsing
-  ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments))
+- [x] Intermixed optional/positional parsing via `Meta.parse_intermixed`
+  (default on; set `False` for argparse leftover errors)
+  ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments);
+  leaf parsers only; command path stays ordered)
 - [ ] Deeper use of argparse extension / plugin hooks
 
 ### API helpers

@@ -134,7 +134,8 @@ Completion: generates argcomplete shellcode; runtime autocomplete during parse i
 - Hand-rolled argparse.ArgumentParser alongside Clak for the same CLI
 - Using Argument(..., group="Title") (removed; use option_group= /
   argument_group=). Exclusive XOR: exclusive_group="key" (shipped).
-  Intermixed args remain planned, not shipped.
+  Intermixed flags/positionals: on by default (leaf only; command path
+  stays ordered). Opt out: Meta.parse_intermixed = False.
 
 ## When this file is not enough
 

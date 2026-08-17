@@ -17,6 +17,9 @@ Cliff: [Comparison](comparison.md).
   `Argument` still accepts both; `Arg` / `Opt` are never required. Mixing
   names (`Arg("--flag")`, `Opt("NAME")`) raises `ValueError`. See
   [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers).
+- Unix-style mix of a command's flags and positionals (default on).
+  Opt out: `Meta.parse_intermixed = False`. No-op on nodes with
+  subcommands. See [Advanced](advanced.md#parse-intermixed).
 
 ## Class-based structure
 
@@ -107,5 +110,5 @@ Mix in only what you need:
 
 ## Planned
 
-See the [roadmap](../project/roadmap.md) for intermixed args, env-var mapping,
+See the [roadmap](../project/roadmap.md) for env-var mapping
 and runtime autocomplete.

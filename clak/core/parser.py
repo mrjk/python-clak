@@ -140,6 +140,13 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             "Formatter metadata only; not a second add_subparsers."
         ),
     )
+    meta__config__parse_intermixed = MetaSetting(
+        help=(
+            "Mix this command's flags and positionals (default True). "
+            "Inherited; set False for argparse leftover errors after a flag. "
+            "No-op on parsers with subcommands or nargs=REMAINDER."
+        ),
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -208,6 +215,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         else:
             self.parser = parser
             self.proc_name = self.parent.proc_name
+            # add_parser() builds ArgumentParserPlus without clak_instance.
+            if hasattr(self.parser, "clak_instance"):
+                self.parser.clak_instance = self
 
         # Init _subparsers
         self._subparsers = None

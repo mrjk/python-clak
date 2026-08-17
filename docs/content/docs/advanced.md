@@ -116,6 +116,64 @@ class App(Parser):
     orphan = Command(OrphanCmd)
 ```
 
+### Intermixed flags and positionals {#parse-intermixed}
+
+The command path is ordered (`app grep`). Once a command is selected, that
+command's own flags and positionals may mix. This is **on by default**.
+Set `Meta.parse_intermixed = False` to get argparse leftover errors after a
+flag.
+
+The difference shows up with `nargs="*"` or `nargs="+"` (and a fixed
+`nargs=N` greater than 1). A single required positional is unchanged:
+`cmd file --force` already works either way. Unknown flags (`--nope`) still
+error either way. Extra tokens for a single positional (`NAME` then a spare
+word) still error either way.
+
+```python
+from clak import Arg, Command, Opt, Parser
+
+class Grep(Parser):
+    pattern = Arg("pattern")
+    files = Arg("files", nargs="*")
+    ignore_case = Opt("-i", "--ignore-case", action="store_true")
+
+    def cli_run(self, pattern, files, ignore_case=False, **_):
+        return None
+
+class App(Parser):
+    grep = Command(Grep, help="Search files")
+```
+
+CLI: `app grep foo a.txt -i b.txt`
+
+| `parse_intermixed` | Result |
+| --- | --- |
+| `True` (default) | `pattern=foo`, `ignore_case=True`, `files=['a.txt', 'b.txt']` |
+| `False` | error: `unrecognized arguments: b.txt` |
+
+These are equivalent when the default is on:
+
+```text
+app grep foo a.txt -i b.txt
+app grep -i foo a.txt b.txt
+app grep foo -i a.txt b.txt
+```
+
+Opt out on a node (inherited; a child may set `True` again):
+
+```python
+class App(Parser):
+    class Meta:
+        parse_intermixed = False
+```
+
+Parent flags still belong to the parent parser. They work before the next
+subcommand (`app --verbose grep foo`), not after, unless the child also
+defines them. Nodes with subcommands keep standard parse for themselves
+(argparse cannot intermix `add_subparsers`). `nargs="..."` remainder is
+incompatible and falls back to standard parse. Do not mix a flag and a
+positional in one `exclusive_group` when using intermixed parse.
+
 ### 4. Custom Help Messages
 
 Override the default help behavior:

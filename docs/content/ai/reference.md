@@ -116,6 +116,7 @@ class App(Parser):
         help_subcommands = "all"           # default; "top" for immediate children
         help_hide_parent = True            # False: show "tool netmap" paths
         command_groups = (("base", "subcommands (base):"),)
+        parse_intermixed = False           # opt out: argparse leftover errors
         known_exceptions = [AppError]      # list of exception types
         exception_handlers = [...]         # third-party handlers
         cli_view = ListView                # without mixin flags
@@ -354,6 +355,14 @@ shows the leaf name indented two spaces per depth (not tool netmap). Set
 False for flattened paths. Inherited; a child may override. Independent of
 command_groups. Do not set Meta.help_formatter to change listing layout.
 
+Meta.parse_intermixed = True (default) lets a command's own flags and
+positionals appear in any order (Unix style). Inherited; set False for
+argparse leftover errors after a flag (typical with nargs=* / nargs=+).
+No-op on parsers with subcommands or nargs remainder (falls back to
+standard parse). Command path stays ordered. Parent flags still belong to
+the parent (before the subcommand name unless the child also defines them).
+Do not mix a flag and a positional in one exclusive_group with this on.
+
 Breaking: the old group= kwarg was removed; use option_group= / argument_group=.
 
 ==============================================================================
@@ -374,7 +383,6 @@ NOT SHIPPED (do not invent APIs)
 ==============================================================================
 
 - Automatic env-var → option mapping (beyond CLAK_* and XDG_*)
-- Intermixed optional/positional helpers
 - Decorator-first Click/Typer style primary API
 - from clak import ListView  (use clak.views or mixins)
 

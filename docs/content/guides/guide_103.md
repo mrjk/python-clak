@@ -43,7 +43,13 @@ class MyApp(Parser):
         app_name = "myapp"              # XDG paths, process naming
         help_description = "My CLI"     # override docstring-based description
         known_exceptions = [MyDomainError]
+        parse_intermixed = False        # argparse leftover errors after a flag
 ```
+
+`Meta.parse_intermixed` defaults to `True` (Unix mix of that command's flags
+and positionals). Inherited; a child may override. It applies to leaf
+parsers only (command path stays ordered). See
+[Intermixed flags and positionals](../docs/advanced.md#parse-intermixed).
 
 Exception-related settings: [Error handling](../docs/exceptions.md).
 Logging / views / config each document their own `Meta` keys on their guides.
