@@ -388,6 +388,94 @@ def test_table_width_no_wrap_when_not_tty():
     assert len(lines[0]) > 40
 
 
+_LONG_NOTE = (
+    "127.0.0.1:80->80/tcp, 127.0.0.1:443->443/tcp, "
+    "127.0.0.1:8080->8080/tcp"
+)
+
+
+def _first_border(output: str) -> str:
+    return next(line for line in output.splitlines() if line.startswith("+"))
+
+
+def _render_list_table(data, **kwargs):
+    return _plain_table(
+        TableListFormatter().render(data, expand_keys=True, **kwargs)
+    )
+
+
+def test_table_width_terminal_wraps_long_last_cell_to_term_width():
+    data = [{"name": "web", "note": _LONG_NOTE}]
+    output = _render_list_table(
+        data,
+        width="terminal",
+        wrap="last",
+        term_width=80,
+        stdout_tty=True,
+    )
+    assert len(_first_border(output)) == 80
+    header = next(line for line in output.splitlines() if "name" in line)
+    assert "| name " in header or "| name |" in header
+
+
+def test_table_width_terminal_pads_long_last_cell_when_it_fits():
+    data = [{"name": "web", "note": _LONG_NOTE}]
+    term_width = 200
+    output = _render_list_table(
+        data,
+        width="terminal",
+        wrap="last",
+        term_width=term_width,
+        stdout_tty=True,
+    )
+    assert len(_first_border(output)) == term_width
+    content = _render_list_table(
+        data,
+        width="content",
+        wrap="last",
+        term_width=term_width,
+        stdout_tty=True,
+    )
+    assert len(_first_border(content)) < term_width
+
+
+def test_table_width_fit_does_not_stretch_when_narrower_than_tty():
+    data = [{"name": "a", "note": "hi"}]
+    fit = _render_list_table(
+        data,
+        width="fit",
+        wrap="last",
+        term_width=80,
+        stdout_tty=True,
+    )
+    content = _render_list_table(
+        data,
+        width="content",
+        wrap="last",
+        term_width=80,
+        stdout_tty=True,
+    )
+    fit_border = len(_first_border(fit))
+    assert fit_border == len(_first_border(content))
+    assert fit_border < 80
+
+
+def test_table_width_terminal_long_cell_honors_term_width_with_colors():
+    from clak.views.table_formatter import table_cls
+
+    if table_cls.__name__ != "ColorTable":
+        pytest.skip("ColorTable not active (CLAK_COLORS off)")
+    data = [{"name": "web", "note": _LONG_NOTE}]
+    output = _render_list_table(
+        data,
+        width="terminal",
+        wrap="last",
+        term_width=80,
+        stdout_tty=True,
+    )
+    assert len(_first_border(output)) == 80
+
+
 def test_table_wrap_last_keeps_left_columns():
     data = [
         {

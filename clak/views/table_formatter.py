@@ -359,11 +359,25 @@ def _apply_column_wrap(
             widths[first] += pad
             min_width[first] = widths[first]
             max_width[first] = widths[first]
-        table.min_table_width = term_width
-        table.max_table_width = term_width
 
     # PrettyTable 3.x min_width/max_width setters take a single int;
-    # per-column dicts go on the private maps.
+    # per-column dicts go on the private maps. Table-level min/max stay on
+    # wrap=all only; pins already encode the budget here.
+    table._min_width = min_width  # pylint: disable=protected-access
+    table._max_width = max_width  # pylint: disable=protected-access
+
+    if mode != "terminal":
+        return
+
+    rendered = strip_ansi(table.get_string())
+    border_line = rendered.splitlines()[0] if rendered else ""
+    delta = term_width - len(border_line)
+    if delta <= 0:
+        return
+    first = wrap_fields[0]
+    widths[first] += delta
+    min_width[first] = widths[first]
+    max_width[first] = widths[first]
     table._min_width = min_width  # pylint: disable=protected-access
     table._max_width = max_width  # pylint: disable=protected-access
 
