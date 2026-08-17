@@ -1,8 +1,6 @@
 cli_args:
 - command2
 err: '2'
-output: 'usage: demo104-test command2 [-h] [--alias ALIASES] NAME
-
-  Could not parse command line: the following arguments are required: NAME
-
-  '
+output: "usage: demo104-test command2 [-h] [--alias ALIASES] [--debug]\n         \
+  \                    [--config CONFIG]\n                             NAME\nCould\
+  \ not parse command line: the following arguments are required: NAME\n"

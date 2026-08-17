@@ -7,4 +7,6 @@ output: "usage: command usage for command2 can be overriden\n\nCommand 2, wich a
   \                    Name\n\noptions:\n  -h, --help                  show this help\
   \ message and exit\n  --destination DESTINATION, -d DESTINATION\n              \
   \                Destination path (default: None)\n  --source SOURCE, -s SOURCE\
-  \  Source path (default: None)\n  --force, -f                 Force (default: False)\n"
+  \  Source path (default: None)\n  --force, -f                 Force (default: False)\n\
+  \nparent options:\n  --debug                     Enable debug mode\n  --config CONFIG,\
+  \ -c CONFIG  Config file path\n"

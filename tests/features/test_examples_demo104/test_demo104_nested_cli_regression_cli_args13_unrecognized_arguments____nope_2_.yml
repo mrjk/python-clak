@@ -3,8 +3,6 @@ cli_args:
 - Alice
 - --nope
 err: '2'
-output: 'usage: demo104-test command2 [-h] [--alias ALIASES] NAME
-
-  Could not parse command line: unrecognized arguments: --nope
-
-  '
+output: "usage: demo104-test command2 [-h] [--alias ALIASES] [--debug]\n         \
+  \                    [--config CONFIG]\n                             NAME\nCould\
+  \ not parse command line: unrecognized arguments: --nope\n"

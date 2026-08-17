@@ -416,9 +416,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         self.local_flag_arguments = local_flags
 
-        if self.query_cfg_parents(
-            "propagate_options", default=True, include_self=True
-        ):
+        if self.query_cfg_parents("propagate_options", default=True, include_self=True):
             self._attach_inherited_parent_flags(arguments, local_flags)
 
     def _ancestor_flag_index(self) -> tuple[set[str], set[str]]:

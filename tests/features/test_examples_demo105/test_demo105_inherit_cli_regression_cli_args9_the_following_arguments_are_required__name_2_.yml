@@ -2,5 +2,6 @@ cli_args:
 - command2
 err: '2'
 output: "usage: demo105-test command2 [-h] [--destination DESTINATION]\n         \
-  \                    [--source SOURCE] [--force]\n                             name\n\
-  Could not parse command line: the following arguments are required: name\n"
+  \                    [--source SOURCE] [--force] [--debug]\n                   \
+  \          [--config CONFIG]\n                             name\nCould not parse\
+  \ command line: the following arguments are required: name\n"

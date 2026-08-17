@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 USE_SUBPARSERS = True
 # USE_SUBPARSERS = False    # BETA - Do not enable this, it is slower
 
+
 def _kwargs_for_add_argument(kwargs: dict, parser) -> dict:
     """Drop kwargs the resolved action class does not accept."""
     action = kwargs.get("action")
