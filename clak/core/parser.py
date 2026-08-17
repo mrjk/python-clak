@@ -221,7 +221,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         name: str = None,
         key: str = None,
         parser: argparse.ArgumentParser = None,
-        inject_as_subparser: bool = True,
         proc_name: str = None,
     ):
         """Initialize the parser.
@@ -232,13 +231,8 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             name (str): ParserNode name
             key (str): ParserNode key
             parser (ArgumentParser): Existing parser to use
-            inject_as_subparser (bool): Ignored. Kept so existing callers
-                do not TypeError. Only ``USE_SUBPARSERS`` in
-                ``clak.core.descriptors`` controls argparse inject.
             proc_name (str): Process name
         """
-        del inject_as_subparser
-
         self.logger = logger
 
         super().__init__(parent=parent)
@@ -811,10 +805,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 error = err
 
         if trace is True:
-            # print("TRACE")
-            # Show traceback if debug mode is enabled
             logger.error("".join(traceback.format_exception(error)))
-            # print("TRACE")
 
         # Process exception handling
         known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
@@ -916,7 +907,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             last_node = idx == (node_count - 1)
 
             logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
-            # print(f"Node {idx}:{node}")
 
             # Prepare hooks list (per hierarchy node — mixins on subcommands)
             cls_hooks = [

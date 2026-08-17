@@ -20,19 +20,13 @@ For Fish
 
 import argparse
 import logging
-
-# import os
 import sys
-
-# from pprint import pprint
 from types import SimpleNamespace
 
 import argcomplete
 
-from clak.parser import Argument, Parser
-
-# PEP 366
-# __package__ = "argcomplete.scripts"
+from clak.core.descriptors import Argument
+from clak.core.parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +68,6 @@ class CompRenderCmdMixin(CompRenderMixin):
 
     use_defaults = Argument(
         "--no-defaults",
-        # dest="use_defaults",
         action="store_false",
         default=True,
         help="when no matches are generated, do not fallback to readline's"
@@ -97,7 +90,6 @@ class CompRenderCmdMixin(CompRenderMixin):
         "-e",
         "--external-argcomplete-script",
         help=argparse.SUPPRESS,
-        # help="external argcomplete script for auto completion of the executable"
     )
     executable = Argument(
         "--executable",
@@ -201,7 +193,3 @@ class CompCmdRender(CompRenderCmdMixin, Parser):
     - Configurable executable names
     - Default completion behavior
     """
-
-
-# class CompOptRender(CompRenderOptMixin, Parser):
-#     pass

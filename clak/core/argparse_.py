@@ -1,14 +1,7 @@
-"""Enhanced argument parsing functionality for the Clak framework.
+"""Enhanced argument parsing for Clak.
 
-This module extends Python's built-in argparse module with additional features
-needed by Clak, including:
-
-- Custom Action class with Clak-specific configuration
-- Helper functions for merging and injecting parsers
-- Utilities for managing parser hierarchies
-
-The module re-exports common argparse elements while providing its own enhanced
-versions of core classes.
+Extends stdlib argparse with RecursiveHelpFormatter, ArgumentParserPlus,
+and helpers for injecting a child parser as a subcommand.
 """
 
 # pylint: disable=protected-access unused-import
@@ -28,52 +21,11 @@ from argparse import (
     ArgumentError,
 )
 from dataclasses import dataclass
-
-# from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, ArgumentError
 from gettext import gettext as _
 from types import SimpleNamespace
 
-# import argcomplete
-
-# Expose common argparse elements
-
 
 logger = logging.getLogger(__name__)
-
-# SUPPRESS = argparse.SUPPRESS
-# OPTIONAL = argparse.OPTIONAL
-# ZERO_OR_MORE = argparse.ZERO_OR_MORE
-
-
-# # Store the original Action class
-# _OriginalAction = _argparse.Action
-
-
-# # Create your new Action class
-# class Action(_OriginalAction):  # pylint: disable=too-few-public-methods
-#     """Enhanced version of argparse.Action with custom behavior"""
-
-#     def __init__(self, *args, clak_config=None, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-#         self.clak_config = clak_config
-
-
-# # Replace the original Action class
-# _argparse.Action = Action
-
-# argparse = _argparse
-
-# Version: v4
-
-# This version of the lib:
-# Implement merge+inject methods
-# Implement basic
-
-
-# Argparser Merge Library
-# ################################################################################
-
-# Argparse helpers, portable library for argparse.
 
 
 # Inject a argparser into a subkey of a parent parser.

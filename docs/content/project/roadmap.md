@@ -18,6 +18,7 @@ These are the current **star features** — each has user documentation:
 | Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../docs/exceptions.md) |
 | XDG paths + config file load (`XDGConfigMixin`) | [Config](../docs/config.md) |
 | Shell completion script generation (`CompCmdRender`) | [Completion](../docs/completion.md) |
+| Runtime / facts (`ctx.runtime`, `ctx.facts`) | [Runtime](../docs/runtime.md) |
 
 Optional extras: `mrjk.clak[colors]` (coloredlogs), `mrjk.clak[config]` (PyYAML),
 `mrjk.clak[markdown]` (rich), `mrjk.clak[rst]` (docutils).
@@ -39,7 +40,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
   `add_subparsers`)
 - [x] Subcommand listing depth via `Meta.help_subcommands` (`all` default,
   `top` for immediate children; `Meta.help_hide_parent` defaults True)
-- [ ] `--help-all` / shorter `-h` (end-user flags; listing depth is Meta today)
+- [ ] `--help-all` / `--help-display` / shorter `-h` (end-user flags; listing depth is Meta today)
 - [x] Intermixed optional/positional parsing via `Meta.parse_intermixed`
   (default on; set `False` for argparse leftover errors)
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments);
@@ -54,17 +55,23 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 - [x] Distinct `Opt` / `Arg` helpers (optional vs positional). `Argument` remains
   the canonical descriptor and still accepts both; `Arg` / `Opt` are optional
   sugar that reject mixed names. They are not aliases of `Argument`.
-- [ ] Automatic mapping of environment variables to CLI options (beyond Clak’s own `CLAK_*` / XDG vars);
+- [ ] Automatic mapping of environment variables to CLI options (beyond Clak's own `CLAK_*` / XDG vars);
   building block: `resolve_bool_option` in `clak.common` (CLI > env > auto; used by `resolve_log_colors`)
+- [ ] Clearer env-var control of display output (`CLAK_COLUMNS`, `CLAK_COLORS`, `NO_COLOR`, `CLAK_SYNTAX_THEME`)
 
 ### Completion
 
 - [ ] Wire runtime `argcomplete.autocomplete()` during parse (shellcode generation already ships)
 - [ ] Polish `CompRenderCmdMixin` / `CompRenderOptMixin` UX (executable name defaults, fewer debug leftovers)
 
+### Composition
+
+- [ ] Assemble multiple CLIs from different Python packages into one command tree
+
 ### Packaging / project
 
 - [x] Automated PyPI publish workflow on `v*` tags (`publish_pypi.yml`; local: `task publish_pypi`)
+- [ ] Single-source package version at code level (`importlib.metadata` or require poetry-bumpversion in the release script)
 - [ ] Portable CI toolkit (mise + shared Taskfile CORE) for reuse across small Poetry projects
 
 ## Deliberately out of scope (for now)

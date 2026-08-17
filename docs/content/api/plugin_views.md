@@ -46,7 +46,6 @@ See the [Views guide](../docs/views.md) for usage, options, and override rules.
         - CompositeView
         - ClakView
         - TableView
-        - FeatureFullViewer
         - merge_view_settings
         - parse_columns
         - parse_sort_columns

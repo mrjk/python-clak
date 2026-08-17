@@ -46,11 +46,6 @@ class PluginHelpers:
             methods_dict = {}
             setattr(instance, "cli_methods", methods_dict)
 
-        # Skip if method is already registered unless force is True
-        # if name in methods_dict or hasattr(instance, name):
-        #     if force is False:
-        #         return
-
         if name in methods_dict:
             if force is False:
                 return

@@ -407,9 +407,6 @@ class TableView(ClakView):
     }
 
 
-FeatureFullViewer = TableView
-
-
 class ShowView(TableView):
     "Render show data"
 

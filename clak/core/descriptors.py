@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 # injected into the parent parser. The latter is slower.
 
 USE_SUBPARSERS = True
-# USE_SUBPARSERS = False    # BETA - Do not enable this, it is slower
 
 
 def _kwargs_for_add_argument(kwargs: dict, parser) -> dict:
@@ -442,19 +441,11 @@ class SubParser(ArgParseItem):
             child = self.cls(parent=config, parser=subparser, key=key)
             ctx_vars["self"] = child
 
-            # logger.debug(
-            #     "Create new SUBPARSER %s %s %s",
-            #     child.get_fname(attr="key"),
-            #     key,
-            #     self.kwargs,
-            # )
-
             child_usage = child.query_cfg_inst("help_usage", default=None)
             child_desc = first_doc_line(
                 child.query_cfg_inst("help_description", default=child.__doc__)
             )
             child_epilog = child.query_cfg_inst("help_epilog", default=None)
-            # print(f"DESC: |{desc}|")
 
             # Reconfigure subparser
             child_usage = prepare_docstring(child_usage, variables=ctx_vars)

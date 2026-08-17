@@ -42,7 +42,6 @@ from clak.views.data import (
     resolve_data_format,
 )
 from clak.views.table import (
-    FeatureFullViewer,
     ListView,
     ShowView,
     TableView,
@@ -78,7 +77,6 @@ __all__ = [
     "DEFAULT_WRAP_MODE",
     "DataView",
     "FORMAT_SCOPES",
-    "FeatureFullViewer",
     "ListView",
     "MarkdownView",
     "OUTPUT_FORMATS",

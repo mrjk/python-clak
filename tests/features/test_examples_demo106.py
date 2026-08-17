@@ -72,9 +72,6 @@ def test_demo106_inherit_mixed_cli(
     captured = capsys.readouterr()
     output = captured.out + captured.err
 
-    print(f"Output  : {exit_code} {output}")
-    print(f"Expected: {expected_exit} {expected_output}")
-
     # Verify the output contains expected string
     assert (
         expected_output in output

@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -388,46 +388,6 @@ def test_help_long_subcommand_name_wraps():
             assert "does a useful thing" not in line
 
 
-# def test_nested_subcommands():
-#     """Test nested subcommand structure."""
-#     def leaf_run(ctx, **kwargs):
-#         return "leaf_executed"
-
-#     leaf_parser = ParserNode()
-#     leaf_parser.cli_run = leaf_run
-
-#     mid_parser = ParserNode()
-#     mid_parser.meta__subcommands_dict = {"leaf": Command(leaf_parser.__class__, leaf_parser)}
-
-#     root_parser = ParserNode()
-#     # Create fresh parser without default arguments
-#     root_parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     root_parser.meta__subcommands_dict = {"mid": Command(mid_parser.__class__, mid_parser)}
-#     root_parser.add_subcommands()
-
-#     try:
-#         with patch('sys.argv', ['prog', 'mid', 'leaf']):
-#             result = root_parser.dispatch()
-#             assert result == "leaf_executed"
-#     except SystemExit as e:
-#         pytest.fail(f"SystemExit was raised with code {e.code}")
-
-
-# # Exception Handling Tests
-# def test_parse_error():
-#     """Test handling of parse errors."""
-#     parser = ParserNode()
-#     # Create fresh parser without default arguments
-#     parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     parser.meta__arguments_dict = {
-#         "age": Argument("--age", type=int, required=True)
-#     }
-#     parser.init_options()
-
-#     with pytest.raises((ClakParseError, argparse.ArgumentError)):
-#         parser.parse_args([])
-
-
 def test_user_error():
     """Test handling of user errors."""
 
@@ -636,39 +596,6 @@ def test_format_env():
     vars = env.get()
     assert vars["test"] == "value"
     assert "type" in vars  # Check default values
-
-
-# Command Execution Tests
-# def test_cli_group_execution():
-#     """Test cli_group method execution."""
-#     mock_group = MagicMock()
-
-#     parser = ParserNode()
-#     # Create fresh parser without default arguments
-#     parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     parser.cli_group = mock_group
-
-#     try:
-#         parser.dispatch([])
-#         assert mock_group.called
-#     except SystemExit as e:
-#         pytest.fail(f"SystemExit was raised with code {e.code}")
-
-
-# def test_cli_run_execution():
-#     """Test cli_run method execution."""
-#     mock_run = MagicMock()
-
-#     parser = ParserNode()
-#     # Create fresh parser without default arguments
-#     parser.parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
-#     parser.cli_run = mock_run
-
-#     try:
-#         parser.dispatch([])
-#         assert mock_run.called
-#     except SystemExit as e:
-#         pytest.fail(f"SystemExit was raised with code {e.code}")
 
 
 def _nested_parse_error_app():

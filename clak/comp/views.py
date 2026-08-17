@@ -40,8 +40,8 @@ import copy
 import logging
 from typing import Any, Mapping, Set
 
-from clak.parser import Argument, MetaSetting
-from clak.plugins import PluginHelpers
+from clak.core.descriptors import Argument, MetaSetting
+from clak.core.plugins import PluginHelpers
 from clak.views import (
     DATA_FORMATS,
     FORMAT_SCOPES,

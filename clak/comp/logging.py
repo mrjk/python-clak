@@ -50,8 +50,8 @@ Without log_prefix set (by default):
 ```
  WARNING myapp.cli                 Hello World - App
    ERROR myapp.cli                 Hello World - App
- WARNING clak.parser               Hello World - Self
-   ERROR clak.parser               Hello World - Self
+ WARNING clak.core.parser          Hello World - Self
+   ERROR clak.core.parser          Hello World - Self
 ```
 
 
@@ -73,10 +73,10 @@ from types import SimpleNamespace
 
 from clak.common import to_boolean
 from clak.exception import ClakAppError
-from clak.log_levels import register_clak_log_levels
-from clak.parser import Argument, MetaSetting
-from clak.plugins import PluginHelpers
-from clak.settings import (
+from clak.core.descriptors import Argument, MetaSetting
+from clak.core.plugins import PluginHelpers
+from clak.runtime.log_levels import register_clak_log_levels
+from clak.runtime.settings import (
     CLAK_COLORS,
     LOG_FORMAT,
     apply_coloredlogs_defaults,
