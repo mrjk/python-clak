@@ -7,24 +7,26 @@ Canonical public names: ``Parser``, ``Argument``, ``Command`` (alias of SubParse
 Optional helpers: ``Arg`` (positionals), ``Opt`` (flags).
 Instantiate a root ``Parser`` to parse and run; it calls ``dispatch()`` automatically
 unless ``parse=False``.
+
+Dispatch and exception handling live in ``clak.core._dispatch`` and
+``clak.core._exception``; this module keeps the build/inherit facade.
 """
 
 import logging
-import os
-import shlex
-import sys
-import traceback
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 from clak import exception
-from clak.common import ObjectNamespace
+from clak.core._dispatch import DispatchMixin
+from clak.core._exception import (  # noqa: F401  # pylint: disable=unused-import
+    ExceptionMixin,
+    _exit_broken_pipe,
+)
 from clak.core.argparse_ import (
     HELP_SUBCOMMANDS_ALL,
     ArgumentParserPlus,
     HelpLayout,
     argparse,
-    format_argument_error,
 )
 from clak.core.descriptors import (  # pylint: disable=unused-import
     Arg,
@@ -37,31 +39,9 @@ from clak.core.descriptors import (  # pylint: disable=unused-import
     prepare_docstring,
 )
 from clak.core.nodes import NOT_SET, Node
-from clak.runtime.facts import detect_facts
-from clak.runtime.runtime import detect_runtime
-from clak.runtime.settings import CLAK_DEBUG
 from clak.views import ClakView
-from clak.views.base import merge_view_settings
 
 logger = logging.getLogger(__name__)
-
-
-def _exit_broken_pipe(rc=1):
-    """Exit quietly after BrokenPipeError (e.g. ``| head`` / ``| tail``).
-
-    Redirects stdout to ``/dev/null`` so Python's shutdown flush does not print
-    ``Exception ignored ... BrokenPipeError``.
-    """
-    try:
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, sys.stdout.fileno())
-    except Exception:  # pylint: disable=broad-exception-caught
-        try:
-            sys.stdout.close()
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
-    sys.exit(rc)
-
 
 # Backwards-compatible aliases (preferred public name is Command via clak.__init__)
 Command = SubParser
@@ -103,10 +83,9 @@ def _argument_flag_strings(arg: Argument, dest: str) -> tuple[str, ...]:
     return (f"--{dest}",)
 
 
-# Main parser object
-
-
-class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
+class ParserNode(  # pylint: disable=too-many-instance-attributes
+    ExceptionMixin, DispatchMixin, Node
+):
     """An extensible argument parser that can be inherited to create custom CLIs.
 
     This class provides a framework for building complex command-line interfaces with:
@@ -119,7 +98,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     The parser can be extended by:
     1. Subclassing and adding Argument instances as class attributes
     2. Adding SubParser instances to create command hierarchies
-    3. Implementing cli_run() for command execution
+    3. Implementing cli_run() for command implementation
     4. Implementing cli_group() for command group behavior
 
     Attributes:
@@ -267,9 +246,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self._subparsers = None
         self.local_flag_arguments: dict[str, Argument] = {}
 
-        # Add arguments and subcommands
-        # meta__arguments_dict = {}
-        # meta__subcommands_dict = {}
         self.add_arguments()
         self.add_subcommands()
 
@@ -516,7 +492,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                     subcommands[attr_name] = attr_value
 
         for key, arg in subcommands.items():
-            # arg.attach_sub_to_parser(key, self)
             self.add_subcommand(key, arg)
 
     def add_subcommand(self, key: str, arg=None, **kwargs) -> None:
@@ -591,380 +566,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             ctx: Command context object
             **_: Unused keyword arguments
         """
-
-    @staticmethod
-    def _exception_exit_code(err, default=1):
-        rc = getattr(err, "rc", default)
-        return rc if isinstance(rc, int) else default
-
-    @staticmethod
-    def _exception_advice(err):
-        advice = getattr(err, "advice", None)
-        if isinstance(advice, str):
-            logger.warning(advice)
-
-    def _terminate_app_exception(self, err):
-        """Default handler for app exceptions (Paasify-style: rc + message)."""
-        self._exception_advice(err)
-        print(err, file=sys.stderr)
-        rc = self._exception_exit_code(err)
-        logger.critical(
-            "Program exited with: error %s: %s",
-            rc,
-            err.__class__.__name__,
-        )
-        sys.exit(rc)
-
-    @staticmethod
-    def _iter_exception_entries(entries):
-        for entry in entries or []:
-            if isinstance(entry, (tuple, list)) and entry:
-                exc_type = entry[0]
-                handler = entry[1] if len(entry) > 1 else None
-                yield exc_type, handler
-            else:
-                yield entry, None
-
-    def _run_exception_handler(self, handler, err):
-        if handler is None:
-            self._terminate_app_exception(err)
-            return
-        result = handler(self, err)
-        if isinstance(result, int):
-            sys.exit(result)
-        sys.exit(self._exception_exit_code(err))
-
-    def clean_terminate(self, err, known_exceptions=None):
-        """Handle program termination based on exception type.
-
-        Processing order (Paasify-style chain):
-
-        1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
-        2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, …)
-        3. Built-in Clak exceptions
-        4. Broken pipe (``| head`` / ``| tail``) - quiet exit
-        5. Common OS errors
-
-        If nothing matches, return and let ``dispatch()`` report an unexpected bug.
-
-        Args:
-            err (Exception): The exception that triggered termination
-            known_exceptions (list): List of exception types to handle specially
-        """
-
-        # 1. App-known exceptions (e.g. PaasifyError hierarchy)
-        for exc_type, handler in self._iter_exception_entries(known_exceptions):
-            if isinstance(err, exc_type):
-                self._run_exception_handler(handler, err)
-
-        # 2. Registered third-party / library handlers
-        extra_handlers = self.query_cfg_parents("exception_handlers", default=[])
-        for exc_type, handler in self._iter_exception_entries(extra_handlers):
-            if isinstance(err, exc_type):
-                self._run_exception_handler(handler, err)
-
-        # 3. Clak parse errors — show usage first (leaf parser when known)
-        if isinstance(err, exception.ClakParseError):
-            if err.parser is not None:
-                err.parser.print_usage()
-            else:
-                self.show_usage()
-            print(f"{err}", file=sys.stderr)
-            sys.exit(err.rc)
-
-        # 4. User-facing Clak errors
-        if isinstance(err, exception.ClakUserError):
-            self._exception_advice(err)
-            print(f"{err}", file=sys.stderr)
-            sys.exit(err.rc)
-
-        # 5. Other Clak errors (app / bug)
-        if isinstance(err, exception.ClakError):
-            err_name = err.__class__.__name__
-            self._exception_advice(err)
-            err_message = err.message or err.__doc__
-            print(f"{err}", file=sys.stderr)
-            logger.critical(
-                "Program exited with bug %s(%s): %s",
-                err_name,
-                err.rc,
-                err_message,
-            )
-            sys.exit(err.rc)
-
-        # 6. Broken pipe from | head / | tail - quiet exit (no bug log)
-        if isinstance(err, BrokenPipeError):
-            _exit_broken_pipe()
-
-        # 7. OS errors (BrokenPipeError already handled above)
-        if isinstance(err, OSError):
-            logger.critical("Program exited with OS error: %s", err)
-            sys.exit(err.errno if err.errno is not None else 1)
-
-    def parse_args(
-        self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
-    ) -> argparse.Namespace:
-        """Parse command line arguments.
-
-        Args:
-            args: Arguments to parse, can be:
-                - None: Use sys.argv[1:]
-                - str: Shell-style split via ``shlex.split``
-                - list: Use directly
-                - dict: Return as-is
-
-        Returns:
-            Namespace: Parsed argument namespace
-
-        Raises:
-            ValueError: If args is invalid type
-        """
-        parser = self.parser
-        # argcomplete.autocomplete(parser)
-
-        # args = args[0] if len(args) > 0 else sys.argv[1:]
-
-        if args is None:
-            args = sys.argv[1:]
-        elif isinstance(args, str):
-            args = shlex.split(args)
-        elif isinstance(args, list):
-            pass
-        elif isinstance(args, dict):
-            return args
-        else:
-            raise ValueError(f"Invalid args type: {type(args)}")
-
-        return parser.parse_args(args)
-
-    def dispatch(  # pylint: disable=too-many-branches
-        self,
-        args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
-        trace: bool = False,
-        **_: Any,
-    ) -> Any:
-        """Main dispatch function for command execution.
-
-        Args:
-            args: Arguments to parse
-            **_: Unused keyword arguments
-        """
-
-        # Process or reuse args
-        # if args is None:
-        error = None
-        try:
-            args = self.parse_args(args)
-            args = args.__dict__
-        except argparse.ArgumentError as err:
-            error = exception.ClakParseError(
-                format_argument_error(err),
-                parser=getattr(err, "clak_parser", None),
-            )
-            # raise exception.ClakParseError(msg) from err
-
-        if not error:
-            if not isinstance(args, dict):
-                raise TypeError(
-                    f"Parsed args must be a dict, got {type(args).__name__}"
-                )
-
-            # Check for trace mode
-            if "app_trace_mode" in args:
-                trace = args["app_trace_mode"]
-            if CLAK_DEBUG:
-                trace = True
-
-            # Leaf command (may carry Meta.cli_view / view mixins on nested cmds)
-            cli_leaf = args.get("__cli_self__", self)
-
-            # Run app command + view render (pipe breaks during print hit clean_terminate)
-            try:
-                data = self.cli_execute(args=args)
-
-                # Prepare viewer output (CLI view mixins may stash settings on root)
-                view_settings = getattr(self, "_clak_view_settings", None) or {}
-                if isinstance(data, ClakView):
-                    render_kwargs = merge_view_settings(
-                        getattr(data, "settings", None), view_settings
-                    )
-                    data.render(**render_kwargs)
-                else:
-                    viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
-                    if isinstance(viewer, type) and issubclass(viewer, ClakView):
-                        viewer = viewer()
-                    if viewer is not None:
-                        if not isinstance(viewer, ClakView):
-                            raise TypeError(
-                                "Meta.cli_view must be a ClakView instance or subclass"
-                            )
-                        viewer.render(data, **view_settings)
-
-                return data
-
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                error = err
-
-        if trace is True:
-            logger.error("".join(traceback.format_exception(error)))
-
-        # Process exception handling
-        known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
-        self.clean_terminate(error, known_exceptions)
-
-        # Developer catchall — unexpected bug (Paasify-style)
-        if trace is False:
-            logger.error("".join(traceback.format_exception(error)))
-        logger.critical(
-            "Uncaught error %s; this may be a bug! Please report to the developer.",
-            error.__class__.__name__,
-        )
-        logger.critical("Error: %s", error)
-        sys.exit(1)
-
-    def cli_execute(  # pylint: disable=too-many-locals,too-many-statements
-        self, args: Optional[Dict[str, Any]] = None
-    ) -> Any:
-        """Execute the command with given arguments.
-
-        Args:
-            args: Arguments to parse
-
-        Raises:
-            ClakParseError: If argument parsing fails
-            NotImplementedError: If command has no implementation
-        """
-        if not isinstance(args, dict):
-            raise TypeError(
-                f"cli_execute args must be a dict, got {type(args).__name__}"
-            )
-
-        # Prepare args and context
-        hook_list = {}
-
-        # args = args.__dict__
-        cli_command_hier = [
-            value
-            for key, value in sorted(args.items())
-            if key.startswith("__cli_cmd__")
-        ]
-        args = {
-            key: value
-            for key, value in args.items()
-            if not key.startswith("__cli_cmd__")
-        }
-
-        cli_self = self
-        if "__cli_self__" in args:
-            cli_self = args.pop("__cli_self__")
-
-        # Prepare data
-        fn_group_name = "cli_group"
-        fn_exec_name = "cli_run"
-        fn_hook_prefix = "cli_hook__"
-        name = self.name
-        hierarchy = cli_self.get_hierarchy()
-        node_count = len(hierarchy)
-
-        logger.debug("Run instance %s", cli_self)
-
-        ctx = {}
-        ctx["registry"] = self.registry
-
-        # Fetch settings
-        ctx["name"] = name
-        ctx["app_name"] = self.query_cfg_parents("app_name", default=name)
-        ctx["app_proc_name"] = self.query_cfg_parents(
-            "app_proc_name", default=self.proc_name
-        )
-        # ctx["app_env_prefix"] = self.query_cfg_parents(
-        #     "app_env_prefix", default=name.upper()
-        # )
-
-        # Loop constant
-        ctx["cli_self"] = cli_self
-        ctx["cli_root"] = self
-        ctx["cli_depth"] = node_count
-        ctx["cli_commands"] = cli_command_hier
-        ctx["args"] = ObjectNamespace(**args)
-
-        # Shared data
-        ctx["data"] = {}
-        ctx["plugins"] = {}
-
-        narrow_width = self.query_cfg_parents("runtime_narrow_width", default=None)
-        ctx["runtime"] = detect_runtime(narrow_width=narrow_width)
-        ctx["facts"] = detect_facts()
-
-        # Loop var init
-        ctx["cli_first"] = True
-        ctx["cli_state"] = None
-        ctx["cli_methods"] = None
-
-        # Execute all nodes in hierarchy
-        ret = None
-        # pylint: disable=attribute-defined-outside-init
-        for idx, node in enumerate(hierarchy):
-            last_node = idx == (node_count - 1)
-
-            logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
-
-            # Prepare hooks list (per hierarchy node — mixins on subcommands)
-            cls_hooks = [
-                method for method in dir(node) if method.startswith(fn_hook_prefix)
-            ]
-            for hook_name in cls_hooks:
-                hook_fn = getattr(node, hook_name, None)
-                if hook_fn is not None:
-                    # Last node with this name wins (leaf mixin rebinds root)
-                    hook_list[hook_name] = hook_fn
-
-            # Update ctx with node attributes
-            ctx["cli_parent"] = hierarchy[-2] if len(hierarchy) > 1 else None
-            ctx["cli_parents"] = hierarchy[:idx]
-            ctx["cli_children"] = dict(node.children)
-            ctx["cli_last"] = last_node
-            ctx["cli_hooks"] = hook_list
-            ctx["cli_index"] = idx
-
-            # Sort ctx dict by keys before creating namespace
-            sorted_ctx = dict(sorted(ctx.items()))
-            _ctx = ObjectNamespace(**sorted_ctx)
-            _ctx.cli_state = "run_hooks"
-
-            # Process hooks
-            for name, hook_fn in hook_list.items():
-                # hook_fn = getattr(self, hook, None)
-                # if hook_fn is not None:
-                logger.info("Run hook %d:%s.%s", idx, node, name)
-                hook_fn(node, _ctx)
-
-            # Store the list of available plugins methods
-            _ctx.cli_methods = getattr(node, "cli_methods", {})
-
-            # Run group_run
-            _ctx.cli_state = "run_groups"
-
-            group_fn = getattr(node, fn_group_name, None)
-            # print ("GROUP FN", group_fn)
-            if group_fn is not None:
-                logger.info(
-                    "Group function execute: %d:%s.%s", idx, node, fn_group_name
-                )
-                group_fn(ctx=_ctx, **_ctx.__dict__)
-
-            # Run leaf only if last node
-            _ctx.cli_state = "run_exec"
-            if last_node is True:
-                run_fn = getattr(node, fn_exec_name, None)
-
-                logger.info("Run function execute: %d:%s.%s", idx, node, fn_exec_name)
-                ret = run_fn(ctx=_ctx, **_ctx.args.__dict__)
-
-            # Change status
-            ctx["cli_first"] = False
-
-        return ret
 
 
 class Parser(ParserNode):

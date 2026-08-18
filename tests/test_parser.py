@@ -521,7 +521,7 @@ def test_clean_terminate_broken_pipe(caplog, monkeypatch):
     def fake_exit_broken_pipe(rc=1):
         raise SystemExit(rc)
 
-    monkeypatch.setattr("clak.core.parser._exit_broken_pipe", fake_exit_broken_pipe)
+    monkeypatch.setattr("clak.core._exception._exit_broken_pipe", fake_exit_broken_pipe)
 
     parser = ParserNode()
     with caplog.at_level(logging.CRITICAL):
@@ -540,7 +540,7 @@ def test_broken_pipe_during_view_render(caplog, monkeypatch):
     def fake_exit_broken_pipe(rc=1):
         raise SystemExit(rc)
 
-    monkeypatch.setattr("clak.core.parser._exit_broken_pipe", fake_exit_broken_pipe)
+    monkeypatch.setattr("clak.core._exception._exit_broken_pipe", fake_exit_broken_pipe)
 
     def run_cmd(**_):
         return ListView([{"name": "a"}, {"name": "b"}])
