@@ -188,6 +188,37 @@ class Argument(ArgParseItem):
       Set False to keep it on this parser only.
     """
 
+    def propagates(self) -> bool:
+        """True when this flag should be copied onto descendant parsers."""
+        return bool(self.kwargs.get("propagate", True))
+
+    def flag_strings(self, dest: str) -> tuple[str, ...]:
+        """Option strings for a flag Argument, or empty if it is positional."""
+        if dest.startswith("__"):
+            return ()
+        if self.args:
+            if str(self.args[0]).startswith("-"):
+                return tuple(str(name) for name in self.args)
+            return ()
+        if not dest:
+            return ()
+        if len(dest) <= 2:
+            return (f"-{dest}",)
+        return (f"--{dest}",)
+
+    def suppress_attach_overrides(self, extra: Optional[dict] = None) -> dict:
+        """Attach-time overrides so a copy does not overwrite an outer dest.
+
+        Do not set required unless the source flag is required: some argparse
+        actions reject the required= keyword.
+        """
+        overrides = {"default": argparse.SUPPRESS}
+        if self.kwargs.get("required"):
+            overrides["required"] = False
+        if extra:
+            overrides.update(extra)
+        return overrides
+
     def attach_arg_to_parser(
         self,
         key: str,

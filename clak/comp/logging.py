@@ -77,8 +77,8 @@ from clak.core.plugins import PluginHelpers
 from clak.exception import ClakAppError
 from clak.runtime.log_levels import register_clak_log_levels
 from clak.runtime.settings import (
-    CLAK_COLORS,
     LOG_FORMAT,
+    ClakSettings,
     apply_coloredlogs_defaults,
     resolve_log_colors,
 )
@@ -87,7 +87,7 @@ DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 
 # pylint: disable=invalid-name
 coloredlogs = None
-if CLAK_COLORS:
+if ClakSettings.current().colors:
     try:
         import coloredlogs  # type: ignore
     except ImportError:

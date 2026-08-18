@@ -20,7 +20,7 @@ from collections.abc import Mapping, Sequence
 
 from clak.common import replace_tabs
 from clak.exception import ClakUserError
-from clak.runtime.settings import CLAK_COLORS
+from clak.runtime.settings import ClakSettings
 from clak.views.base import strip_ansi
 
 SORT_MODES = frozenset({"asc", "desc"})
@@ -41,7 +41,7 @@ def require_yaml():
 
 # pylint: disable=invalid-name
 table_kwargs = {}
-if not CLAK_COLORS:
+if not ClakSettings.current().colors:
     from prettytable import PrettyTable
 
     table_cls = PrettyTable

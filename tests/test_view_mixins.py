@@ -61,7 +61,7 @@ def test_list_view_mixin_width_cli_option():
     app = App(parse=False, add_help=False)
     assert "--width" in _option_flags(app)
     app.dispatch(["--width", "fit"])
-    settings = getattr(app, "_clak_view_settings", {})
+    settings = app.ctx.view_settings
     assert settings.get("width") == "fit"
     assert "term_width" in settings
     assert "stdout_tty" in settings
@@ -77,7 +77,7 @@ def test_list_view_mixin_meta_view_width():
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("width") == "content"
+    assert app.ctx.view_settings.get("width") == "content"
 
 
 def test_list_view_mixin_wrap_cli_option():
@@ -88,7 +88,7 @@ def test_list_view_mixin_wrap_cli_option():
     app = App(parse=False, add_help=False)
     assert "--wrap" in _option_flags(app)
     app.dispatch(["--wrap", "all"])
-    assert getattr(app, "_clak_view_settings", {}).get("wrap") == "all"
+    assert app.ctx.view_settings.get("wrap") == "all"
 
 
 def test_list_view_mixin_meta_view_wrap():
@@ -101,7 +101,7 @@ def test_list_view_mixin_meta_view_wrap():
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    assert getattr(app, "_clak_view_settings", {}).get("wrap") == "all"
+    assert app.ctx.view_settings.get("wrap") == "all"
 
 
 def test_list_view_mixin_wrap_cli_column_list():
@@ -111,7 +111,7 @@ def test_list_view_mixin_wrap_cli_column_list():
 
     app = App(parse=False, add_help=False)
     app.dispatch(["--wrap", "name,role"])
-    assert getattr(app, "_clak_view_settings", {}).get("wrap") == ["name", "role"]
+    assert app.ctx.view_settings.get("wrap") == ["name", "role"]
 
 
 def test_list_view_mixin_meta_view_wrap_columns_and_min():
@@ -125,7 +125,7 @@ def test_list_view_mixin_meta_view_wrap_columns_and_min():
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    settings = getattr(app, "_clak_view_settings", {})
+    settings = app.ctx.view_settings
     assert settings.get("wrap") == ["name", "city"]
     assert settings.get("wrap_min") == {"name": 8}
 
@@ -514,7 +514,7 @@ def test_subcommand_list_view_mixin_format_json(capsys):
     app = Root(parse=False, add_help=False)
     app.dispatch(["vars", "--format", "json", "--columns", "name,role"])
 
-    settings = getattr(app, "_clak_view_settings", {})
+    settings = app.ctx.view_settings
     assert settings["format"] == "json"
     assert settings["columns"] == ["name", "role"]
     assert "term_width" in settings
@@ -551,7 +551,7 @@ def test_list_view_mixin_meta_view_format_and_add_index(capsys):
 
     app = App(parse=False, add_help=False)
     app.dispatch([])
-    settings = getattr(app, "_clak_view_settings", {})
+    settings = app.ctx.view_settings
     assert settings["format"] == "json"
     assert settings["columns"] == ["name"]
     assert settings["add_index"] is False
@@ -607,7 +607,7 @@ def test_subcommand_list_view_mixin_columns(capsys):
     app = Root(parse=False, add_help=False)
     app.dispatch(["vars", "--columns", "name,role"])
 
-    settings = getattr(app, "_clak_view_settings", {})
+    settings = app.ctx.view_settings
     assert settings["columns"] == ["name", "role"]
     assert "term_width" in settings
     assert "stdout_tty" in settings

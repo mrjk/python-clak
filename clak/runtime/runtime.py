@@ -13,7 +13,7 @@ import sys
 from typing import Optional, Tuple
 
 from clak.common import to_boolean
-from clak.runtime.settings import CLAK_COLORS
+from clak.runtime.settings import ClakSettings
 
 logger = logging.getLogger("clak.runtime")
 
@@ -164,7 +164,7 @@ def _detect_color_level(  # pylint: disable=too-many-return-statements
                 return COLOR_NONE
         except ValueError:
             pass
-    elif not CLAK_COLORS:
+    elif not ClakSettings.current().colors:
         return COLOR_NONE
 
     forced = _force_color_level()

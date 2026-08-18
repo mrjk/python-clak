@@ -135,7 +135,7 @@ def test_data_view_color_auto_off_without_tty():
 
 
 def test_data_view_color_off_with_clak_colors_disabled(monkeypatch):
-    monkeypatch.setattr("clak.views.data.CLAK_COLORS", False)
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
     rendered = DataView(PAYLOAD, format="json", color=None, stdout_tty=True).render(
         stdout=False
     )

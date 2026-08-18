@@ -27,8 +27,11 @@ def _exit_broken_pipe(rc=1):
     sys.exit(rc)
 
 
-class ExceptionMixin:  # pylint: disable=too-few-public-methods
-    """Paasify-style terminate chain used by ``dispatch()``."""
+class Terminator:  # pylint: disable=too-few-public-methods
+    """Paasify-style terminate chain used by ``Dispatcher.dispatch()``."""
+
+    def __init__(self, node):
+        self.node = node
 
     @staticmethod
     def _exception_exit_code(err, default=1):
@@ -67,7 +70,7 @@ class ExceptionMixin:  # pylint: disable=too-few-public-methods
         if handler is None:
             self._terminate_app_exception(err)
             return
-        result = handler(self, err)
+        result = handler(self.node, err)
         if isinstance(result, int):
             sys.exit(result)
         sys.exit(self._exception_exit_code(err))
@@ -90,13 +93,15 @@ class ExceptionMixin:  # pylint: disable=too-few-public-methods
             known_exceptions (list): List of exception types to handle specially
         """
 
+        node = self.node
+
         # 1. App-known exceptions (e.g. PaasifyError hierarchy)
         for exc_type, handler in self._iter_exception_entries(known_exceptions):
             if isinstance(err, exc_type):
                 self._run_exception_handler(handler, err)
 
         # 2. Registered third-party / library handlers
-        extra_handlers = self.query_cfg_parents("exception_handlers", default=[])
+        extra_handlers = node.query_cfg_parents("exception_handlers", default=[])
         for exc_type, handler in self._iter_exception_entries(extra_handlers):
             if isinstance(err, exc_type):
                 self._run_exception_handler(handler, err)
@@ -106,7 +111,7 @@ class ExceptionMixin:  # pylint: disable=too-few-public-methods
             if err.parser is not None:
                 err.parser.print_usage()
             else:
-                self.show_usage()
+                node.show_usage()
             print(f"{err}", file=sys.stderr)
             sys.exit(err.rc)
 

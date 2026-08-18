@@ -60,6 +60,35 @@ def test_argument_destination():
     assert arg._get_best_dest() == "test"
 
 
+def test_argument_flag_helpers():
+    """Flag metadata lives on Argument (propagate / strings / suppress)."""
+    flag = Argument("-v", "--verbose", action="store_true")
+    assert flag.propagates() is True
+    assert flag.flag_strings("verbose") == ("-v", "--verbose")
+    assert flag.suppress_attach_overrides()["default"] == argparse.SUPPRESS
+
+    positional = Argument("NAME")
+    assert positional.flag_strings("name") == ()
+
+    kept = Argument("--lock", action="store_true", propagate=False)
+    assert kept.propagates() is False
+    extra = kept.suppress_attach_overrides(extra={"option_group": "parent options"})
+    assert extra["option_group"] == "parent options"
+
+
+def test_parser_owns_dispatcher_and_terminator():
+    """ParserNode composes Dispatcher / Terminator instead of mixins."""
+    from clak.core._dispatch import Dispatcher
+    from clak.core._exception import Terminator
+
+    parser = ParserNode()
+    assert isinstance(parser.dispatcher, Dispatcher)
+    assert isinstance(parser.terminator, Terminator)
+    assert parser.ctx is None
+    assert parser.dispatcher.node is parser
+    assert parser.terminator.node is parser
+
+
 def test_arg_opt_public_import():
     """Arg and Opt are optional helpers exported from clak."""
     from clak import Arg as TopArg

@@ -7,9 +7,8 @@ import traceback
 from typing import Any, Dict, List, Optional, Union
 
 from clak import exception
-from clak.common import ObjectNamespace
 from clak.core.argparse_ import argparse, format_argument_error
-from clak.core.context import ClakContext
+from clak.core.context import ClakContext, CliArgs
 from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.facts import detect_facts
 from clak.runtime.runtime import detect_runtime
@@ -20,8 +19,12 @@ from clak.views import ClakView
 logger = logging.getLogger("clak.core.parser")
 
 
-class DispatchMixin:
-    """Argv parse, hook walk, and view render."""
+class Dispatcher:
+    """Argv parse, hook walk, and view render. Owned by a ParserNode."""
+
+    def __init__(self, node):
+        self.node = node
+        self.ctx = None
 
     def parse_args(
         self, args: Optional[Union[str, List[str], Dict[str, Any]]] = None
@@ -41,7 +44,7 @@ class DispatchMixin:
         Raises:
             ValueError: If args is invalid type
         """
-        parser = self.parser
+        parser = self.node.parser
 
         if args is None:
             args = sys.argv[1:]
@@ -56,7 +59,7 @@ class DispatchMixin:
 
         return parser.parse_args(args)
 
-    def dispatch(  # pylint: disable=too-many-branches,too-many-statements
+    def dispatch(  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         self,
         args: Optional[Union[str, List[str], Dict[str, Any]]] = None,
         trace: bool = False,
@@ -68,6 +71,7 @@ class DispatchMixin:
             args: Arguments to parse
             **_: Unused keyword arguments
         """
+        node = self.node
 
         apply_debug_logging()
         settings = ClakSettings.current()
@@ -95,15 +99,14 @@ class DispatchMixin:
                 trace = True
 
             # Leaf command (may carry Meta.cli_view / view mixins on nested cmds)
-            cli_leaf = args.get("__cli_self__", self)
+            cli_leaf = args.get("__cli_self__", node)
 
             # Run app command + view render (pipe breaks during print hit clean_terminate)
             try:
                 data = self.cli_execute(args=args, settings=settings)
 
-                # Prepare viewer output (CLI view mixins may stash settings on root)
-                view_settings = dict(getattr(self, "_clak_view_settings", None) or {})
-                ctx = getattr(self, "_clak_ctx", None)
+                ctx = self.ctx
+                view_settings = ctx.view_settings if ctx is not None else {}
                 if ctx is not None:
                     runtime = getattr(ctx, "runtime", None)
                     if runtime is not None:
@@ -136,11 +139,9 @@ class DispatchMixin:
         if trace is True:
             logger.error("".join(traceback.format_exception(error)))
 
-        # Process exception handling
-        known_exceptions = self.query_cfg_parents("known_exceptions", default=[])
-        self.clean_terminate(error, known_exceptions)
+        known_exceptions = node.query_cfg_parents("known_exceptions", default=[])
+        node.clean_terminate(error, known_exceptions)
 
-        # Developer catchall - unexpected bug (Paasify-style)
         if trace is False:
             logger.error("".join(traceback.format_exception(error)))
         logger.critical(
@@ -170,6 +171,7 @@ class DispatchMixin:
                 f"cli_execute args must be a dict, got {type(args).__name__}"
             )
 
+        node = self.node
         hook_list = {}
 
         cli_command_hier = [
@@ -183,13 +185,13 @@ class DispatchMixin:
             if not key.startswith("__cli_cmd__")
         }
 
-        cli_self = self
+        cli_self = node
         if "__cli_self__" in args:
             cli_self = args.pop("__cli_self__")
 
         fn_group_name = "cli_group"
         fn_exec_name = "cli_run"
-        name = self.name
+        name = node.name
         hierarchy = cli_self.get_hierarchy()
         node_count = len(hierarchy)
 
@@ -198,68 +200,70 @@ class DispatchMixin:
         if settings is None:
             settings = ClakSettings.current()
 
-        narrow_width = self.query_cfg_parents("runtime_narrow_width", default=None)
+        narrow_width = node.query_cfg_parents("runtime_narrow_width", default=None)
         ctx = ClakContext(
-            registry=self.registry,
+            registry=node.registry,
             name=name,
-            app_name=self.query_cfg_parents("app_name", default=name),
-            app_proc_name=self.query_cfg_parents(
-                "app_proc_name", default=self.proc_name
+            app_name=node.query_cfg_parents("app_name", default=name),
+            app_proc_name=node.query_cfg_parents(
+                "app_proc_name", default=node.proc_name
             ),
             cli_self=cli_self,
-            cli_root=self,
+            cli_root=node,
             cli_depth=node_count,
             cli_commands=cli_command_hier,
-            args=ObjectNamespace(**args),
+            args=CliArgs(**args),
             runtime=detect_runtime(narrow_width=narrow_width),
             facts=detect_facts(),
             settings=settings,
         )
-        self._clak_ctx = ctx  # pylint: disable=attribute-defined-outside-init
+        self.ctx = ctx
 
         ret = None
-        for idx, node in enumerate(hierarchy):
+        for idx, walk_node in enumerate(hierarchy):
             last_node = idx == (node_count - 1)
 
-            logger.info("Processing node %d:%s.%s", idx, node, fn_group_name)
+            logger.info("Processing node %d:%s.%s", idx, walk_node, fn_group_name)
 
-            node_hooks = getattr(node, "_cli_hooks", None)
+            node_hooks = getattr(walk_node, "_cli_hooks", None)
             if node_hooks is None:
                 node_hooks = {
-                    method: getattr(node, method)
-                    for method in dir(node)
+                    method: getattr(walk_node, method)
+                    for method in dir(walk_node)
                     if method.startswith(CLI_HOOK_PREFIX)
-                    and callable(getattr(node, method, None))
+                    and callable(getattr(walk_node, method, None))
                 }
             hook_list.update(node_hooks)
 
             ctx.cli_parent = hierarchy[-2] if len(hierarchy) > 1 else None
             ctx.cli_parents = hierarchy[:idx]
-            ctx.cli_children = dict(node.children)
+            ctx.cli_children = dict(walk_node.children)
             ctx.cli_last = last_node
             ctx.cli_hooks = hook_list
             ctx.cli_index = idx
             ctx.cli_state = "run_hooks"
 
             for hook_name, hook_fn in hook_list.items():
-                logger.info("Run hook %d:%s.%s", idx, node, hook_name)
-                hook_fn(node, ctx)
+                logger.info("Run hook %d:%s.%s", idx, walk_node, hook_name)
+                hook_fn(walk_node, ctx)
 
-            ctx.cli_methods = getattr(node, "cli_methods", {})
+            ctx.cli_methods = getattr(walk_node, "cli_methods", {})
             ctx.cli_state = "run_groups"
 
-            group_fn = getattr(node, fn_group_name, None)
+            group_fn = getattr(walk_node, fn_group_name, None)
             if group_fn is not None:
                 logger.info(
-                    "Group function execute: %d:%s.%s", idx, node, fn_group_name
+                    "Group function execute: %d:%s.%s", idx, walk_node, fn_group_name
                 )
                 group_fn(ctx=ctx, **ctx.__dict__)
 
             ctx.cli_state = "run_exec"
             if last_node is True:
-                run_fn = getattr(node, fn_exec_name, None)
+                run_fn = getattr(walk_node, fn_exec_name, None)
 
-                logger.info("Run function execute: %d:%s.%s", idx, node, fn_exec_name)
+                logger.info(
+                    "Run function execute: %d:%s.%s", idx, walk_node, fn_exec_name
+                )
                 ret = run_fn(ctx=ctx, **ctx.args.__dict__)
 
             ctx.cli_first = False

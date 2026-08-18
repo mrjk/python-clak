@@ -13,7 +13,7 @@ import sys
 
 from clak.core.argparse_ import RecursiveHelpFormatter
 from clak.runtime.rich_style import make_rich_console, render_markup_text
-from clak.runtime.settings import CLAK_COLORS, color_backend_uses_rich
+from clak.runtime.settings import ClakSettings, color_backend_uses_rich
 
 try:
     import rich.console as rich_console
@@ -58,7 +58,7 @@ def help_uses_rich() -> bool:
     """Whether ``--help`` should emit ANSI."""
     if os.environ.get("NO_COLOR"):
         return False
-    if not CLAK_COLORS:
+    if not ClakSettings.current().colors:
         return False
     if not sys.stdout.isatty():
         return False
@@ -98,7 +98,8 @@ class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
         # Python 3.10-3.11 parse_known_intermixed_args does
         # self.usage = format_usage()[7:], which needs a literal "usage:" prefix.
         items = self._root_section.items
-        if len(items) == 1 and items[0][0] == self._format_usage:
+        first_fn = items[0][0].__func__ if items else None
+        if len(items) == 1 and first_fn is type(self)._format_usage:
             return text
         return _colorize_help(text, width=self._width)
 

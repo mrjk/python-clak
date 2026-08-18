@@ -16,9 +16,9 @@ import logging
 from typing import Any, Optional
 
 from clak import exception
-from clak.core._dispatch import DispatchMixin
+from clak.core._dispatch import Dispatcher
 from clak.core._exception import (  # noqa: F401  # pylint: disable=unused-import
-    ExceptionMixin,
+    Terminator,
     _exit_broken_pipe,
 )
 from clak.core.argparse_ import (
@@ -51,43 +51,7 @@ Command = SubParser
 PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
 
 
-def _flag_propagates(arg: Argument) -> bool:
-    """True when this flag should be copied onto descendant parsers."""
-    return bool(arg.kwargs.get("propagate", True))
-
-
-def _suppress_attach_overrides(arg: Argument, extra: Optional[dict] = None) -> dict:
-    """Attach-time overrides so a copy does not overwrite an outer dest.
-
-    Do not set required unless the source flag is required: some argparse
-    actions reject the required= keyword.
-    """
-    overrides = {"default": argparse.SUPPRESS}
-    if arg.kwargs.get("required"):
-        overrides["required"] = False
-    if extra:
-        overrides.update(extra)
-    return overrides
-
-
-def _argument_flag_strings(arg: Argument, dest: str) -> tuple[str, ...]:
-    """Option strings for a flag Argument, or empty if it is positional."""
-    if dest.startswith("__"):
-        return ()
-    if arg.args:
-        if str(arg.args[0]).startswith("-"):
-            return tuple(str(name) for name in arg.args)
-        return ()
-    if not dest:
-        return ()
-    if len(dest) <= 2:
-        return (f"-{dest}",)
-    return (f"--{dest}",)
-
-
-class ParserNode(  # pylint: disable=too-many-instance-attributes
-    ExceptionMixin, DispatchMixin, Node
-):
+class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     """An extensible argument parser that can be inherited to create custom CLIs.
 
     This class provides a framework for building complex command-line interfaces with:
@@ -217,6 +181,9 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
             apply_debug_logging()
 
         super().__init__(parent=parent)
+
+        self.dispatcher = Dispatcher(self)
+        self.terminator = Terminator(self)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
         self.key = key
@@ -380,11 +347,11 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
         for key, arg in arguments.items():
             arg = self._prepare_argument(key, arg)
             overrides = None
-            flag_strings = _argument_flag_strings(arg, key)
+            flag_strings = arg.flag_strings(key)
             if flag_strings:
                 local_flags[key] = arg
                 if key in ancestor_dests or (ancestor_strings & set(flag_strings)):
-                    overrides = _suppress_attach_overrides(arg)
+                    overrides = arg.suppress_attach_overrides()
             self.add_argument(key, arg, attach_overrides=overrides)
 
         self.local_flag_arguments = local_flags
@@ -400,7 +367,7 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
         while node:
             for dest, arg in node.local_flag_arguments.items():
                 dests.add(dest)
-                strings.update(_argument_flag_strings(arg, dest))
+                strings.update(arg.flag_strings(dest))
             node = node.parent
         return dests, strings
 
@@ -411,7 +378,7 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
         seen_dests = set(arguments)
         seen_strings: set[str] = set()
         for dest, arg in local_flags.items():
-            seen_strings.update(_argument_flag_strings(arg, dest))
+            seen_strings.update(arg.flag_strings(dest))
 
         group = self.query_cfg_parents(
             "propagate_options_group",
@@ -428,15 +395,15 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
             for dest, arg in node.local_flag_arguments.items():
                 if dest in seen_dests:
                     continue
-                if not _flag_propagates(arg):
+                if not arg.propagates():
                     continue
-                strings = _argument_flag_strings(arg, dest)
+                strings = arg.flag_strings(dest)
                 if not strings or (seen_strings & set(strings)):
                     continue
                 self.add_argument(
                     dest,
                     arg,
-                    attach_overrides=_suppress_attach_overrides(arg, extra=group_extra),
+                    attach_overrides=arg.suppress_attach_overrides(extra=group_extra),
                 )
                 seen_dests.add(dest)
                 seen_strings.update(strings)
@@ -520,6 +487,27 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
 
     # Execution helpers
     # ========================
+
+    def parse_args(self, *args, **kwargs):
+        """Parse argv; see ``Dispatcher.parse_args``."""
+        return self.dispatcher.parse_args(*args, **kwargs)
+
+    def dispatch(self, *args, **kwargs):
+        """Parse and run; see ``Dispatcher.dispatch``."""
+        return self.dispatcher.dispatch(*args, **kwargs)
+
+    def cli_execute(self, *args, **kwargs):
+        """Walk hooks and ``cli_run``; see ``Dispatcher.cli_execute``."""
+        return self.dispatcher.cli_execute(*args, **kwargs)
+
+    def clean_terminate(self, *args, **kwargs):
+        """Handle a dispatch error; see ``Terminator.clean_terminate``."""
+        return self.terminator.clean_terminate(*args, **kwargs)
+
+    @property
+    def ctx(self):
+        """Last ``ClakContext`` from dispatch, or None before execute."""
+        return self.dispatcher.ctx
 
     def cli_exit(self, status=0, message=None):
         """Exit the CLI application with given status and message.

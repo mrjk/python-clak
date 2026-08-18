@@ -10,7 +10,7 @@ import os
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.rich_style import make_rich_console, syntax_kwargs
-from clak.runtime.settings import CLAK_COLORS, resolve_color_backend
+from clak.runtime.settings import ClakSettings, resolve_color_backend
 from clak.views.base import ClakView
 from clak.views.table_formatter import require_yaml
 
@@ -117,7 +117,9 @@ def colorize_data_text(
         return text
 
     colors_enabled = (
-        CLAK_COLORS if kwargs.get("clak_colors") is None else bool(kwargs["clak_colors"])
+        ClakSettings.current().colors
+        if kwargs.get("clak_colors") is None
+        else bool(kwargs["clak_colors"])
     )
     want_color = resolve_bool_option(
         color,

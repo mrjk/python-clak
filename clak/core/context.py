@@ -5,6 +5,18 @@ from typing import Any, Optional
 from clak.common import ObjectNamespace
 
 
+class CliArgs(ObjectNamespace):
+    """Parsed CLI destinations attached as ``ctx.args``."""
+
+
+class PluginStore(dict):
+    """Plugin payloads attached as ``ctx.plugins``."""
+
+
+class DataStore(dict):
+    """Scratch dict attached as ``ctx.data``."""
+
+
 class ClakContext(ObjectNamespace):
     """Per-dispatch CLI context.
 
@@ -25,7 +37,7 @@ class ClakContext(ObjectNamespace):
         cli_root: Any,
         cli_depth: int,
         cli_commands: list,
-        args: ObjectNamespace,
+        args: CliArgs,
         runtime: Any,
         facts: Any,
         settings: Any = None,
@@ -41,6 +53,14 @@ class ClakContext(ObjectNamespace):
         cli_hooks: Optional[dict] = None,
         cli_index: int = 0,
     ):
+        if data is None:
+            data = DataStore()
+        elif not isinstance(data, DataStore):
+            data = DataStore(data)
+        if plugins is None:
+            plugins = PluginStore()
+        elif not isinstance(plugins, PluginStore):
+            plugins = PluginStore(plugins)
         super().__init__(
             registry=registry,
             name=name,
@@ -54,8 +74,8 @@ class ClakContext(ObjectNamespace):
             runtime=runtime,
             facts=facts,
             settings=settings,
-            data={} if data is None else data,
-            plugins={} if plugins is None else plugins,
+            data=data,
+            plugins=plugins,
             cli_first=cli_first,
             cli_state=cli_state,
             cli_methods=cli_methods,
@@ -66,6 +86,11 @@ class ClakContext(ObjectNamespace):
             cli_hooks={} if cli_hooks is None else cli_hooks,
             cli_index=cli_index,
         )
+
+    @property
+    def view_settings(self) -> dict:
+        """Copy of view mixin settings (also in ``ctx.plugins['view_settings']``)."""
+        return dict(self.plugins.get("view_settings") or {})
 
     def as_kwargs(self) -> dict:
         """Context fields as a dict (same keys as ``__dict__``)."""

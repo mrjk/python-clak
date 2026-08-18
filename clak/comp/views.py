@@ -310,7 +310,6 @@ class _ViewMixinBase(PluginHelpers):
             settings["term_width"] = runtime.term_width
             settings["stdout_tty"] = runtime.stdout_tty
         ctx.plugins["view_settings"] = settings
-        setattr(ctx.cli_root, "_clak_view_settings", settings)
         logger.debug("View settings for %s: %s", instance, settings)
 
 
