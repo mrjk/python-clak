@@ -87,6 +87,16 @@ def test_forced_color_has_ansi(monkeypatch):
     assert "-h" in stripped or "--help" in stripped
 
 
+def test_format_usage_stays_plain_under_tty_color(monkeypatch):
+    """format_usage() must stay uncolored so argparse [7:] slicing works."""
+    _force_help_color(monkeypatch)
+    parser = _DefaultApp(parse=False, add_help=True).parser
+    usage = parser.format_usage()
+    assert usage.startswith("usage:")
+    assert "\x1b[" not in usage
+    assert "\x1b[" in parser.format_help()
+
+
 def test_mixin_forced_color_matches_default(monkeypatch):
     _force_help_color(monkeypatch)
     default_help = _DefaultApp(parse=False, add_help=True).parser.format_help()

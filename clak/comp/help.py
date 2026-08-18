@@ -94,6 +94,12 @@ class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
         text = super().format_help()
         if not help_uses_rich():
             return text
+        # ArgumentParser.format_usage() only adds usage then calls this.
+        # Python 3.10-3.11 parse_known_intermixed_args does
+        # self.usage = format_usage()[7:], which needs a literal "usage:" prefix.
+        items = self._root_section.items
+        if len(items) == 1 and items[0][0] == self._format_usage:
+            return text
         return _colorize_help(text, width=self._width)
 
 
