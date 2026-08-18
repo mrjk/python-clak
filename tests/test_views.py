@@ -86,7 +86,7 @@ def test_explicit_view_still_works_with_mixin_and_cli_override(capsys, caplog):
         def cli_run(self, **_):
             return ListView(USERS, columns=["name", "role"])
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.INFO):
         App(parse=False, add_help=False).dispatch(["--columns", "name"])
 
     out = capsys.readouterr().out

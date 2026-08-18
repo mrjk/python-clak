@@ -72,7 +72,7 @@ class ClakView:
 def merge_view_settings(existing=None, cli_settings=None):
     """Merge CLI view settings over existing view settings.
 
-    CLI values win. When CLI overrides a non-None existing value, log a warning.
+    CLI values win. When CLI overrides a non-None existing value, log at INFO.
     """
     existing = dict(existing or {})
     cli_settings = dict(cli_settings or {})
@@ -80,7 +80,7 @@ def merge_view_settings(existing=None, cli_settings=None):
     for key, cli_val in cli_settings.items():
         old_val = existing.get(key, None)
         if old_val is not None and old_val != cli_val:
-            logger.warning(
+            logger.info(
                 "CLI option %s=%r overrides view setting %r",
                 key,
                 cli_val,

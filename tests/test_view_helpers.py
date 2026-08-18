@@ -79,8 +79,8 @@ def test_normalize_columns_accepts_sequence():
     assert normalize_columns(None) is None
 
 
-def test_merge_view_settings_warns_on_override(caplog):
-    with caplog.at_level(logging.WARNING):
+def test_merge_view_settings_logs_info_on_override(caplog):
+    with caplog.at_level(logging.INFO):
         merged = merge_view_settings(
             {"columns": ["name"]},
             {"columns": ["age"], "add_index": True},
@@ -90,8 +90,8 @@ def test_merge_view_settings_warns_on_override(caplog):
     assert "overrides view setting" in caplog.text
 
 
-def test_merge_view_settings_no_warning_when_unset(caplog):
-    with caplog.at_level(logging.WARNING):
+def test_merge_view_settings_no_log_when_unset(caplog):
+    with caplog.at_level(logging.INFO):
         merged = merge_view_settings({}, {"columns": ["name"]})
 
     assert merged == {"columns": ["name"]}

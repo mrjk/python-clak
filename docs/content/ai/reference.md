@@ -227,7 +227,7 @@ Manual view:
   from clak.views import ListView
   return ListView(rows, columns=["name"])
 
-CLI flags override options set on a returned view (may log a warning).
+CLI flags override options set on a returned view (may log at INFO).
 
 ==============================================================================
 RICH HELP

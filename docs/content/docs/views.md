@@ -452,7 +452,7 @@ comments.
 When a mixin is present, CLI flags merge into `.render(**kwargs)`.
 
 - **CLI wins** over values set on a returned `ClakView(...)`.
-- If CLI overrides an already-set view option, Clak logs a **warning**.
+- If CLI overrides an already-set view option, Clak logs at **INFO**.
 
 ```python
 class App(ListViewMixin, Parser):
