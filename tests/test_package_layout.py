@@ -23,6 +23,9 @@ def test_compat_core_reexports():
     assert PluginHelpers is not None
     assert OPTIONAL is not None
     assert SUPPRESS is not None
+    from clak.core.argp.parser import ArgumentParser as ArgpParser
+
+    assert ArgpParser is not None
 
 
 def test_compat_runtime_reexports():

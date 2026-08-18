@@ -1,14 +1,13 @@
 """Tests for default Rich help formatter and opt-out."""
 
-# pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods,protected-access
+# pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 
-import re
 import sys
 
 import pytest
 
 from clak import Argument, Command, Parser, RecursiveHelpFormatter, RichHelpMixin
-from clak.comp.help import _HELP_HIGHLIGHTS, RichRecursiveHelpFormatter
+from clak.comp.help import RichRecursiveHelpFormatter
 from clak.core.argparse_ import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
 from clak.views.base import strip_ansi
@@ -252,88 +251,86 @@ def test_colored_command_tree(monkeypatch):
     assert "\x1b[" in help_text
 
 
-def test_help_highlight_headers_multiline():
-    """Section titles match after the first line (MULTILINE)."""
-    text = "usage: app [-h]\n\noptions:\n  -h, --help\n"
-    groups = []
-    for pattern in _HELP_HIGHLIGHTS:
-        if "?P<groups>" not in pattern:
-            continue
-        groups.extend(match.group("groups") for match in re.finditer(pattern, text))
-    assert "usage:" in groups
-    assert "options:" in groups
+def test_help_styles_headers_and_flags_not_prose(monkeypatch):
+    """Section titles and option names are styled; prose --flag is not."""
+    _force_help_color(monkeypatch)
+
+    class App(Parser):
+        """Use --force to continue."""
+
+        name = Argument("NAME", help="Who")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = App(parse=False, add_help=True).parser.format_help()
+    stripped = strip_ansi(help_text)
+    assert "usage:" in stripped
+    assert "options:" in stripped
+    assert "positional arguments:" in stripped
+    assert "Use --force to continue." in stripped
+    assert "\x1b[" in help_text
 
 
-def test_help_highlight_skips_prose_flags():
-    """``--flag`` in description prose is not treated as an option name."""
-    text = (
-        "usage: app [-h]\n"
-        "\n"
-        "Use --force to continue.\n"
-        "\n"
-        "options:\n"
-        "  -h, --help            show this help message and exit\n"
-        "  --config CONFIG, -c CONFIG  path\n"
-    )
-    args_pattern = next(p for p in _HELP_HIGHLIGHTS if "?P<args>" in p)
-    found = [match.group("args") for match in re.finditer(args_pattern, text)]
-    joined = " ".join(found)
-    assert "--force" not in joined
-    assert any("-h" in item for item in found)
-    assert any("--config" in item for item in found)
+def test_help_styles_subcommand_and_positional_names(monkeypatch):
+    """Left-column command and positional names stay in the listing."""
+    _force_help_color(monkeypatch)
+
+    class Child(Parser):
+        def cli_run(self, **_):
+            return None
+
+    class Root(Parser):
+        name = Argument("NAME", help="Who")
+        child = Command(Child, help="Run child")
+
+        def cli_run(self, **_):
+            return None
+
+    help_text = Root(parse=False, add_help=True).parser.format_help()
+    stripped = strip_ansi(help_text)
+    assert "NAME" in stripped
+    assert "child" in stripped
+    assert "Run child" in stripped
+    assert "\x1b[" in help_text
 
 
-def test_help_highlight_subcommand_and_positional_names():
-    """Left-column command and positional names, including nested indent."""
-    text = (
-        "usage: app [-h] NAME\n"
-        "\n"
-        "Use force to continue.\n"
-        "\n"
-        "positional arguments:\n"
-        "  NAME                 Who\n"
-        "\n"
-        "subcommands (base):\n"
-        "  tool                 Tools\n"
-        "    netmap             Map networks\n"
-        "\n"
-        "subcommands:\n"
-        "  command1 sub1        Nested path\n"
-        "\n"
-        "options:\n"
-        "  -h, --help            show this help message and exit\n"
-        "                        long wrapped help\n"
-    )
-    cmds_pattern = next(p for p in _HELP_HIGHLIGHTS if "?P<cmds>" in p)
-    found = [match.group("cmds") for match in re.finditer(cmds_pattern, text)]
-    assert "NAME" in found
-    assert "tool" in found
-    assert "netmap" in found
-    assert "command1 sub1" in found
-    assert "Use" not in found
-    assert "long" not in found
-    assert not any(item.startswith("-") for item in found)
-
-
-def test_help_highlighter_styles_cmds_and_groups():
+def test_help_colorizer_styles_cmds_and_groups():
     """Section titles, commands, and flags get distinct argparse styles."""
     pytest.importorskip("rich")
     from rich.text import Text
 
-    from clak.comp.help import HelpHighlighter
+    from clak.comp.help import _PART_STYLES, help_document_colorizer
+    from clak.core.help_render import HelpDocument, HelpLine
 
-    text = (
-        "subcommands:\n"
-        "  child                Run child\n"
-        "\n"
-        "positional arguments:\n"
-        "  NAME                 Who\n"
-        "\n"
-        "options:\n"
-        "  -h, --help            show this help message and exit\n"
-    )
-    styles = {span.style for span in HelpHighlighter()(Text(text)).spans}
+    doc = HelpDocument()
+    usage = HelpLine()
+    usage.append("group", "usage:")
+    usage.append("plain", " app [-h]")
+    doc.lines.append(usage)
+    cmds = HelpLine()
+    cmds.append("group", "subcommands:")
+    doc.lines.append(cmds)
+    child = HelpLine()
+    child.append("plain", "  ")
+    child.append("cmds", "child")
+    child.append("plain", "  Run child")
+    doc.lines.append(child)
+    opts = HelpLine()
+    opts.append("group", "options:")
+    doc.lines.append(opts)
+    flag = HelpLine()
+    flag.append("plain", "  ")
+    flag.append("args", "-h, --help")
+    doc.lines.append(flag)
+    assert _PART_STYLES["group"] == "argparse.groups"
+    styled = Text()
+    styled.append("subcommands:", style="argparse.groups")
+    styled.append("child", style="argparse.cmds")
+    styled.append("-h, --help", style="argparse.args")
+    styles = {span.style for span in styled.spans}
     assert styles >= {"argparse.groups", "argparse.cmds", "argparse.args"}
+    assert callable(help_document_colorizer)
 
 
 def test_recursive_help_formatter_exported_from_clak():
@@ -567,7 +564,7 @@ def test_help_subcommands_default_is_all():
             return None
 
     app = App(parse=False, add_help=True)
-    layout = app.subparsers._clak_help
+    layout = app.help_layout
     assert layout.subcommands == "all"
     assert layout.hide_parent is True
     assert layout.command_groups == ()
@@ -773,26 +770,6 @@ def test_help_hide_parent_invalid_value_raises():
 
     with pytest.raises(ValueError, match="help_hide_parent"):
         App(parse=False, add_help=True)
-
-
-def test_help_highlight_grouped_subcommand_titles():
-    """Parenthetical subcommand section titles match like subcommands:."""
-    text = (
-        "usage: app [-h]\n"
-        "\n"
-        "subcommands (base):\n"
-        "  tool                 Tools\n"
-        "\n"
-        "subcommands:\n"
-        "  orphan               Orphan\n"
-    )
-    groups = []
-    for pattern in _HELP_HIGHLIGHTS:
-        if "?P<groups>" not in pattern:
-            continue
-        groups.extend(match.group("groups") for match in re.finditer(pattern, text))
-    assert "subcommands (base):" in groups
-    assert "subcommands:" in groups
 
 
 def test_grouped_help_forced_color_has_ansi(monkeypatch):

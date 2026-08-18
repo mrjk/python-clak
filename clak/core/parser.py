@@ -38,6 +38,7 @@ from clak.core.descriptors import (  # pylint: disable=unused-import
     SubParser,
     prepare_docstring,
 )
+from clak.core.help_render import HelpRenderer
 from clak.core.nodes import NOT_SET, Node
 from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.settings import apply_debug_logging
@@ -184,6 +185,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         self.dispatcher = Dispatcher(self)
         self.terminator = Terminator(self)
+        self.help_args = []
+        self.command_group = None
+        self.command_help = None
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
         self.key = key
@@ -217,6 +221,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         self.add_arguments()
         self.add_subcommands()
         self._cli_hooks = self._collect_cli_hooks()
+        self._install_help()
 
     def __repr__(self):
         return f"<{self.__class__.__module__}.{self.__class__.__name__}>"
@@ -240,6 +245,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             add_help=self.add_help,
             exit_on_error=False,
             clak_instance=self,
+            parse_intermixed=self.query_cfg_parents(
+                "parse_intermixed", default=True, include_self=True
+            ),
         )
         return parser
 
@@ -260,6 +268,40 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             include_self=True,
         )
 
+    def _install_help(self):
+        """Attach HelpRenderer and version-stable parse flags to the wrapper."""
+        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
+            RichRecursiveHelpFormatter,
+            help_document_colorizer,
+        )
+
+        self.help_layout = HelpLayout(
+            subcommands=self.query_cfg_parents(
+                "help_subcommands",
+                default=HELP_SUBCOMMANDS_ALL,
+                include_self=True,
+            ),
+            hide_parent=self.query_cfg_parents(
+                "help_hide_parent",
+                default=True,
+                include_self=True,
+            ),
+            command_groups=tuple(
+                self.query_cfg_inst("command_groups", default=()) or ()
+            ),
+        )
+        renderer = HelpRenderer(self)
+        fmt = self.get_help_formatter_class()
+        if isinstance(fmt, type) and issubclass(fmt, RichRecursiveHelpFormatter):
+            renderer.colorizer = help_document_colorizer
+        self.help_renderer = renderer
+        if hasattr(self.parser, "clak_help_renderer"):
+            self.parser.clak_help_renderer = renderer
+        if hasattr(self.parser, "parse_intermixed"):
+            self.parser.parse_intermixed = self.query_cfg_parents(
+                "parse_intermixed", default=True, include_self=True
+            )
+
     def __getitem__(self, key):
         return self.children[key]
 
@@ -276,23 +318,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 dest=f"__cli_cmd__{level}",
                 help="Available commands",
                 parser_class=ArgumentParserPlus,
-            )
-            command_groups = self.query_cfg_inst("command_groups", default=())
-            help_subcommands = self.query_cfg_parents(
-                "help_subcommands",
-                default=HELP_SUBCOMMANDS_ALL,
-                include_self=True,
-            )
-            help_hide_parent = self.query_cfg_parents(
-                "help_hide_parent",
-                default=True,
-                include_self=True,
-            )
-            # pylint: disable=protected-access
-            self._subparsers._clak_help = HelpLayout(
-                subcommands=help_subcommands,
-                hide_parent=help_hide_parent,
-                command_groups=tuple(command_groups),
             )
         return self._subparsers
 

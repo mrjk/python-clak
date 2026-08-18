@@ -1,9 +1,9 @@
 """Rich-colored ``--help`` (default formatter; opt out via Meta).
 
-``RichRecursiveHelpFormatter`` is the Parser default. Color follows
-``NO_COLOR``, ``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and
-whether Rich is importable. Missing Rich degrades to plain
-``RecursiveHelpFormatter`` layout (no ANSI).
+``RichRecursiveHelpFormatter`` is the Parser default marker for colored
+help. Layout lives in ``HelpRenderer``. Color follows ``NO_COLOR``,
+``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and whether Rich is
+importable. Missing Rich degrades to plain HelpRenderer layout (no ANSI).
 """
 
 from __future__ import annotations
@@ -11,21 +11,17 @@ from __future__ import annotations
 import os
 import sys
 
-from clak.core.argparse_ import RecursiveHelpFormatter
+from clak.core.help_render import HelpDocument, RecursiveHelpFormatter
 from clak.runtime.rich_style import make_rich_console, render_markup_text
 from clak.runtime.settings import ClakSettings, color_backend_uses_rich
 
 try:
     import rich.console as rich_console
-    from rich.highlighter import RegexHighlighter
     from rich.text import Text
 except ImportError:
     rich_console = None
-    RegexHighlighter = object
     Text = None
 
-# Rich has no argparse keys in DEFAULT_STYLES. Groups use Rich's heading
-# magenta (bold); args/cmds follow the usual cyan / dark_cyan argparse pair.
 _HELP_STYLES = {
     "argparse.groups": "bold magenta",
     "argparse.args": "cyan",
@@ -33,25 +29,16 @@ _HELP_STYLES = {
     "argparse.default": "dim",
 }
 
-# (?m) so section titles match after the first line. Flags only on option
-# definition lines (not ``--flag`` in description/epilog prose). Left-column
-# command / positional names (not wrapped help prose).
-_HELP_HIGHLIGHTS = (
-    r"(?m)^(?P<groups>usage:)",
-    r"(?m)^(?P<groups>(?:positional arguments|options|subcommands):)",
-    r"(?m)^(?P<groups>[A-Za-z][\w /()-]+:\s*$)",
-    r"(?m)^\s+(?P<args>-{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?"
-    r"(?:, -{1,2}[\w-]+(?: [A-Z][A-Z0-9_]*)?)*)",
-    r"(?m)^ {2,14}(?P<cmds>[\w][\w-]*(?: [\w][\w-]*)*)(?: {2,}|\s*$)",
-    r"(?P<default>\(default: [^)]*\))",
-)
+_PART_STYLES = {
+    "group": "argparse.groups",
+    "args": "argparse.args",
+    "cmds": "argparse.cmds",
+    "default": "argparse.default",
+}
 
 
-class HelpHighlighter(RegexHighlighter):  # pylint: disable=too-few-public-methods
-    """Highlight argparse help structure."""
-
-    base_style = "argparse."
-    highlights = list(_HELP_HIGHLIGHTS)
+class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
+    """Marker: same layout as ``RecursiveHelpFormatter``, with Rich color."""
 
 
 def help_uses_rich() -> bool:
@@ -65,43 +52,40 @@ def help_uses_rich() -> bool:
     return color_backend_uses_rich()
 
 
-def _colorize_help(text: str, width: int) -> str:
-    """Apply fg-only argparse styles without rewrapping *text*."""
-    if rich_console is None or Text is None:
-        return text
-    lines = text.splitlines() or [""]
-    console_width = max(width, max(len(line) for line in lines), 80)
-    console = make_rich_console(rich_console, width=console_width, theme=_HELP_STYLES)
-    styled = HelpHighlighter()(Text(text))
+def help_document_colorizer(document: HelpDocument) -> str:
+    """Style a HelpDocument. No regex on argparse text."""
+    if not help_uses_rich() or rich_console is None or Text is None:
+        return document.to_plain()
+    styled = Text()
+    max_len = 80
+    for line in document.lines:
+        line_text = "".join(text for _kind, text in line.parts)
+        max_len = max(max_len, len(line_text))
+        for kind, chunk in line.parts:
+            if kind == "markup":
+                rendered = render_markup_text(chunk)
+                if rendered != chunk and hasattr(Text, "from_ansi"):
+                    styled.append_text(Text.from_ansi(rendered))
+                elif rendered != chunk:
+                    styled.append(rendered)
+                else:
+                    try:
+                        styled.append_text(Text.from_markup(chunk))
+                    except Exception:  # pylint: disable=broad-exception-caught
+                        styled.append(chunk)
+            else:
+                style = _PART_STYLES.get(kind)
+                if style:
+                    styled.append(chunk, style=style)
+                else:
+                    styled.append(chunk)
+        styled.append("\n")
+    console = make_rich_console(
+        rich_console, width=max(max_len, 80), theme=_HELP_STYLES
+    )
     with console.capture() as capture:
         console.print(styled, end="", overflow="ignore", crop=False, highlight=False)
     return capture.get()
-
-
-class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
-    """``RecursiveHelpFormatter`` plus optional Rich color and markup.
-
-    Layout (command tree, defaults, option invocation) stays in the parent.
-    Color is applied after ``format_help()`` so wrapping is unchanged.
-    """
-
-    def _format_text(self, text):
-        if text and help_uses_rich():
-            text = render_markup_text(text)
-        return super()._format_text(text)
-
-    def format_help(self):
-        text = super().format_help()
-        if not help_uses_rich():
-            return text
-        # ArgumentParser.format_usage() only adds usage then calls this.
-        # Python 3.10-3.11 parse_known_intermixed_args does
-        # self.usage = format_usage()[7:], which needs a literal "usage:" prefix.
-        items = self._root_section.items
-        first_fn = items[0][0].__func__ if items else None
-        if len(items) == 1 and first_fn is type(self)._format_usage:
-            return text
-        return _colorize_help(text, width=self._width)
 
 
 class RichHelpMixin:  # pylint: disable=too-few-public-methods

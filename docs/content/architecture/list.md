@@ -7,3 +7,4 @@
 * [5. Comparison with Cliff](0005-comparison-with-cliff.md)
 * [6. Comparison with Click](0006-comparison-with-click.md)
 * [7. Comparison with Typer](0007-comparison-with-typer.md)
+* [8. Argparse wrapper and Clak-owned UI](0008-argparse-wrapper-and-ui.md)

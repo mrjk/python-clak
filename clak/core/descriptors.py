@@ -15,6 +15,7 @@ from clak.core.argparse_ import (
     argparse,
     argparse_inject_as_subparser,
 )
+from clak.core.help_render import HelpArg
 from clak.core.nodes import Fn
 
 logger = logging.getLogger(__name__)
@@ -295,9 +296,11 @@ class Argument(ArgParseItem):
                 )
             target = exclusive_groups[exclusive_cache_key]
 
-        target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
-
-        return parser
+        action = target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
+        help_args = getattr(config, "help_args", None)
+        if help_args is not None:
+            help_args.append(HelpArg.from_action(action, group=help_group_title))
+        return action
 
 
 def _check_arg_opt_names(args, expect_option: bool, cls_name: str) -> None:
@@ -465,11 +468,11 @@ class SubParser(ArgParseItem):
                 key,
                 **parser_kwargs,
             )
-            # pylint: disable=protected-access
-            config.subparsers._choices_actions[-1]._clak_command_group = command_group
 
             # Create an instance of the command class with the subparser
             child = self.cls(parent=config, parser=subparser, key=key)
+            child.command_group = command_group
+            child.command_help = parser_help
             ctx_vars["self"] = child
 
             child_usage = child.query_cfg_inst("help_usage", default=None)

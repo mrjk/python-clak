@@ -16,10 +16,6 @@ _PY = sys.version_info[:2]
 # Python 3.11+ traceback caret / wavy-underline annotation lines
 COMPAT_TRACEBACK_CARETS_PY311 = _PY >= (3, 11)
 
-# Python 3.12 only: argparse dropped quotes around choice lists
-# (3.13 restored quotes). Normalize to the quoted form used in baselines.
-COMPAT_ARGPARSE_CHOICE_QUOTES_PY312 = _PY == (3, 12)
-
 # Python 3.13+ changed builtin ``str.__doc__`` (demo101 prints ``__name__.__doc__``)
 COMPAT_STR_DOC_PY313 = _PY >= (3, 13)
 
@@ -45,17 +41,6 @@ def _build_regex_rules() -> list:
         rules.append(
             # Python 3.11+ traceback caret / wavy underline lines
             (r"(?m)^[ \t]*[~^]+[ \t]*\n?", r""),
-        )
-
-    if COMPAT_ARGPARSE_CHOICE_QUOTES_PY312:
-        rules.append(
-            # choose from red, green, blue → choose from 'red', 'green', 'blue'
-            # Stop before the closing ')' of "(choose from ...)".
-            (
-                r"choose from ([^'\n)]+)",
-                lambda m: "choose from "
-                + ", ".join(f"'{p.strip()}'" for p in m.group(1).split(",")),
-            ),
         )
 
     if COMPAT_STR_DOC_PY313:

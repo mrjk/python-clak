@@ -316,8 +316,8 @@ def test_command_group_kwarg_not_passed_to_argparse():
     assert "child" in app.parser.format_help()
     app.parse_args(["child"])
     # pylint: disable=protected-access
-    choice = app.subparsers._choices_actions[-1]
-    assert choice._clak_command_group == "base"
+    child = app.children["child"]
+    assert child.command_group == "base"
 
 
 @patch("sys.argv", ["prog", "--help"])
