@@ -13,18 +13,11 @@ from clak.common import CleandocProxy, deindent_docstring
 from clak.core.argparse_ import (
     SUPPRESS,
     argparse,
-    argparse_inject_as_subparser,
 )
 from clak.core.help_render import HelpArg
 from clak.core.nodes import Fn
 
 logger = logging.getLogger(__name__)
-
-# Keep this as True for performance reasons,
-# children nodes will be considered as subparsers and not other parsers to be
-# injected into the parent parser. The latter is slower.
-
-USE_SUBPARSERS = True
 
 
 def _kwargs_for_add_argument(kwargs: dict, parser) -> dict:
@@ -367,7 +360,7 @@ class SubParser(ArgParseItem):
     """Represents a subcommand parser that can be added to a parent parser.
 
     This class handles creation of nested command structures, allowing for hierarchical
-    command-line interfaces. It supports both subparser and injection modes.
+    command-line interfaces via argparse ``add_subparsers``.
 
     Most keyword arguments are passed through to
     :meth:`argparse._SubParsersAction.add_parser`. Clak-only kwargs (stripped
@@ -392,10 +385,9 @@ class SubParser(ArgParseItem):
     meta__description = None
     meta__epilog = None
 
-    def __init__(self, cls, *args, use_subparsers: bool = USE_SUBPARSERS, **kwargs):
+    def __init__(self, cls, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cls = cls
-        self.use_subparsers = use_subparsers
 
     def attach_sub_to_parser(self, key: str, config: "ParserNode") -> "ParserNode":
         """Create a subcommand parser for this command.
@@ -419,91 +411,69 @@ class SubParser(ArgParseItem):
                 f"Command name '{key}' contains spaces. Command names must not contain spaces."
             )
 
-        if self.use_subparsers:
+        logger.debug(
+            "Create new subparser %s.%s",
+            config.get_fname(attr="key"),
+            key,
+        )
 
-            logger.debug(
-                "Create new subparser %s.%s",
-                config.get_fname(attr="key"),
-                key,
-            )  # , self.kwargs)
+        # Fetch help from class
+        parser_help = self.kwargs.get(
+            "help",
+            self.cls.query_cfg_inst(
+                self.cls, "help_description", default=self.cls.__doc__
+            ),
+        )
+        parser_help_enabled = self.kwargs.get(
+            "help_flags",
+            self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
+        )
 
-            # Fetch help from class
-            parser_help = self.kwargs.get(
-                "help",
-                self.cls.query_cfg_inst(
-                    self.cls, "help_description", default=self.cls.__doc__
-                ),
-            )
-            parser_help_enabled = self.kwargs.get(
-                "help_flags",
-                self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
-            )
-            # parser_aliases = self.kwargs.get(
-            #     "aliases",
-            #     [],
-            # )
+        ctx_vars = {"key": key, "self": config}
 
-            ctx_vars = {"key": key, "self": config}
+        # Create a new subparser for this command (flat structure)
+        parser_help = prepare_docstring(
+            first_doc_line(parser_help), variables=ctx_vars
+        )
+        parser_kwargs = dict(self.kwargs)
+        parser_kwargs.update(
+            {
+                "formatter_class": config.get_help_formatter_class(),
+                "add_help": parser_help_enabled,  # Add support for --help
+                "exit_on_error": False,
+                "help": parser_help,
+            }
+        )
+        command_group = parser_kwargs.pop("command_group", None)
 
-            # Create a new subparser for this command (flat structure)
-            parser_help = prepare_docstring(
-                first_doc_line(parser_help), variables=ctx_vars
-            )
-            parser_kwargs = dict(self.kwargs)
-            parser_kwargs.update(
-                {
-                    "formatter_class": config.get_help_formatter_class(),
-                    "add_help": parser_help_enabled,  # Add support for --help
-                    "exit_on_error": False,
-                    "help": parser_help,
-                    # "aliases": parser_aliases,
-                }
-            )
-            command_group = parser_kwargs.pop("command_group", None)
-            # if parser_help is not None:
-            #     parser_kwargs["help"] = parser_help
+        # Create parser
+        subparser = config.subparsers.add_parser(
+            key,
+            **parser_kwargs,
+        )
 
-            # Create parser
-            subparser = config.subparsers.add_parser(
-                key,
-                **parser_kwargs,
-            )
+        # Create an instance of the command class with the subparser
+        child = self.cls(parent=config, parser=subparser, key=key)
+        child.command_group = command_group
+        child.command_help = parser_help
+        ctx_vars["self"] = child
 
-            # Create an instance of the command class with the subparser
-            child = self.cls(parent=config, parser=subparser, key=key)
-            child.command_group = command_group
-            child.command_help = parser_help
-            ctx_vars["self"] = child
+        child_usage = child.query_cfg_inst("help_usage", default=None)
+        child_desc = first_doc_line(
+            child.query_cfg_inst("help_description", default=child.__doc__)
+        )
+        child_epilog = child.query_cfg_inst("help_epilog", default=None)
 
-            child_usage = child.query_cfg_inst("help_usage", default=None)
-            child_desc = first_doc_line(
-                child.query_cfg_inst("help_description", default=child.__doc__)
-            )
-            child_epilog = child.query_cfg_inst("help_epilog", default=None)
+        # Reconfigure subparser
+        child_usage = prepare_docstring(child_usage, variables=ctx_vars)
+        child_desc = prepare_docstring(child_desc, variables=ctx_vars)
+        child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
 
-            # Reconfigure subparser
-            child_usage = prepare_docstring(child_usage, variables=ctx_vars)
-            child_desc = prepare_docstring(child_desc, variables=ctx_vars)
-            child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
-
-            subparser.add_help = (
-                False  # child.query_cfg_inst("help_enable", default=True)
-            )
-            subparser.usage = child_usage
-            subparser.description = child_desc
-            subparser.epilog = child_epilog
-            subparser.formatter_class = child.get_help_formatter_class()
-
-            # pprint (subparser.__dict__)
-
-        else:
-            # This part is in BETA
-
-            # Create nested structure
-            child = self.cls(parent=config)
-            # Pass help text from Command class kwargs
-            child.parser.help = self.kwargs.get("help", child.__doc__)
-            argparse_inject_as_subparser(config.parser, key, child.parser)
+        subparser.add_help = False
+        subparser.usage = child_usage
+        subparser.description = child_desc
+        subparser.epilog = child_epilog
+        subparser.formatter_class = child.get_help_formatter_class()
 
         return child
 

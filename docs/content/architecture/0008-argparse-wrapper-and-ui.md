@@ -28,4 +28,4 @@ Python 3.10-3.11 stdlib intermixed still slices the first 7 characters of `forma
 
 ## Consequences
 
-Help and errors are Clak-stable across 3.10-3.14. Private argparse access shrinks to parsing. Inject/merge stays BETA and unused. Public `Parser` / `Argument` / `Command` names stay the same.
+Help and errors are Clak-stable across 3.10-3.14. Private argparse access shrinks to parsing. Parser merging is not supported (see ADR 0003); the old inject path was removed. Public `Parser` / `Argument` / `Command` names stay the same.

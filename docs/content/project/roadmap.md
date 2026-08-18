@@ -68,6 +68,10 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 - [ ] Assemble multiple CLIs from different Python packages into one command tree
 - [ ] Invoke another command from `cli_run` (`run_cmd` / command forwarding)
+- [ ] Merge an already-built argparse tree into a parent (old inject path;
+  rejected as too fragile in
+  [ADR 0003](../architecture/0003-no-argparse-merging.md); revisit only with
+  a maintainable design)
 
 ### Packaging / project
 
