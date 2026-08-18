@@ -47,6 +47,15 @@ class HelpLayout:
             self.command_groups = tuple(self.command_groups or ())
 
 
+@dataclass(frozen=True)
+class _HelpWidths:
+    """Column widths for one --help listing."""
+
+    action_width: int
+    help_position: int
+    help_width: int
+
+
 @dataclass
 class HelpArg:  # pylint: disable=too-many-instance-attributes
     """One attached argument, recorded at add_argument time."""
@@ -64,6 +73,7 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
 
     @classmethod
     def from_action(cls, action, group=None) -> "HelpArg":
+        """Build a HelpArg from an argparse Action."""
         help_msg = action.help
         suppress = help_msg == SUPPRESS
         return cls(
@@ -80,9 +90,11 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
         )
 
     def is_positional(self) -> bool:
+        """True when this argument has no option strings."""
         return not self.option_strings
 
     def is_hidden(self) -> bool:
+        """True when help is suppressed or dest is a private name."""
         return self.suppress or (self.dest or "").startswith("__")
 
 
@@ -93,6 +105,7 @@ class HelpLine:
     parts: list[tuple[str, str]] = field(default_factory=list)
 
     def append(self, kind: str, text: str) -> None:
+        """Append a typed part when text is non-empty."""
         if text:
             self.parts.append((kind, text))
 
@@ -105,6 +118,7 @@ class HelpDocument:
     usage_lines: list[HelpLine] = field(default_factory=list)
 
     def to_plain(self, *, usage_only: bool = False) -> str:
+        """Render lines as a string; usage_only uses usage_lines."""
         rows = self.usage_lines if usage_only else self.lines
         chunks = []
         for line in rows:
@@ -145,20 +159,21 @@ class HelpRenderer:
         self.colorizer = colorizer
 
     def format_usage(self) -> str:
+        """Plain usage text for argparse format_usage."""
         doc = self.build()
         return doc.to_plain(usage_only=True)
 
     def format_help(self) -> str:
+        """Full help text, colorized when a colorizer is set."""
         doc = self.build()
         if self.colorizer is not None:
             return self.colorizer(doc)
         return doc.to_plain()
 
-    def build(
+    def build(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         self,
-    ) -> (
-        HelpDocument
-    ):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    ) -> HelpDocument:
+        """Assemble the HelpDocument for this node."""
         node = self.node
         parser = node.parser
         width = _help_width()
@@ -179,14 +194,18 @@ class HelpRenderer:
         if cmd_labels:
             max_inv = max(max_inv, max(len(label) for label in cmd_labels))
         if node.children:
-            max_inv = max(max_inv, len("{%s}" % ",".join(node.children)))
+            max_inv = max(max_inv, len("{" + ",".join(node.children) + "}"))
         indent = 2
         help_position = min(max_inv + indent + 2, MAX_HELP_POSITION)
         action_width = help_position - indent - 2
         if action_width < 1:
             action_width = max(max_inv, 1)
         help_position = action_width + indent + 2
-        help_width = max(width - help_position, 11)
+        widths = _HelpWidths(
+            action_width=action_width,
+            help_position=help_position,
+            help_width=max(width - help_position, 11),
+        )
 
         doc = HelpDocument()
         usage_text = parser.format_usage().rstrip("\n")
@@ -241,17 +260,13 @@ class HelpRenderer:
                     doc,
                     invocations[id(item)],
                     _help_text_for(item),
-                    action_width,
-                    help_position,
-                    help_width,
+                    widths,
                     name_kind=kind,
                 )
             doc.lines.append(HelpLine())
 
         add_section("positional arguments:", positionals, "cmds")
-        _append_subcommand_sections(
-            doc, node, layout, action_width, help_position, help_width
-        )
+        _append_subcommand_sections(doc, node, layout, widths)
         add_section("options:", ungrouped_opts, "args")
         for title in extra_groups:
             add_section(f"{title}:", grouped[title], "args")
@@ -295,22 +310,18 @@ def _format_args(item: HelpArg) -> str:
     metavar = item.metavar
     if metavar is None:
         if item.choices:
-            metavar = "{%s}" % ",".join(str(choice) for choice in item.choices)
+            metavar = "{" + ",".join(str(choice) for choice in item.choices) + "}"
         else:
             metavar = (item.dest or "").upper()
     if isinstance(metavar, tuple):
         metavar = " ".join(str(part) for part in metavar)
     nargs = item.nargs
-    if nargs is None or nargs == 0:
-        return str(metavar)
     if nargs == OPTIONAL:
-        return "[%s]" % metavar
-    if nargs == ZERO_OR_MORE:
-        return "[%s [%s ...]]" % (metavar, metavar)
-    if nargs == "*":
-        return "[%s [%s ...]]" % (metavar, metavar)
+        return f"[{metavar}]"
+    if nargs in (ZERO_OR_MORE, "*"):
+        return f"[{metavar} [{metavar} ...]]"
     if nargs == "+":
-        return "%s [%s ...]" % (metavar, metavar)
+        return f"{metavar} [{metavar} ...]"
     if nargs == "...":
         return "..."
     if isinstance(nargs, int) and nargs > 1:
@@ -344,28 +355,25 @@ def _append_entry_lines(
     doc: HelpDocument,
     invocation: str,
     help_msg: str,
-    action_width: int,
-    help_position: int,
-    help_width: int,
+    widths: _HelpWidths,
     name_kind: str,
-    prefix: str = "  ",
 ) -> None:
     line = HelpLine()
-    line.append("plain", prefix)
+    line.append("plain", "  ")
     line.append(name_kind, invocation)
     if not help_msg:
         doc.lines.append(line)
         return
-    if len(invocation) > action_width:
+    if len(invocation) > widths.action_width:
         doc.lines.append(line)
-        wrapped = textwrap.wrap(help_msg, help_width) or [""]
+        wrapped = textwrap.wrap(help_msg, widths.help_width) or [""]
         for chunk in wrapped:
             wrap_line = HelpLine()
-            wrap_line.append("plain", " " * help_position)
+            wrap_line.append("plain", " " * widths.help_position)
             _append_help_with_default(wrap_line, chunk)
             doc.lines.append(wrap_line)
         return
-    pad = " " * (action_width - len(invocation))
+    pad = " " * (widths.action_width - len(invocation))
     line.append("plain", pad + "  ")
     _append_help_with_default(line, help_msg)
     doc.lines.append(line)
@@ -437,9 +445,7 @@ def _grouped_subcommand_sections(node, layout: HelpLayout):
         yield "subcommands:", leftover
 
 
-def _append_subcommand_sections(
-    doc, node, layout, action_width, help_position, help_width
-):
+def _append_subcommand_sections(doc, node, layout, widths: _HelpWidths):
     if not node.children:
         return
     list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
@@ -457,9 +463,7 @@ def _append_subcommand_sections(
             doc,
             label,
             help_msg,
-            action_width,
-            help_position,
-            help_width,
+            widths,
             name_kind="cmds",
         )
         if list_nested and child.children:

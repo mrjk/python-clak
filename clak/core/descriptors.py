@@ -44,6 +44,48 @@ def _kwargs_for_add_argument(kwargs: dict, parser) -> dict:
     return kwargs
 
 
+def _help_group_title_from_kwargs(key: str, kwargs: dict):
+    """Pop help-section titles; at most one of argument_group / option_group."""
+    argument_group_title = kwargs.pop("argument_group", None)
+    option_group_title = kwargs.pop("option_group", None)
+    if argument_group_title is not None and option_group_title is not None:
+        raise ValueError(
+            f"Argument {key!r} cannot set both argument_group and "
+            f"option_group (got {argument_group_title!r} and "
+            f"{option_group_title!r})"
+        )
+    if argument_group_title is not None:
+        return argument_group_title
+    return option_group_title
+
+
+def _parser_add_target(parser, help_group_title, exclusive_key):
+    """Parser, help group, or exclusive group that receives add_argument."""
+    target = parser
+    if help_group_title is not None:
+        groups = getattr(parser, "_clak_argument_groups", None)
+        if groups is None:
+            groups = {}
+            setattr(parser, "_clak_argument_groups", groups)
+        if help_group_title not in groups:
+            groups[help_group_title] = parser.add_argument_group(help_group_title)
+        target = groups[help_group_title]
+    if exclusive_key is not None:
+        exclusive_groups = getattr(parser, "_clak_exclusive_groups", None)
+        if exclusive_groups is None:
+            exclusive_groups = {}
+            setattr(parser, "_clak_exclusive_groups", exclusive_groups)
+        # Nest under the help section when present; key by (parent id, name)
+        # so the same exclusive name can exist under different help titles.
+        exclusive_cache_key = (id(target), exclusive_key)
+        if exclusive_cache_key not in exclusive_groups:
+            exclusive_groups[exclusive_cache_key] = (
+                target.add_mutually_exclusive_group()
+            )
+        target = exclusive_groups[exclusive_cache_key]
+    return target
+
+
 class ArgParseItem(Fn):
     """Base class for argument parser items.
 
@@ -240,22 +282,9 @@ class Argument(ArgParseItem):
                 f"Args must be a tuple for {self.__class__.__name__}: {type(args)}"
             )
 
-        argument_group_title = kwargs.pop("argument_group", None)
-        option_group_title = kwargs.pop("option_group", None)
+        help_group_title = _help_group_title_from_kwargs(key, kwargs)
         exclusive_key = kwargs.pop("exclusive_group", None)
         kwargs.pop("propagate", None)
-
-        if argument_group_title is not None and option_group_title is not None:
-            raise ValueError(
-                f"Argument {key!r} cannot set both argument_group and "
-                f"option_group (got {argument_group_title!r} and "
-                f"{option_group_title!r})"
-            )
-        help_group_title = (
-            argument_group_title
-            if argument_group_title is not None
-            else option_group_title
-        )
 
         # Create argument
         logger.debug(
@@ -265,30 +294,7 @@ class Argument(ArgParseItem):
             self.kwargs,
         )
 
-        target = parser
-        if help_group_title is not None:
-            groups = getattr(parser, "_clak_argument_groups", None)
-            if groups is None:
-                groups = {}
-                setattr(parser, "_clak_argument_groups", groups)
-            if help_group_title not in groups:
-                groups[help_group_title] = parser.add_argument_group(help_group_title)
-            target = groups[help_group_title]
-
-        if exclusive_key is not None:
-            exclusive_groups = getattr(parser, "_clak_exclusive_groups", None)
-            if exclusive_groups is None:
-                exclusive_groups = {}
-                setattr(parser, "_clak_exclusive_groups", exclusive_groups)
-            # Nest under the help section when present; key by (parent id, name)
-            # so the same exclusive name can exist under different help titles.
-            exclusive_cache_key = (id(target), exclusive_key)
-            if exclusive_cache_key not in exclusive_groups:
-                exclusive_groups[exclusive_cache_key] = (
-                    target.add_mutually_exclusive_group()
-                )
-            target = exclusive_groups[exclusive_cache_key]
-
+        target = _parser_add_target(parser, help_group_title, exclusive_key)
         action = target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
         help_args = getattr(config, "help_args", None)
         if help_args is not None:
@@ -432,9 +438,7 @@ class SubParser(ArgParseItem):
         ctx_vars = {"key": key, "self": config}
 
         # Create a new subparser for this command (flat structure)
-        parser_help = prepare_docstring(
-            first_doc_line(parser_help), variables=ctx_vars
-        )
+        parser_help = prepare_docstring(first_doc_line(parser_help), variables=ctx_vars)
         parser_kwargs = dict(self.kwargs)
         parser_kwargs.update(
             {
