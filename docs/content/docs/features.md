@@ -107,6 +107,7 @@ Mix in only what you need:
 
 - `ctx.runtime`: TTY, shell parent, color/size, pager (core CLI session).
 - `ctx.facts`: optional lazy host/user/distro helpers.
+- `ctx.settings`: `ClakSettings` snapshot of `CLAK_DEBUG` / `CLAK_COLORS` / related flags.
 - Guide: [Runtime and facts](runtime.md).
 
 ### Build your own

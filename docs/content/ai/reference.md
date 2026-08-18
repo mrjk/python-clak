@@ -65,6 +65,7 @@ Parent destinations are included when nested.
 On ctx (attached once at execute start):
   ctx.runtime  - core TTY/launch/display/size (eager, local)
   ctx.facts    - optional OS sugar (lazy host/user/distro)
+  ctx.settings - ClakSettings (debug, colors, color_backend, log_colors)
   See docs: Runtime and facts. Meta.runtime_narrow_width configures is_narrow.
   CLAK_FACTS_TIMEOUT default 30s for blocking fact resolves (-1 = none).
 

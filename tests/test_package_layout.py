@@ -28,7 +28,7 @@ def test_compat_core_reexports():
 def test_compat_runtime_reexports():
     from clak.facts import detect_facts
     from clak.log_levels import register_clak_log_levels
-    from clak.runtime import detect_runtime
+    from clak.runtime import ClakSettings, detect_runtime
     from clak.runtime.facts import detect_facts as DetectFactsNew
     from clak.runtime.runtime import detect_runtime as DetectRuntimeNew
     from clak.settings import CLAK_DEBUG, resolve_log_colors
@@ -38,6 +38,7 @@ def test_compat_runtime_reexports():
     assert callable(resolve_log_colors)
     assert CLAK_DEBUG is not None
     assert callable(register_clak_log_levels)
+    assert ClakSettings.from_env().colors in (True, False)
 
 
 def test_compat_views_reexports():

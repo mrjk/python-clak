@@ -101,7 +101,7 @@ def colorize_data_text(
     color=None,
     stdout_tty=None,
     theme=None,
-    **_,
+    **kwargs,
 ) -> str:
     """Optionally syntax-highlight *text* with rich.
 
@@ -116,9 +116,12 @@ def colorize_data_text(
     if resolve_color_backend() == "none":
         return text
 
+    colors_enabled = (
+        CLAK_COLORS if kwargs.get("clak_colors") is None else bool(kwargs["clak_colors"])
+    )
     want_color = resolve_bool_option(
         color,
-        auto=lambda: bool(CLAK_COLORS)
+        auto=lambda: bool(colors_enabled)
         and bool(stdout_tty)
         and not os.environ.get("NO_COLOR"),
     )
@@ -184,5 +187,6 @@ class DataView(ClakView):
             color=color,
             stdout_tty=stdout_tty,
             theme=theme,
+            clak_colors=settings.pop("clak_colors", None),
         )
         return self._output(rendered, stdout=stdout)

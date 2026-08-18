@@ -117,7 +117,7 @@ class Meta:
 | -v logging + self.logger | LoggingOptMixin |
 | XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
 | Emit shell completion script | CompCmdRender as a Command |
-| TTY / size / color on ctx | ctx.runtime (core); optional ctx.facts (host/user/distro) |
+| TTY / size / color on ctx | ctx.runtime (core); optional ctx.facts (host/user/distro); ctx.settings (CLAK_* flags) |
 
 Views: return data from cli_run; mixin prints it.
 Logging: configure Meta.log_levels as cumulative tiers of "LEVEL|logger".

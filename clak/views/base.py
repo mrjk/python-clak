@@ -68,26 +68,34 @@ class ClakView:
             print(rendered)
         return rendered
 
+    @staticmethod
+    def merge_settings(existing=None, cli_settings=None):
+        """Merge CLI view settings over existing view settings.
+
+        CLI values win. When CLI overrides a non-None existing value, log at INFO.
+        """
+        existing = dict(existing or {})
+        cli_settings = dict(cli_settings or {})
+        merged = dict(existing)
+        for key, cli_val in cli_settings.items():
+            old_val = existing.get(key, None)
+            if old_val is not None and old_val != cli_val:
+                logger.info(
+                    "CLI option %s=%r overrides view setting %r",
+                    key,
+                    cli_val,
+                    old_val,
+                )
+            merged[key] = cli_val
+        return merged
+
 
 def merge_view_settings(existing=None, cli_settings=None):
     """Merge CLI view settings over existing view settings.
 
-    CLI values win. When CLI overrides a non-None existing value, log at INFO.
+    Thin wrapper around ``ClakView.merge_settings``.
     """
-    existing = dict(existing or {})
-    cli_settings = dict(cli_settings or {})
-    merged = dict(existing)
-    for key, cli_val in cli_settings.items():
-        old_val = existing.get(key, None)
-        if old_val is not None and old_val != cli_val:
-            logger.info(
-                "CLI option %s=%r overrides view setting %r",
-                key,
-                cli_val,
-                old_val,
-            )
-        merged[key] = cli_val
-    return merged
+    return ClakView.merge_settings(existing, cli_settings)
 
 
 def normalize_width_mode(mode: Optional[str] = None) -> str:

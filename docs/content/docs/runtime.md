@@ -7,6 +7,7 @@ internals** and your `cli_run` / hooks:
 | --- | --- |
 | `ctx.runtime` | Core CLI/session: TTY, launch context, display, terminal size |
 | `ctx.facts` | Optional OS sugar: user/group, hostname, distro (lazy) |
+| `ctx.settings` | Process debug/color flags (`ClakSettings`: `debug`, `colors`, ...) |
 
 ```python
 def cli_run(self, ctx, **_):
@@ -131,3 +132,7 @@ On NSS timeout: names are `None` / empty `groups`.
 
 - [Logging](logging.md) (`--log-colors` still has its own resolve path)
 - [Views](views.md) (`--width` / `--line-length` use `ctx.runtime.term_width` / `stdout_tty`)
+
+`ctx.settings` is a `ClakSettings` snapshot (`debug`, `colors`, `color_backend`,
+`log_colors`). Env var names are unchanged (`CLAK_DEBUG`, `CLAK_COLORS`, ...).
+Module aliases `CLAK_DEBUG` / `CLAK_COLORS` remain for imports and tests.

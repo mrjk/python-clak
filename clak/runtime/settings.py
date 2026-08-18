@@ -1,5 +1,6 @@
 "Common clak settings"
 
+import logging
 import os
 import sys
 
@@ -7,19 +8,10 @@ from clak.common import resolve_bool_option, to_boolean
 from clak.exception import ClakUserError
 from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
 
-CLAK_DEBUG = to_boolean(os.environ.get("CLAK_DEBUG", False))
-CLAK_COLORS = to_boolean(os.environ.get("CLAK_COLORS", True))
-
 COLOR_BACKENDS = frozenset({"none", "rich", "auto"})
 CLAK_COLOR_BACKEND_ENV = "CLAK_COLOR_BACKEND"
 DEFAULT_COLOR_BACKEND = "auto"
 _RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
-
-# Optional override for ``--log-colors`` default. Unset means "auto".
-_CLAK_LOG_COLORS_RAW = os.environ.get("CLAK_LOG_COLORS")
-CLAK_LOG_COLORS = (
-    to_boolean(_CLAK_LOG_COLORS_RAW) if _CLAK_LOG_COLORS_RAW is not None else None
-)
 
 LOG_STYLES = {
     "debug": {"color": "magenta"},
@@ -33,6 +25,7 @@ LOG_FORMAT = "[%(levelname)8s] %(message)s"
 
 # Sentinel so callers can pass ``env_value=None`` (unset) vs omit the arg.
 _UNSET = object()
+_DEBUG_LOGGING_APPLIED = False
 
 
 def _normalize_color_backend(raw) -> str:
@@ -90,6 +83,95 @@ def color_backend_uses_rich(value=None) -> bool:
     return available
 
 
+class ClakSettings:
+    """Process-level debug / color / log-format settings.
+
+    ``from_env()`` reads ``CLAK_*`` at call time. ``current()`` prefers the
+    module aliases (``CLAK_DEBUG``, ``CLAK_COLORS``, ``CLAK_LOG_COLORS``) so
+    tests can still monkeypatch those names.
+    """
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        *,
+        debug: bool,
+        colors: bool,
+        color_backend: str,
+        log_colors,
+        styles: dict,
+        log_format: str,
+    ):
+        self.debug = bool(debug)
+        self.colors = bool(colors)
+        self.color_backend = color_backend
+        self.log_colors = log_colors
+        self.styles = styles
+        self.log_format = log_format
+
+    @classmethod
+    def from_env(cls) -> "ClakSettings":
+        """Build settings from the current process environment."""
+        raw_log_colors = os.environ.get("CLAK_LOG_COLORS")
+        return cls(
+            debug=to_boolean(os.environ.get("CLAK_DEBUG", False)),
+            colors=to_boolean(os.environ.get("CLAK_COLORS", True)),
+            color_backend=resolve_color_backend(),
+            log_colors=(
+                to_boolean(raw_log_colors) if raw_log_colors is not None else None
+            ),
+            styles=dict(LOG_STYLES),
+            log_format=LOG_FORMAT,
+        )
+
+    @classmethod
+    def current(cls) -> "ClakSettings":
+        """Process defaults; module aliases win so tests can monkeypatch."""
+        return cls(
+            debug=bool(CLAK_DEBUG),
+            colors=bool(CLAK_COLORS),
+            color_backend=resolve_color_backend(),
+            log_colors=CLAK_LOG_COLORS,
+            styles=dict(LOG_STYLES),
+            log_format=LOG_FORMAT,
+        )
+
+    def apply_debug_logging(self) -> None:
+        """Enable debug logging once when ``debug`` is true (not at import)."""
+        # pylint: disable=global-statement
+        global _DEBUG_LOGGING_APPLIED
+        if _DEBUG_LOGGING_APPLIED or not self.debug:
+            return
+        _DEBUG_LOGGING_APPLIED = True
+
+        register_clak_log_levels()
+
+        if self.colors:
+            try:
+                import coloredlogs  # pylint: disable=import-outside-toplevel
+
+                apply_coloredlogs_defaults(coloredlogs)
+                coloredlogs.install(level="DEBUG")
+            except ImportError:
+                pass
+        else:
+            logging.basicConfig(
+                level=logging.DEBUG,
+                format="[%(levelname)8s] %(name)s - %(message)s",
+            )
+
+        logging.getLogger().debug(
+            "Debug logging enabled via CLAK_DEBUG=%s with CLAK_COLORS=%s",
+            self.debug,
+            self.colors,
+        )
+
+
+_PROCESS_SETTINGS = ClakSettings.from_env()
+CLAK_DEBUG = _PROCESS_SETTINGS.debug
+CLAK_COLORS = _PROCESS_SETTINGS.colors
+CLAK_LOG_COLORS = _PROCESS_SETTINGS.log_colors
+
+
 def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     """Resolve whether colored logs should be enabled.
 
@@ -115,29 +197,6 @@ def apply_coloredlogs_defaults(coloredlogs_module):
     coloredlogs_module.DEFAULT_LOG_FORMAT = LOG_FORMAT
 
 
-# Enable debug logging if CLAK_DEBUG environment variable is set to 1
-if CLAK_DEBUG:
-    import logging
-
-    register_clak_log_levels()
-
-    if CLAK_COLORS:
-        try:
-            import coloredlogs
-
-            apply_coloredlogs_defaults(coloredlogs)
-            coloredlogs.install(level="DEBUG")
-        except ImportError:
-            pass
-    else:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="[%(levelname)8s] %(name)s - %(message)s",
-        )
-
-    logger = logging.getLogger()
-    logger.debug(
-        "Debug logging enabled via CLAK_DEBUG=%s with CLAK_COLORS=%s",
-        CLAK_DEBUG,
-        CLAK_COLORS,
-    )
+def apply_debug_logging(settings=None):
+    """Enable debug logging from *settings* or ``ClakSettings.current()``."""
+    (settings or ClakSettings.current()).apply_debug_logging()

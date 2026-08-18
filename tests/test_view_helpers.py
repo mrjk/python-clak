@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from clak.views.base import merge_view_settings, resolve_view_width
+from clak.views.base import ClakView, merge_view_settings, resolve_view_width
 from clak.views.table import (
     normalize_wrap,
     normalize_wrap_min,
@@ -96,6 +96,12 @@ def test_merge_view_settings_no_log_when_unset(caplog):
 
     assert merged == {"columns": ["name"]}
     assert "overrides view setting" not in caplog.text
+
+
+def test_clakview_merge_settings_matches_wrapper():
+    existing = {"columns": ["name"], "width": "fit"}
+    cli = {"columns": ["age"]}
+    assert ClakView.merge_settings(existing, cli) == merge_view_settings(existing, cli)
 
 
 def test_resolve_view_width_modes():

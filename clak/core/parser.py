@@ -13,7 +13,6 @@ Dispatch and exception handling live in ``clak.core._dispatch`` and
 """
 
 import logging
-from types import SimpleNamespace
 from typing import Any, Optional
 
 from clak import exception
@@ -28,6 +27,7 @@ from clak.core.argparse_ import (
     HelpLayout,
     argparse,
 )
+from clak.core.context import ClakContext
 from clak.core.descriptors import (  # pylint: disable=unused-import
     Arg,
     ArgParseItem,
@@ -39,6 +39,8 @@ from clak.core.descriptors import (  # pylint: disable=unused-import
     prepare_docstring,
 )
 from clak.core.nodes import NOT_SET, Node
+from clak.core.plugins import CLI_HOOK_PREFIX
+from clak.runtime.settings import apply_debug_logging
 from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
@@ -102,13 +104,9 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
     4. Implementing cli_group() for command group behavior
 
     Attributes:
-        arguments_dict (dict): Dictionary of argument name to ArgParseItem
-        children (dict): Dictionary of subcommand name to subcommand class
+        children (dict): Dictionary of subcommand name to child parser
         meta__name (str): ParserNode name
     """
-
-    arguments_dict: dict[str, ArgParseItem] = {}
-    children: dict[str, type] = {}  # Dictionary of subcommand name to subcommand class
 
     meta__name: str = NOT_SET
 
@@ -215,6 +213,9 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
         """
         self.logger = logger
 
+        if parent is None:
+            apply_debug_logging()
+
         super().__init__(parent=parent)
 
         self.name = self.query_cfg_parents("name", default=self.__class__.__name__)
@@ -248,6 +249,7 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
 
         self.add_arguments()
         self.add_subcommands()
+        self._cli_hooks = self._collect_cli_hooks()
 
     def __repr__(self):
         return f"<{self.__class__.__module__}.{self.__class__.__name__}>"
@@ -344,7 +346,7 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
         """Initialize all argument options defined for this parser.
 
         This method:
-        1. Collects arguments from arguments_dict
+        1. Collects arguments from meta__arguments_dict
         2. Collects arguments defined as class attributes
         3. Adds internal arguments like __cli_self__
         4. Creates all argument parser entries
@@ -559,7 +561,18 @@ class ParserNode(  # pylint: disable=too-many-instance-attributes
                 f"No 'cli_run' method found for {self}"
             )
 
-    def cli_group(self, ctx: SimpleNamespace, **_: Any) -> None:
+    def _collect_cli_hooks(self) -> dict:
+        """Bound ``cli_hook__*`` methods on this instance (once at build)."""
+        hooks = {}
+        for name in dir(self):
+            if not name.startswith(CLI_HOOK_PREFIX):
+                continue
+            fn = getattr(self, name, None)
+            if callable(fn):
+                hooks[name] = fn
+        return hooks
+
+    def cli_group(self, ctx: ClakContext, **_: Any) -> None:
         """Execute group-level command behavior.
 
         Args:
