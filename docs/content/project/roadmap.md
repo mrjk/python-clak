@@ -76,7 +76,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 ### Packaging / project
 
 - [x] Automated PyPI publish workflow on `v*` tags (`publish_pypi.yml`; local: `task publish_pypi`)
-- [ ] Single-source package version at code level (`importlib.metadata` or require poetry-bumpversion in the release script)
+- [x] Single-source package version at code level (`clak.__version__` via `importlib.metadata`)
 - [ ] Portable CI toolkit (mise + shared Taskfile CORE) for reuse across small Poetry projects
 
 ## Deliberately out of scope (for now)

@@ -10,11 +10,8 @@ Maintainer guide to bump, tag, and publish `mrjk.clak` to PyPI.
 | Push | `git push && git push --tags` |
 | Publish | CI on `v*` tags (or `task publish_pypi` manually) |
 
-Version lives in `pyproject.toml`. Install the bump plugin once with
-`poetry self add poetry-bumpversion` so `poetry version` also updates
-`clak/__init__.py` (see `[tool.poetry_bumpversion]` in `pyproject.toml`).
-
-Override the package directory if needed: `PKG_DIR=clak ./scripts/release.sh patch`.
+Version lives only in `pyproject.toml`. `clak.__version__` is read at import
+from installed package metadata (`importlib.metadata.version("mrjk.clak")`).
 
 Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: test gate, then
 `task publish_pypi`. Requires a GitHub environment named `pypi` with secret

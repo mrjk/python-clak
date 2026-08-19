@@ -77,12 +77,6 @@ mdx-truly-sane-lists = "^1.3"
 pylint = "^3.3.3"
 
 
-# Poetry bumpversion
-# ========================
-
-[tool.poetry_bumpversion.file."clak/__init__.py"]
-
-
 # Pytest config
 # ========================
 [tool.pytest.ini_options]

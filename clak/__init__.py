@@ -24,6 +24,8 @@ Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.views``, ``clak.comp``. Deep module paths remain import-compatible.
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import XDGConfigMixin
 from clak.comp.help import RichHelpMixin
@@ -52,9 +54,13 @@ ArgumentParser = Parser
 SubCommand = SubParser
 Cmd = SubParser
 
-__version__ = "0.5.0"
+try:
+    __version__ = version("mrjk.clak")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 __all__ = [
+    "__version__",
     "Arg",
     "Argument",
     "ArgumentParser",

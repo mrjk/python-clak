@@ -69,7 +69,6 @@ EOF
 Project Informations:
     Version command: $GET_VERSION_CMD
     Current project version: $(get_current_version)
-    Package dir (PKG_DIR): $(get_pkg_dir)
 EOF
     exit 0
 }
@@ -100,11 +99,6 @@ is_prerelease() {
 # Return current project version, by default it uses poetry version -s
 get_current_version() {
     $GET_VERSION_CMD
-}
-
-# Package directory (import path), not PyPI name. Override with PKG_DIR.
-get_pkg_dir() {
-    echo "${PKG_DIR:-clak}"
 }
 
 # Enforce branch restrictions based on version type:
@@ -221,21 +215,15 @@ commit_and_tag() {
     local version tag
     version=$(strip_v_prefix "$(poetry version -s)")
     tag=$(format_version_tag "$version")
-    local pkg_dir
-    pkg_dir=$(get_pkg_dir)
 
-    local target="$pkg_dir/__init__.py"
-    local targets=""
-    for file in pyproject.toml "$target" ; do
-        [[ -f "$file" ]] || continue
-        targets="$targets $file"
-    done
+    if git diff --quiet -- pyproject.toml; then
+        echo "Error: pyproject.toml was not modified (version unchanged?)"
+        exit 1
+    fi
 
-    # shellcheck disable=SC2086
-    git add $targets
+    git add pyproject.toml
     echo ">>> Committing version bump and create tag $tag"
-    # shellcheck disable=SC2086
-    git commit -m "bump: version $tag" $targets
+    git commit -m "bump: version $tag" pyproject.toml
     git tag -m "release: version $tag" "$tag"
 }
 

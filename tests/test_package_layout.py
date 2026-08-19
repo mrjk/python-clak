@@ -1,8 +1,19 @@
 """Smoke tests: old deep import paths stay compatible after package reorg."""
 
+from importlib.metadata import version
+
 import pytest
 
+import clak
+
 pytestmark = pytest.mark.tags("unit-tests")
+
+
+def test_version_matches_package_metadata():
+    dist_version = version("mrjk.clak")
+    assert clak.__version__ == dist_version
+    assert dist_version
+    assert dist_version != "0.0.0"
 
 
 def test_compat_core_reexports():
