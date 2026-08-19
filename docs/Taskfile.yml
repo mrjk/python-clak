@@ -90,8 +90,14 @@ tasks:
       - task: prep_doc
       - "{{.PY}} mkdocs serve"
 
+  build:
+    desc: Build mkdocs site into site/
+    cmds:
+      - task: prep_doc
+      - "{{.PY}} mkdocs build --strict"
+
   publish:
     desc: update gh_page branch with new documentation
     cmds:
-      - task: prep_doc
+      - task: build
       - poetry run mkdocs gh-deploy --force
