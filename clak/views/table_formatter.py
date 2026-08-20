@@ -21,7 +21,7 @@ from collections.abc import Mapping, Sequence
 from clak.common import replace_tabs
 from clak.exception import ClakUserError
 from clak.runtime.settings import ClakSettings
-from clak.views.base import strip_ansi
+from clak.views.base import DEFAULT_WIDTH_MODE, strip_ansi
 
 SORT_MODES = frozenset({"asc", "desc"})
 _YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
@@ -202,7 +202,7 @@ def format_structured(rows, headers, fmt):
 
 def _apply_prettytable_width(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     table,
-    width="terminal",
+    width=DEFAULT_WIDTH_MODE,
     term_width=None,
     stdout_tty=None,
     wrap="last",
@@ -393,7 +393,7 @@ class _TableFormatter(ABC):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
-        "width": "terminal",
+        "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
     }
@@ -432,7 +432,7 @@ class _TableFormatter(ABC):
         fmt = _view_options.pop("format", "view") or "view"
         sort_columns = _view_options.pop("sort_columns", None)
         sort_mode = _view_options.pop("sort_mode", "asc") or "asc"
-        width = _view_options.pop("width", "terminal")
+        width = _view_options.pop("width", DEFAULT_WIDTH_MODE)
         wrap = _view_options.pop("wrap", "last")
         wrap_min = _view_options.pop("wrap_min", None)
         term_width = _view_options.pop("term_width", None)
@@ -513,7 +513,7 @@ class TableShowFormatter(_TableFormatter):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
-        "width": "terminal",
+        "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
     }
@@ -574,7 +574,7 @@ class TableListFormatter(_TableFormatter):
         "format": "view",
         "sort_columns": None,
         "sort_mode": "asc",
-        "width": "terminal",
+        "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
     }

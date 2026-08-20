@@ -20,7 +20,7 @@ WIDTH_MODE_ALIASES = {
     "min": "content",
     "auto": "fit",
 }
-DEFAULT_WIDTH_MODE = "terminal"
+DEFAULT_WIDTH_MODE = "fit"
 DEFAULT_LINE_LENGTH = 120
 LINE_LENGTH_KEYWORDS = frozenset({"terminal", "nowrap"})
 WRAP_MODES = frozenset({"last", "all", "first"})

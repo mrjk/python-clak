@@ -201,7 +201,7 @@ CompositeViewMixin — return CompositeView(...); table flags + --line-length + 
 Flags (list/show): --columns, --add-index/--no-add-index,
   --expand-keys/--no-expand-keys (list),
   --format view|yaml|json|csv, --sort-columns, --sort-mode,
-  --width content|fit|terminal (default terminal; no wrap when non-TTY),
+  --width content|fit|terminal (default fit; no wrap when non-TTY),
   --wrap last|first|all|COL,... (tables only; default last; flexible columns
   expand or shrink to the terminal; ignored when width is content or non-TTY)
 Flags (markdown/rst/raw/pprint): --line-length N|terminal|nowrap (default 120)

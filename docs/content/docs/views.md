@@ -107,7 +107,7 @@ View flags appear under an **Output options** group in `--help` (same
 | `--format` | `view`, `yaml`, `json`, `csv` | `view` | Render as a table or structured text |
 | `--sort-columns` | `COL1,COL2,...` | first column | Sort rows (same names / 1-based / negatives as `--columns`) |
 | `--sort-mode` | `asc`, `desc` | `asc` | Sort direction |
-| `--width` | `content`, `fit`, `terminal` | `terminal` | Table width mode (see below) |
+| `--width` | `content`, `fit`, `terminal` | `fit` | Table width mode (see below) |
 | `--wrap` | `last`, `first`, `all`, or `COL,...` | `last` | Which columns are flexible (see below) |
 
 ### Table width (`--width`)
@@ -130,7 +130,7 @@ Default Meta override:
 ```python
 class App(ListViewMixin, Parser):
     class Meta:
-        view_width = "fit"  # or "content" / "terminal"
+        view_width = "terminal"  # or "content" / "fit"
 ```
 
 CLI `--width` overrides `Meta.view_width`.

@@ -24,7 +24,7 @@ Example:
             view_column_names = ("name", "role", "city")
             view_sort_columns = 1
             view_format = "view"
-            view_width = "terminal"
+            view_width = "fit"
             view_wrap = "last"
 
         def cli_run(self, **_):

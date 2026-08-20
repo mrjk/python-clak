@@ -4,7 +4,12 @@ import logging
 
 import pytest
 
-from clak.views.base import ClakView, merge_view_settings, resolve_view_width
+from clak.views.base import (
+    DEFAULT_WIDTH_MODE,
+    ClakView,
+    merge_view_settings,
+    resolve_view_width,
+)
 from clak.views.table import (
     normalize_wrap,
     normalize_wrap_min,
@@ -105,6 +110,11 @@ def test_clakview_merge_settings_matches_wrapper():
 
 
 def test_resolve_view_width_modes():
+    assert DEFAULT_WIDTH_MODE == "fit"
+    assert resolve_view_width(width=None, term_width=80, stdout_tty=True) == (
+        "fit",
+        80,
+    )
     assert resolve_view_width(width="content", term_width=80, stdout_tty=True) == (
         "content",
         None,

@@ -6,6 +6,7 @@ from pprint import pprint
 
 import pytest
 
+from clak.views.base import DEFAULT_WIDTH_MODE
 from clak.views.table_formatter import (
     TableListFormatter,
     TableShowFormatter,
@@ -321,6 +322,12 @@ def _plain_table(output: str) -> str:
     import re
 
     return re.sub(r"\x1b\[[0-9;]*m", "", output)
+
+
+def test_table_formatter_default_width_is_fit():
+    assert TableListFormatter.view_options["width"] == DEFAULT_WIDTH_MODE
+    assert TableShowFormatter.view_options["width"] == DEFAULT_WIDTH_MODE
+    assert DEFAULT_WIDTH_MODE == "fit"
 
 
 def test_table_width_min_keeps_content_size():
