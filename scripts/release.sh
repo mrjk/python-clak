@@ -30,7 +30,7 @@ Version Keywords:
 
 Options:
     -h, --help     Show this help message
-    --dry, --dry-run  Only show what would happen
+    --dry, --dry-run  Only show what would happen (dirty tree is a warning)
     --next-phase   Use next phase, only for pre-release
 
 Reference:
@@ -133,11 +133,17 @@ check_branch() {
 # This prevents accidental mixing of version changes with other work
 # A clean working directory ensures version bumps are isolated commits
 check_git_status() {
-    if ! git diff-index --quiet HEAD --; then
-        echo "Error: There are uncommitted changes in the repository"
-        git status -sb
-        exit 1
+    if git diff-index --quiet HEAD --; then
+        return 0
     fi
+    if is_dry_run "$@"; then
+        echo "Warning: uncommitted changes (ignored for dry-run)"
+        git status -sb
+        return 0
+    fi
+    echo "Error: There are uncommitted changes in the repository"
+    git status -sb
+    exit 1
 }
 
 # True if dry-run was requested (--dry or --dry-run)
@@ -240,7 +246,7 @@ main() {
     echo ">>> Starting release process"
     check_args "$@"      # Validate input
     check_branch "$@"    # Enforce branch restrictions
-    check_git_status     # Ensure clean working directory
+    check_git_status "$@"  # Clean tree (warn-only on dry-run)
     update_version "$@"  # Update version in poetry
     commit_and_tag       # Create git commit and tag
     

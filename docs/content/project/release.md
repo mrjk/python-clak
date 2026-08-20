@@ -6,7 +6,7 @@ Maintainer guide to bump, tag, and publish `mrjk.clak` to PyPI.
 
 | Step | Command |
 |------|---------|
-| Bump + tag | `./scripts/release.sh <VERSION>` |
+| Bump + tag | `task release` / `task pre-release` (preview: `*-show`) |
 | Push | `git push && git push --tags` |
 | Publish | CI on `v*` tags (or `task publish_pypi` manually) |
 
@@ -19,7 +19,7 @@ Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: test gate, then
 
 ## Prerequisites
 
-- Clean git working tree (untracked files are fine; modified/staged files are not)
+- Clean git working tree for a real bump (untracked files are fine; modified/staged files are not). `task *-show` dry-runs warn on a dirty tree instead of failing.
 - Poetry project deps on the **daily Python 3.12** env (in-project **`.venv/`** via `poetry install --with dev`)
 - For stable releases: checkout `main` or `master`
 - For pre-releases (`pre*`, or a version like `1.2.3a0`): any branch **except** `main`/`master` (usually `develop`)
@@ -33,24 +33,24 @@ Supported runtime range for users: **Python 3.10–3.14** (see [Development setu
 Preview:
 
 ```bash
-./scripts/release.sh --dry-run prerelease
-./scripts/release.sh --dry-run patch
+task pre-release-show
+task release-show
 ```
 
 Apply:
 
 ```bash
 # Pre-release on develop (e.g. 0.4.0a2 -> 0.4.0a3)
-./scripts/release.sh prerelease
+task pre-release
 
 # Next pre-release phase (a -> b -> rc -> final)
-./scripts/release.sh prerelease --next-phase
+task pre-release -- --next-phase
 
-# Stable on main/master
-./scripts/release.sh patch    # or: minor | major | 1.2.3
+# Stable on main/master (default: patch)
+task release                  # or: task release -- minor | major | 1.2.3
 ```
 
-The script:
+These tasks wrap `./scripts/release.sh`, which:
 
 1. Checks branch rules and clean tree
 2. Runs `poetry version …`
@@ -112,7 +112,7 @@ task publish_pypi_test
 ### Next alpha on develop
 
 ```bash
-./scripts/release.sh prerelease
+task pre-release
 git push && git push --tags
 # CI publishes on the v* tag
 ```
@@ -121,7 +121,7 @@ git push && git push --tags
 
 ```bash
 git checkout main && git pull
-./scripts/release.sh patch
+task release
 git push && git push --tags
 # CI publishes on the v* tag
 ```

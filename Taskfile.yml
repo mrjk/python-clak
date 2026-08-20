@@ -41,6 +41,26 @@ tasks:
   # Publish and release
   # =============
 
+  release:
+    desc: "Bump stable version, commit, and tag (default: patch)"
+    cmds:
+      - bash ./scripts/release.sh {{.CLI_ARGS | default "patch"}}
+
+  release-show:
+    desc: "Dry-run stable release (default: patch)"
+    cmds:
+      - bash ./scripts/release.sh --dry-run {{.CLI_ARGS | default "patch"}}
+
+  pre-release:
+    desc: Bump pre-release version, commit, and tag
+    cmds:
+      - bash ./scripts/release.sh prerelease {{.CLI_ARGS}}
+
+  pre-release-show:
+    desc: Dry-run pre-release bump
+    cmds:
+      - bash ./scripts/release.sh --dry-run prerelease {{.CLI_ARGS}}
+
   publish_pypi_test:
     desc: Publish package on test.pypi.org
     cmds:
