@@ -74,6 +74,6 @@ Details: [Completion](../documentations/completion.md).
 
 ## Next steps
 
-* Feature overview: [Features](../documentations/features.md)
+* Feature overview: [Features](../about/features.md)
 * Planned work: [Roadmap](../about/roadmap.md)
 * Error handling patterns: [Error handling](../documentations/exceptions.md)

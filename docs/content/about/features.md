@@ -19,12 +19,12 @@ Cliff: [Comparison](comparison.md).
   [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers).
 - Unix-style mix of a command's flags and positionals (default on).
   Opt out: `Meta.parse_intermixed = False`. No-op on nodes with
-  subcommands. See [Advanced](advanced.md#parse-intermixed).
+  subcommands. See [Advanced](../documentations/advanced.md#parse-intermixed).
 - Ancestor flags are copied onto descendants (default on). Use them before
   or after the subcommand without redeclaring. Leaf `--help` lists them
   under `parent options:`. Opt out per flag: `propagate=False`.
   Disable all: `Meta.propagate_options = False`. See
-  [Advanced](advanced.md#propagate-options).
+  [Advanced](../documentations/advanced.md#propagate-options).
 
 ## Class-based structure
 
@@ -52,14 +52,14 @@ Mix in only what you need:
 - Colored `--help` by default when Rich is installed and stdout is a TTY
   (`mrjk.clak[markdown]`). Markup in `help_description` / `help_epilog` when
   color is on. Opt out: `Meta.help_formatter = RecursiveHelpFormatter`.
-  Guide: [Colored help](help.md).
+  Guide: [Colored help](../documentations/help.md).
 - Named help groups: `Argument(..., option_group="Title")` or
   `argument_group="Title"` places flags under a titled section in `--help`
   (same title reuses one group). Exclusive groups:
   `Argument(..., exclusive_group="key")` for XOR. Subcommand sections:
   `Meta.command_groups` plus `Command(..., command_group="key")` (formatter
   metadata, not a second `add_subparsers`). See
-  [Nested commands](advanced.md#named-help-groups-and-exclusive-groups).
+  [Nested commands](../documentations/advanced.md#named-help-groups-and-exclusive-groups).
 
 ### Views
 
@@ -75,21 +75,21 @@ Mix in only what you need:
   first|all` for multi-section machine export.
 - Markdown/data color: `mrjk.clak[markdown]`; YAML: `mrjk.clak[config]`;
   RST: `mrjk.clak[rst]`.
-- Guide: [Views](views.md).
+- Guide: [Views](../documentations/views.md).
 
 ### Error handling
 
 - `dispatch()` try/except + `clean_terminate()` handler chain.
 - `Meta.known_exceptions` for app errors with custom `rc`.
 - `Meta.exception_handlers` for third-party libraries.
-- Guide: [Error handling](exceptions.md).
+- Guide: [Error handling](../documentations/exceptions.md).
 
 ### Logging
 
 - `LoggingOptMixin`: stderr logging, `self.logger`, cumulative `-v` tiers.
 - Formatters, optional colors (`mrjk.clak[colors]`), `--trace`.
 - Custom levels: `spam`, `verbose`, `success`, `notice`.
-- Guide: [Logging](logging.md).
+- Guide: [Logging](../documentations/logging.md).
 
 ### Config
 
@@ -97,19 +97,19 @@ Mix in only what you need:
 - `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`: opt-in
   `--data-dir` / `--cache-dir` / `--log-dir`, one flag per mixin.
 - Loads JSON always; YAML via `mrjk.clak[config]`.
-- Guide: [Config](config.md).
+- Guide: [Config](../documentations/config.md).
 
 ### Completion
 
 - Emit shell completion scripts with `CompCmdRender` (argcomplete).
-- Guide: [Completion](completion.md).
+- Guide: [Completion](../documentations/completion.md).
 
 ### Runtime / facts
 
 - `ctx.runtime`: TTY, shell parent, color/size, pager (core CLI session).
 - `ctx.facts`: optional lazy host/user/distro helpers.
 - `ctx.settings`: `ClakSettings` snapshot of `CLAK_DEBUG` / `CLAK_COLORS` / related flags.
-- Guide: [Runtime and facts](runtime.md).
+- Guide: [Runtime and facts](../documentations/runtime.md).
 
 ### Build your own
 
@@ -117,5 +117,5 @@ Mix in only what you need:
 
 ## Planned
 
-See the [roadmap](../about/roadmap.md) for env-var mapping
+See the [roadmap](roadmap.md) for env-var mapping
 and runtime autocomplete.

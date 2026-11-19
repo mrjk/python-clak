@@ -1,8 +1,13 @@
 title: About
 nav:
-  - Contributing: CONTRIBUTING.md
-  - Development setup: setup.md
-  - Roadmap: roadmap.md
-  - Release: release.md
-  - Code of Conduct: CODE_OF_CONDUCT.md
-  - License: license.md
+  - Project:
+      - Features: features.md
+      - Comparison: comparison.md
+      - Roadmap: roadmap.md
+      - GPL License: license.md
+
+  - Community:
+      - Code of Conduct: CODE_OF_CONDUCT.md
+      - Contributing: CONTRIBUTING.md
+      - Development setup: setup.md
+      - Release: release.md

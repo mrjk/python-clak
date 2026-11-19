@@ -100,7 +100,7 @@ Where Clak differs:
 
 - **API:** classes (`Parser`, `Argument`, `Command`), not `@click.command` /
   `typer.Option`. A decorator-first API is
-  [out of scope](../about/roadmap.md).
+  [out of scope](roadmap.md).
 - **Parser:** argparse. Click and Typer use Click's parser. `Argument(...)`
   is argparse, not a new option language.
 - **Scale:** large nested CLIs in Click/Typer often duplicate the same flags
@@ -148,7 +148,7 @@ Taken from Cliff (ideas, not a code fork):
   ad-hoc argparse wiring. Clak uses inheritance more for nested trees.
 - **Views: return data, render later.** The command does not print a table
   itself. It returns structured data; a view formats it. See
-  [Views](views.md).
+  [Views](../documentations/views.md).
 - **Show vs List.** Cliff `ShowOne` (one object as key/value) and `Lister`
   (many rows) map to `ShowViewMixin` and `ListViewMixin`.
 - **Output flags.** `--format view|yaml|json|csv`, `--columns`,
@@ -174,7 +174,7 @@ on argparse, without OpenStack plugin discovery.
 ## See also
 
 - [Features](features.md)
-- [Views](views.md)
+- [Views](../documentations/views.md)
 - [Nested commands guide](../guides/guide_102.md)
-- [Roadmap](../about/roadmap.md)
+- [Roadmap](roadmap.md)
 - [Architecture ADRs](../references/architecture/list.md)

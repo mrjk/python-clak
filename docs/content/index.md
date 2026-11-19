@@ -29,7 +29,7 @@ Then pick what you need:
 | Ship shell tab-completion scripts | [Completion](documentations/completion.md) |
 | Handle errors with exit codes | [Error handling](documentations/exceptions.md) |
 | Paste context into an AI chat | [AI primer](references/ai/primer.md) · [AI reference](references/ai/reference.md) |
-| Compare Clak to argparse, Click, Typer, Cliff | [Comparison](documentations/comparison.md) |
+| Compare Clak to argparse, Click, Typer, Cliff | [Comparison](about/comparison.md) |
 | See what is planned | [Roadmap](about/roadmap.md) |
 
 ## Why Clak?
@@ -38,6 +38,6 @@ Then pick what you need:
 - **Class-based** — inheritance and composition for real apps
 - **Optional batteries** — mix in views, logging, config, completion only when useful
 
-Feature overview: [Features](documentations/features.md). How Clak relates to
-argparse, Click, Typer, and Cliff: [Comparison](documentations/comparison.md).
+Feature overview: [Features](about/features.md). How Clak relates to
+argparse, Click, Typer, and Cliff: [Comparison](about/comparison.md).
 Design notes: [Architecture](references/architecture/list.md).

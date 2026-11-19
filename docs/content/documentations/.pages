@@ -1,14 +1,22 @@
 title: Documentation
 nav:
-    - Features: features.md
-    - Comparison: comparison.md
+  - Base:
+    - Installation: install.md
+    - Core classes: classes.md
+    - Shipping your CLI: execution.md
+
+  - Framework:
+    - Plugins: plugins.md
     - Views: views.md
-    - Interactive UI: ui.md
-    - Unattended runs: unattended.md
+
+  - Domain:
     - Logging: logging.md
+    - Interactive UI: ui.md
+    - Batch mode: unattended.md
     - Config: config.md
     - Completion: completion.md
+
+  - Advanced:
     - Error handling: exceptions.md
-    - Installation: install.md
-    - Advanced: advanced.md
-    - Shipping your CLI: execution.md
+    - Best practices: advanced.md
+

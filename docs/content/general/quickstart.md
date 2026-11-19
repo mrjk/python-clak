@@ -99,5 +99,5 @@ python hello.py --debug command2 --alias nick Alice
    [Config](../documentations/config.md),
    [Completion](../documentations/completion.md),
    [Error handling](../documentations/exceptions.md).
-3. Browse the [feature overview](../documentations/features.md) or the
+3. Browse the [feature overview](../about/features.md) or the
    [API reference](../references/api/module.md).
