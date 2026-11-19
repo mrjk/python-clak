@@ -5,13 +5,12 @@
 from __future__ import annotations
 
 import json
-import os
 
 from clak._optional import available, require
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.rich_style import make_rich_console, syntax_kwargs
-from clak.runtime.settings import ClakSettings, resolve_color_backend
+from clak.runtime.settings import colors_enabled, resolve_color_backend
 from clak.views.base import ClakView
 from clak.views.table_formatter import require_yaml
 
@@ -97,16 +96,10 @@ def colorize_data_text(
     if resolve_color_backend() == "none":
         return text
 
-    colors_enabled = (
-        ClakSettings.current().colors
-        if kwargs.get("clak_colors") is None
-        else bool(kwargs["clak_colors"])
-    )
     want_color = resolve_bool_option(
         color,
-        auto=lambda: bool(colors_enabled)
-        and bool(stdout_tty)
-        and not os.environ.get("NO_COLOR"),
+        auto=lambda: colors_enabled(clak_colors=kwargs.get("clak_colors"))
+        and bool(stdout_tty),
     )
     if not want_color:
         return text

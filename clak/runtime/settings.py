@@ -165,13 +165,37 @@ CLAK_COLORS = _PROCESS_SETTINGS.colors
 CLAK_LOG_COLORS = _PROCESS_SETTINGS.log_colors
 
 
+def colors_enabled(*, clak_colors=None, env=None) -> bool:
+    """Global color kill switches shared by help, logs, views and runtime.
+
+    False when ``NO_COLOR`` is set and non-empty (https://no-color.org) or
+    ``CLAK_COLORS`` is false. *clak_colors* overrides the process
+    ``CLAK_COLORS`` value (e.g. one captured on a dispatch context).
+    Per-surface rules (TTY, explicit flags, backend) build on top.
+    """
+    env = os.environ if env is None else env
+    if env.get("NO_COLOR"):
+        return False
+    if clak_colors is None:
+        clak_colors = CLAK_COLORS
+    return bool(clak_colors)
+
+
+def stream_isatty(stream) -> bool:
+    """``stream.isatty()`` that tolerates missing, closed or fake streams."""
+    try:
+        return bool(stream.isatty())
+    except (AttributeError, ValueError, OSError):
+        return False
+
+
 def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     """Resolve whether colored logs should be enabled.
 
     Precedence:
     1. Explicit CLI ``--log-colors`` / ``--no-log-colors`` (``cli_value`` not None)
     2. ``env_value`` when not omitted (default: ``CLAK_LOG_COLORS``); ``None`` means unset
-    3. Auto: ``CLAK_COLORS`` and ``stream.isatty()`` (default stream: stderr)
+    3. Auto: :func:`colors_enabled` and ``stream.isatty()`` (default: stderr)
     """
     if stream is None:
         stream = sys.stderr
@@ -180,7 +204,7 @@ def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     return resolve_bool_option(
         cli_value,
         env_value=env_value,
-        auto=lambda: bool(CLAK_COLORS) and stream.isatty(),
+        auto=lambda: colors_enabled() and stream_isatty(stream),
     )
 
 

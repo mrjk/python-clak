@@ -8,13 +8,16 @@ importable. Missing Rich degrades to plain HelpRenderer layout (no ANSI).
 
 from __future__ import annotations
 
-import os
 import sys
 
 from clak._optional import optional
 from clak.core.help_render import HelpDocument, RecursiveHelpFormatter
 from clak.runtime.rich_style import make_rich_console, render_markup_text
-from clak.runtime.settings import ClakSettings, color_backend_uses_rich
+from clak.runtime.settings import (
+    color_backend_uses_rich,
+    colors_enabled,
+    stream_isatty,
+)
 
 rich_console = optional("rich.console")
 # pylint: disable-next=invalid-name
@@ -41,11 +44,7 @@ class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
 
 def help_uses_rich() -> bool:
     """Whether ``--help`` should emit ANSI."""
-    if os.environ.get("NO_COLOR"):
-        return False
-    if not ClakSettings.current().colors:
-        return False
-    if not sys.stdout.isatty():
+    if not colors_enabled() or not stream_isatty(sys.stdout):
         return False
     return color_backend_uses_rich()
 

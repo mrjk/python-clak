@@ -12,8 +12,7 @@ import shutil
 import sys
 from typing import Optional, Tuple
 
-from clak.common import to_boolean
-from clak.runtime.settings import ClakSettings
+from clak.runtime.settings import colors_enabled, stream_isatty
 
 logger = logging.getLogger("clak.runtime")
 
@@ -61,13 +60,6 @@ def _resolve_narrow_width(narrow_width: Optional[int] = None) -> int:
     if env is not None:
         return env
     return DEFAULT_NARROW_WIDTH
-
-
-def _stream_isatty(stream) -> bool:
-    try:
-        return bool(stream.isatty())
-    except (AttributeError, ValueError, OSError):
-        return False
 
 
 def _detect_ctty() -> Optional[str]:
@@ -154,17 +146,7 @@ def _force_color_level() -> Optional[str]:
 def _detect_color_level(  # pylint: disable=too-many-return-statements
     stdout_tty: bool,
 ) -> str:
-    if os.environ.get("NO_COLOR"):
-        return COLOR_NONE
-
-    raw_clak_colors = os.environ.get("CLAK_COLORS")
-    if raw_clak_colors is not None:
-        try:
-            if not to_boolean(raw_clak_colors):
-                return COLOR_NONE
-        except ValueError:
-            pass
-    elif not ClakSettings.current().colors:
+    if not colors_enabled():
         return COLOR_NONE
 
     forced = _force_color_level()
@@ -317,9 +299,9 @@ class RuntimeInfo:  # pylint: disable=too-many-instance-attributes
 
 def detect_runtime(narrow_width: Optional[int] = None) -> RuntimeInfo:
     """Build an eager local runtime snapshot (no DNS/NSS)."""
-    stdin_tty = _stream_isatty(sys.stdin)
-    stdout_tty = _stream_isatty(sys.stdout)
-    stderr_tty = _stream_isatty(sys.stderr)
+    stdin_tty = stream_isatty(sys.stdin)
+    stdout_tty = stream_isatty(sys.stdout)
+    stderr_tty = stream_isatty(sys.stderr)
     parent_ppid = os.getppid()
     parent_cmd = _read_parent_cmd(parent_ppid)
     parent_exe = _read_parent_exe(parent_ppid, parent_cmd)

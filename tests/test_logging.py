@@ -99,6 +99,7 @@ def test_resolve_log_colors_env_overrides_tty(monkeypatch):
 
 
 def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", None)
     monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
 
@@ -114,6 +115,7 @@ def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
 
 
 def test_resolve_log_colors_env_value_overrides_module_global(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
     monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     stream = SimpleNamespace(isatty=lambda: True)
