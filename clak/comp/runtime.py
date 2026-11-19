@@ -21,7 +21,7 @@ import logging
 import os
 import sys
 from dataclasses import replace
-from typing import Any, Mapping, Optional
+from typing import IO, Any, Mapping, Optional
 
 from clak.common import to_boolean
 from clak.core.descriptors import Argument
@@ -51,15 +51,16 @@ def _env_interactive(env: Mapping[str, str]) -> Optional[str]:
 def resolve_runtime(
     args: Mapping[str, Any],
     env: Optional[Mapping[str, str]] = None,
-    stdin=None,
-    stderr=None,
+    stdin: Optional[IO[str]] = None,
+    stderr: Optional[IO[str]] = None,
 ) -> dict:
     """Resolve runtime flags (pure function, no side effects).
 
     Args:
         args: parsed CLI values (``interactive``, ``no_input``, ``yes``).
         env: environment (default ``os.environ``).
-        stdin/stderr: streams used for TTY detection.
+        stdin: input stream used for TTY detection (default ``sys.stdin``).
+        stderr: error stream used for TTY detection (default ``sys.stderr``).
 
     Returns:
         ``{"interactive": bool, "assume_yes": bool, "mode": str, "source": str}``
