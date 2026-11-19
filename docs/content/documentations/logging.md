@@ -249,5 +249,5 @@ Advanced: register your own with `clak.log_levels.add_logging_level` /
 
 ## See also
 
-- API reference: [Logging component](../api/plugin_logging.md)
+- API reference: [Logging component](../references/api/plugin_logging.md)
 - Tracebacks on errors: [Error handling](exceptions.md) (`--trace`, `CLAK_DEBUG`)

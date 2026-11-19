@@ -1,0 +1,8 @@
+title: About
+nav:
+  - Contributing: CONTRIBUTING.md
+  - Development setup: setup.md
+  - Roadmap: roadmap.md
+  - Release: release.md
+  - Code of Conduct: CODE_OF_CONDUCT.md
+  - License: license.md

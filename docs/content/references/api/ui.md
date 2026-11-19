@@ -3,7 +3,7 @@
 Interactive components (prompts, confirmations, continue/quit, wait spinner).
 Standard library only and portable: copy `clak/ui/` into any project.
 
-See the [UI guide](../docs/ui.md) for usage.
+See the [UI guide](../../documentations/ui.md) for usage.
 
 ::: clak.ui
     options:
@@ -27,7 +27,7 @@ See the [UI guide](../docs/ui.md) for usage.
 
 ## Runtime flags
 
-See the [unattended runs guide](../docs/unattended.md).
+See the [unattended runs guide](../../documentations/unattended.md).
 
 ::: clak.comp.runtime
     options:

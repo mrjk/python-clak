@@ -9,16 +9,16 @@ These are the current **star features** — each has user documentation:
 
 | Feature | Docs |
 | --- | --- |
-| Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../docs/features.md), [Quickstart](../quickstart/quickstart.md) |
+| Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](../documentations/features.md), [Quickstart](../general/quickstart.md) |
 | Optional `Arg` / `Opt` helpers (positionals vs flags) | [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers) |
-| Nested subcommands + `--help` listing (`top` / `all`) | [Nested guide](../guides/guide_102.md), [Help](../docs/help.md) |
-| Colored `--help` (Rich extra; TTY) | [Colored help](../docs/help.md) |
-| Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
-| Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
-| Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../docs/exceptions.md) |
-| XDG paths + config file load (`XDGConfFileMixin` + per-flag dir mixins) | [Config](../docs/config.md) |
-| Shell completion script generation (`CompCmdRender`) | [Completion](../docs/completion.md) |
-| Runtime / facts (`ctx.runtime`, `ctx.facts`) | [Runtime](../docs/runtime.md) |
+| Nested subcommands + `--help` listing (`top` / `all`) | [Nested guide](../guides/guide_102.md), [Help](../documentations/help.md) |
+| Colored `--help` (Rich extra; TTY) | [Colored help](../documentations/help.md) |
+| Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../documentations/views.md) |
+| Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../documentations/logging.md) |
+| Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../documentations/exceptions.md) |
+| XDG paths + config file load (`XDGConfFileMixin` + per-flag dir mixins) | [Config](../documentations/config.md) |
+| Shell completion script generation (`CompCmdRender`) | [Completion](../documentations/completion.md) |
+| Runtime / facts (`ctx.runtime`, `ctx.facts`) | [Runtime](../documentations/runtime.md) |
 
 Optional extras: `mrjk.clak[colors]` (coloredlogs), `mrjk.clak[config]` (PyYAML),
 `mrjk.clak[markdown]` (rich), `mrjk.clak[rst]` (docutils).
@@ -70,7 +70,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 - [ ] Invoke another command from `cli_run` (`run_cmd` / command forwarding)
 - [ ] Merge an already-built argparse tree into a parent (old inject path;
   rejected as too fragile in
-  [ADR 0003](../architecture/0003-no-argparse-merging.md); revisit only with
+  [ADR 0003](../references/architecture/0003-no-argparse-merging.md); revisit only with
   a maintainable design)
 
 ### Packaging / project
@@ -83,7 +83,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 - Replacing `argparse` with another parser backend
 - Decorator-first APIs in the style of Click/Typer as the primary surface
-  (see [Architecture](../architecture/list.md) for design choices)
+  (see [Architecture](../references/architecture/list.md) for design choices)
 
 ## Aliases (supported, not preferred)
 

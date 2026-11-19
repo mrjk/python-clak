@@ -69,4 +69,4 @@ included because the formatter strips the full text. CompositeView section
 `title` / `description` use the same markup helper; see
 [Views](views.md#multiple-sections-compositeview).
 
-API: [Help component](../api/plugin_help.md).
+API: [Help component](../references/api/plugin_help.md).

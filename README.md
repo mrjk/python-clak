@@ -31,7 +31,7 @@ PyPI: [mrjk.clak](https://pypi.org/project/mrjk.clak/)
 - **Python 3.10–3.14** (declared `>=3.10,<4.0`; CI and local matrix cover 3.10–3.14)
 - `argparse` (stdlib)
 
-Developer setup and the version matrix: [Development setup](https://mrjk.github.io/python-clak/project/setup/).
+Developer setup and the version matrix: [Development setup](https://mrjk.github.io/python-clak/about/setup/).
 
 ## Install
 
@@ -112,21 +112,21 @@ class MainApp(Parser):
 
 | Component | Mixin / class | Docs |
 | --- | --- | --- |
-| Tables / structured output | `ListViewMixin`, `ShowViewMixin`, `PprintViewMixin` | [Views](https://mrjk.github.io/python-clak/docs/views/) |
-| Prompts, confirm, continue/quit, spinner | `clak.ui` (portable, stdlib only) | [UI](https://mrjk.github.io/python-clak/docs/ui/) |
-| Unattended runs (`--no-input`, `--yes`, CI) | `RuntimeOptMixin` | [Unattended](https://mrjk.github.io/python-clak/docs/unattended/) |
-| Colored `--help` | default (Rich extra, TTY) | [Colored help](https://mrjk.github.io/python-clak/docs/help/) |
-| Logging + `-v` | `LoggingOptMixin` | [Logging](https://mrjk.github.io/python-clak/docs/logging/) |
-| XDG paths + config file | `XDGConfFileMixin` (+ `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`) | [Config](https://mrjk.github.io/python-clak/docs/config/) |
-| Shell completion scripts | `CompCmdRender` | [Completion](https://mrjk.github.io/python-clak/docs/completion/) |
+| Tables / structured output | `ListViewMixin`, `ShowViewMixin`, `PprintViewMixin` | [Views](https://mrjk.github.io/python-clak/documentations/views/) |
+| Prompts, confirm, continue/quit, spinner | `clak.ui` (portable, stdlib only) | [UI](https://mrjk.github.io/python-clak/documentations/ui/) |
+| Unattended runs (`--no-input`, `--yes`, CI) | `RuntimeOptMixin` | [Unattended](https://mrjk.github.io/python-clak/documentations/unattended/) |
+| Colored `--help` | default (Rich extra, TTY) | [Colored help](https://mrjk.github.io/python-clak/documentations/help/) |
+| Logging + `-v` | `LoggingOptMixin` | [Logging](https://mrjk.github.io/python-clak/documentations/logging/) |
+| XDG paths + config file | `XDGConfFileMixin` (+ `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`) | [Config](https://mrjk.github.io/python-clak/documentations/config/) |
+| Shell completion scripts | `CompCmdRender` | [Completion](https://mrjk.github.io/python-clak/documentations/completion/) |
 
 ## Learn more
 
-- [Installation](https://mrjk.github.io/python-clak/quickstart/install/) and [Quickstart](https://mrjk.github.io/python-clak/quickstart/quickstart/)
+- [Installation](https://mrjk.github.io/python-clak/general/install/) and [Quickstart](https://mrjk.github.io/python-clak/general/quickstart/)
 - Guides under `docs/` / the site **Guides** tab
-- Pasteable AI context: [primer](https://mrjk.github.io/python-clak/ai/primer/) · [reference](https://mrjk.github.io/python-clak/ai/reference/)
+- Pasteable AI context: [primer](https://mrjk.github.io/python-clak/references/ai/primer/) · [reference](https://mrjk.github.io/python-clak/references/ai/reference/)
 - Runnable examples in [`examples/`](examples/)
-- Planned work: [Roadmap](https://mrjk.github.io/python-clak/project/roadmap/)
+- Planned work: [Roadmap](https://mrjk.github.io/python-clak/about/roadmap/)
 
 ## Contributing
 

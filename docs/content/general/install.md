@@ -23,7 +23,7 @@ uv add mrjk.clak
 ```
 
 For more options (git install, extras), see the
-[detailed installation](../docs/install.md) page.
+[detailed installation](../documentations/install.md) page.
 
 Optional colored logs:
 

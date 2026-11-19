@@ -10,7 +10,7 @@ cd "$ROOT_DIR"
 if ! command -v mise >/dev/null 2>&1; then
   echo "error: mise not found on PATH. Activate mise first:" >&2
   echo "  eval \"\$(mise activate bash)\"   # or: eval \"\$(mise activate zsh)\"" >&2
-  echo "See docs/content/project/setup.md" >&2
+  echo "See docs/content/about/setup.md" >&2
   exit 1
 fi
 

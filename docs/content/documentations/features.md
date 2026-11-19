@@ -117,5 +117,5 @@ Mix in only what you need:
 
 ## Planned
 
-See the [roadmap](../project/roadmap.md) for env-var mapping
+See the [roadmap](../about/roadmap.md) for env-var mapping
 and runtime autocomplete.

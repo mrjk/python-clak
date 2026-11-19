@@ -10,22 +10,22 @@ These work on any `Parser`:
 * Automatic `--help` / `-h`
 * Instantiating the root parser parses argv and runs the matched command
   (pass `parse=False` to build without dispatching)
-* [Error and exception handling](../docs/exceptions.md) —
+* [Error and exception handling](../documentations/exceptions.md) —
   `ClakUserError`, exit codes, `Meta.known_exceptions`
 
 Clak does **not** auto-map arbitrary environment variables to CLI options.
 Library flags that *do* read the environment:
 
-* `CLAK_DEBUG`, `CLAK_LOG_COLORS`, `CLAK_COLORS` — see [Logging](../docs/logging.md)
-* `$XDG_*` — see [Config](../docs/config.md) when using the XDG mixins
+* `CLAK_DEBUG`, `CLAK_LOG_COLORS`, `CLAK_COLORS` — see [Logging](../documentations/logging.md)
+* `$XDG_*` — see [Config](../documentations/config.md) when using the XDG mixins
 
-Env-var → option mapping is on the [roadmap](../project/roadmap.md).
+Env-var → option mapping is on the [roadmap](../about/roadmap.md).
 
 ## Arguments
 
 Define arguments on the class with `Argument` — same kwargs as
 `argparse.ArgumentParser.add_argument()`. See the
-[Parser API](../api/parser.md).
+[Parser API](../references/api/parser.md).
 
 ```python
 class MyCmd(Parser):
@@ -50,14 +50,14 @@ class MyApp(Parser):
 `Meta.parse_intermixed` defaults to `True` (Unix mix of that command's flags
 and positionals). Inherited; a child may override. It applies to leaf
 parsers only (command path stays ordered). See
-[Intermixed flags and positionals](../docs/advanced.md#parse-intermixed).
+[Intermixed flags and positionals](../documentations/advanced.md#parse-intermixed).
 
 `Meta.propagate_options` defaults to `True` (ancestor flags are valid on
 descendants; leaf `--help` shows `parent options:`). Opt out per flag with
 `propagate=False`. See
-[Ancestor flags on descendants](../docs/advanced.md#propagate-options).
+[Ancestor flags on descendants](../documentations/advanced.md#propagate-options).
 
-Exception-related settings: [Error handling](../docs/exceptions.md).
+Exception-related settings: [Error handling](../documentations/exceptions.md).
 Logging / views / config each document their own `Meta` keys on their guides.
 
 ## Inheritance
@@ -85,5 +85,5 @@ Parent options are visible to child `cli_run` methods when using nested
 ## Next steps
 
 * Components: [guide 104](guide_104.md) (views, logging, config, completion)
-* Deeper nesting patterns: [Advanced](../docs/advanced.md)
-* Shipping an entry point: [Shipping your CLI](../docs/execution.md)
+* Deeper nesting patterns: [Advanced](../documentations/advanced.md)
+* Shipping an entry point: [Shipping your CLI](../documentations/execution.md)

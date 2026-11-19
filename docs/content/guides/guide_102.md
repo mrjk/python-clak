@@ -168,7 +168,7 @@ python script.py --debug command1 sub2 sub2a arg1 arg2
 
 * [Customization](guide_103.md) — `Meta`, inheritance, built-in behaviour
 * [Components](guide_104.md) — views, logging, config, completion
-* [Advanced nesting tips](../docs/advanced.md)
+* [Advanced nesting tips](../documentations/advanced.md)
 
 Plan the command tree before coding: keep depth shallow (about 3–4 levels)
 and put shared options on parent parsers.

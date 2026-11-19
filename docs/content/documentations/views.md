@@ -488,4 +488,4 @@ Color is foreground-only; the terminal background is left as-is.
 
 Extras: `mrjk.clak[config]` for YAML, `mrjk.clak[markdown]` for rich colors.
 
-API details: [Views component](../api/plugin_views.md).
+API details: [Views component](../references/api/plugin_views.md).

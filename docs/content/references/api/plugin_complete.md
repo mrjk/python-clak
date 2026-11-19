@@ -2,7 +2,7 @@
 
 Generate shell completion scripts with argcomplete.
 
-User guide: [Shell completion](../docs/completion.md).
+User guide: [Shell completion](../../documentations/completion.md).
 
 ## Usage
 

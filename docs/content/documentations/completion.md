@@ -3,10 +3,10 @@
 Clak can **emit** shell completion scripts via [argcomplete](https://kislyuk.github.io/argcomplete/).
 `argcomplete` is a core dependency of `mrjk.clak`.
 
-API reference: [Completion component](../api/plugin_complete.md).
+API reference: [Completion component](../references/api/plugin_complete.md).
 
 Runtime tab-completion during `parse_args` (calling `argcomplete.autocomplete()`)
-is still on the [roadmap](../project/roadmap.md). What ships today is **script
+is still on the [roadmap](../about/roadmap.md). What ships today is **script
 generation** so users can register your CLI with their shell.
 
 ## Recommended pattern: `completion` subcommand
@@ -88,5 +88,5 @@ See also [Installation](install.md).
 
 ## See also
 
-- Planned runtime autocomplete: [Roadmap](../project/roadmap.md)
+- Planned runtime autocomplete: [Roadmap](../about/roadmap.md)
 - Packaging an entry point name: [Shipping your CLI](execution.md)

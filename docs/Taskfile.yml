@@ -56,7 +56,7 @@ tasks:
       - |
         if command -v adr &>/dev/null; then
           echo "Update adr toc update"
-          adr generate toc > content/architecture/list.md
+          adr generate toc > content/references/architecture/list.md
         else
           echo "Skip adr toc update"
         fi

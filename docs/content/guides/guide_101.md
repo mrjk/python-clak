@@ -25,7 +25,7 @@ Let's start with a minimal example called `script1.py`, that demonstrates the co
 4. Optional argument (`--` / `-`); same kwargs as `argparse.add_argument()`.
 5. Positional argument (name without `-` / `--`).
 6. `cli_run()` runs when the command is invoked; parameters match destinations.
-7. `cli_exit(1)` sets a non-zero exit code (see [Parser API](../api/parser.md)).
+7. `cli_exit(1)` sets a non-zero exit code (see [Parser API](../references/api/parser.md)).
 8. Instantiating the root parses argv and runs the command (auto-`dispatch()`).
 
 From this example, run it with the Python interpreter. Clak adds `-h` / `--help` automatically:
@@ -120,7 +120,7 @@ Let's update our previous example with more fields:
    - Flags may appear among those values (`app NAME --force ALIAS`). That is
      Clak's default intermixed parse. Opt out with
      `Meta.parse_intermixed = False` if leftover words after a flag should
-     error. See [Intermixed flags and positionals](../docs/advanced.md#parse-intermixed).
+     error. See [Intermixed flags and positionals](../documentations/advanced.md#parse-intermixed).
 
 9. **Run method** (`cli_run`):
    - This method is executed when the command is run.

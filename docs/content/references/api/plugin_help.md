@@ -3,7 +3,7 @@
 `--help` is colored by default when Rich is installed and stdout is a TTY.
 Opt out with `Meta.help_formatter = RecursiveHelpFormatter`.
 `RichHelpMixin` is optional (re-opt-in after a parent opt-out).
-Full walkthrough: [Colored help](../docs/help.md).
+Full walkthrough: [Colored help](../../documentations/help.md).
 
 ```python
 from clak import Parser

@@ -4,7 +4,7 @@ Clak is a class-based wrapper around Python's standard library `argparse`.
 It is not a new parser. If you know argparse, you already know most of Clak.
 
 This page compares Clak to argparse, Click, Typer, and Cliff. Design notes
-also live in the [architecture ADRs](../architecture/list.md) (especially 2,
+also live in the [architecture ADRs](../references/architecture/list.md) (especially 2,
 4, 5, 6, and 7). Feature list: [Features](features.md).
 
 ## Where Clak sits
@@ -87,7 +87,7 @@ What argparse users should not expect yet:
 - Click or Typer decorator patterns
 - Automatic mapping of environment variables to CLI options (planned)
 - Merging two argparse parser objects
-  ([ADR 0003](../architecture/0003-no-argparse-merging.md))
+  ([ADR 0003](../references/architecture/0003-no-argparse-merging.md))
 - Fully wired runtime `argcomplete` during parse (shell-script generation
   already ships)
 
@@ -100,7 +100,7 @@ Where Clak differs:
 
 - **API:** classes (`Parser`, `Argument`, `Command`), not `@click.command` /
   `typer.Option`. A decorator-first API is
-  [out of scope](../project/roadmap.md).
+  [out of scope](../about/roadmap.md).
 - **Parser:** argparse. Click and Typer use Click's parser. `Argument(...)`
   is argparse, not a new option language.
 - **Scale:** large nested CLIs in Click/Typer often duplicate the same flags
@@ -134,9 +134,9 @@ Where Clak differs:
 ## What Clak inherits from Cliff
 
 Cliff is the main architectural influence, not only a competitor.
-[ADR 0002](../architecture/0002-argparse-as-main-parser.md) lists Cliff as
+[ADR 0002](../references/architecture/0002-argparse-as-main-parser.md) lists Cliff as
 the source of views, an opinionated class structure, and class-based config.
-[ADR 0005](../architecture/0005-comparison-with-cliff.md) is the raw
+[ADR 0005](../references/architecture/0005-comparison-with-cliff.md) is the raw
 comparison note.
 
 Taken from Cliff (ideas, not a code fork):
@@ -176,5 +176,5 @@ on argparse, without OpenStack plugin discovery.
 - [Features](features.md)
 - [Views](views.md)
 - [Nested commands guide](../guides/guide_102.md)
-- [Roadmap](../project/roadmap.md)
-- [Architecture ADRs](../architecture/list.md)
+- [Roadmap](../about/roadmap.md)
+- [Architecture ADRs](../references/architecture/list.md)

@@ -94,10 +94,10 @@ python hello.py --debug command2 --alias nick Alice
 1. Walk through the [basic guide](../guides/guide_101.md), then
    [nested commands](../guides/guide_102.md).
 2. Add a star feature when you need it:
-   [Views](../docs/views.md),
-   [Logging](../docs/logging.md),
-   [Config](../docs/config.md),
-   [Completion](../docs/completion.md),
-   [Error handling](../docs/exceptions.md).
-3. Browse the [feature overview](../docs/features.md) or the
-   [API reference](../api/module.md).
+   [Views](../documentations/views.md),
+   [Logging](../documentations/logging.md),
+   [Config](../documentations/config.md),
+   [Completion](../documentations/completion.md),
+   [Error handling](../documentations/exceptions.md).
+3. Browse the [feature overview](../documentations/features.md) or the
+   [API reference](../references/api/module.md).

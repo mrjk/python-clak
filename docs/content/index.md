@@ -14,8 +14,8 @@ completion.
 
 ## Start here
 
-1. [Install](quickstart/install.md) — `pip install mrjk.clak`
-2. [Quickstart](quickstart/quickstart.md) — a two-command hello world
+1. [Install](general/install.md) — `pip install mrjk.clak`
+2. [Quickstart](general/quickstart.md) — a two-command hello world
 3. [Getting started guide](guides/guide_101.md) — arguments step by step
 
 Then pick what you need:
@@ -23,14 +23,14 @@ Then pick what you need:
 | I want to… | Go to |
 | --- | --- |
 | Build nested / git-like commands | [Nested commands](guides/guide_102.md) |
-| Print tables / JSON from commands | [Views](docs/views.md) |
-| Add `-v` logging | [Logging](docs/logging.md) |
-| Load XDG config files | [Config](docs/config.md) |
-| Ship shell tab-completion scripts | [Completion](docs/completion.md) |
-| Handle errors with exit codes | [Error handling](docs/exceptions.md) |
-| Paste context into an AI chat | [AI primer](ai/primer.md) · [AI reference](ai/reference.md) |
-| Compare Clak to argparse, Click, Typer, Cliff | [Comparison](docs/comparison.md) |
-| See what is planned | [Roadmap](project/roadmap.md) |
+| Print tables / JSON from commands | [Views](documentations/views.md) |
+| Add `-v` logging | [Logging](documentations/logging.md) |
+| Load XDG config files | [Config](documentations/config.md) |
+| Ship shell tab-completion scripts | [Completion](documentations/completion.md) |
+| Handle errors with exit codes | [Error handling](documentations/exceptions.md) |
+| Paste context into an AI chat | [AI primer](references/ai/primer.md) · [AI reference](references/ai/reference.md) |
+| Compare Clak to argparse, Click, Typer, Cliff | [Comparison](documentations/comparison.md) |
+| See what is planned | [Roadmap](about/roadmap.md) |
 
 ## Why Clak?
 
@@ -38,6 +38,6 @@ Then pick what you need:
 - **Class-based** — inheritance and composition for real apps
 - **Optional batteries** — mix in views, logging, config, completion only when useful
 
-Feature overview: [Features](docs/features.md). How Clak relates to
-argparse, Click, Typer, and Cliff: [Comparison](docs/comparison.md).
-Design notes: [Architecture](architecture/list.md).
+Feature overview: [Features](documentations/features.md). How Clak relates to
+argparse, Click, Typer, and Cliff: [Comparison](documentations/comparison.md).
+Design notes: [Architecture](references/architecture/list.md).

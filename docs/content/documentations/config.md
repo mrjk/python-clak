@@ -4,7 +4,7 @@ Clak provides one opt-in mixin per XDG Base Directory path flag. Most apps
 only need `XDGConfFileMixin`, which adds `--conf-file` and loads the file once
 during dispatch.
 
-API reference: [Config component](../api/plugin_config.md).
+API reference: [Config component](../references/api/plugin_config.md).
 
 ## Quick start
 

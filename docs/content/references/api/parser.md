@@ -1,7 +1,7 @@
 # Module API - Parser
 
 
-![Alt Text](../images/schema_parser/classes_clak.svg)
+![Alt Text](../../images/schema_parser/classes_clak.svg)
 
 Prefer the top-level package for app code:
 

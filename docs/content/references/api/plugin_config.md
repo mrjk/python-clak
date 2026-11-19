@@ -1,6 +1,6 @@
 # Config
 
-User guide: [Config](../docs/config.md).
+User guide: [Config](../../documentations/config.md).
 
 ## Usage
 

@@ -7,15 +7,15 @@ Use them when you need the feature — Clak’s core stays small without them.
 
 | Component | What you get | Guide |
 | --- | --- | --- |
-| Views | Tables / JSON / CSV / YAML from `cli_run` return values | [Views](../docs/views.md) |
-| Logging | `-v` tiers, formatters, `self.logger` | [Logging](../docs/logging.md) |
-| Config | XDG paths + load `--conf-file` | [Config](../docs/config.md) |
-| Completion | Emit shell completion scripts | [Completion](../docs/completion.md) |
+| Views | Tables / JSON / CSV / YAML from `cli_run` return values | [Views](../documentations/views.md) |
+| Logging | `-v` tiers, formatters, `self.logger` | [Logging](../documentations/logging.md) |
+| Config | XDG paths + load `--conf-file` | [Config](../documentations/config.md) |
+| Completion | Emit shell completion scripts | [Completion](../documentations/completion.md) |
 
-API pages: [logging](../api/plugin_logging.md),
-[views](../api/plugin_views.md),
-[config](../api/plugin_config.md),
-[completion](../api/plugin_complete.md).
+API pages: [logging](../references/api/plugin_logging.md),
+[views](../references/api/plugin_views.md),
+[config](../references/api/plugin_config.md),
+[completion](../references/api/plugin_complete.md).
 
 
 ## Views
@@ -51,7 +51,7 @@ class App(XDGConfFileMixin, Parser):
         print(ctx.config)
 ```
 
-Details: [Config](../docs/config.md).
+Details: [Config](../documentations/config.md).
 
 
 ## Completion
@@ -69,11 +69,11 @@ class App(Parser):
 eval "$(python myapp.py completion --executable myapp --shell bash)"
 ```
 
-Details: [Completion](../docs/completion.md).
+Details: [Completion](../documentations/completion.md).
 
 
 ## Next steps
 
-* Feature overview: [Features](../docs/features.md)
-* Planned work: [Roadmap](../project/roadmap.md)
-* Error handling patterns: [Error handling](../docs/exceptions.md)
+* Feature overview: [Features](../documentations/features.md)
+* Planned work: [Roadmap](../about/roadmap.md)
+* Error handling patterns: [Error handling](../documentations/exceptions.md)

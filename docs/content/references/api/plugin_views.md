@@ -13,7 +13,7 @@ class App(ListViewMixin, Parser):
         return [{"name": "ada", "role": "admin"}]
 ```
 
-See the [Views guide](../docs/views.md) for usage, options, and override rules.
+See the [Views guide](../../documentations/views.md) for usage, options, and override rules.
 
 ::: clak.comp.views
     options:
