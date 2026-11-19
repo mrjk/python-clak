@@ -274,9 +274,7 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
 
     def _find_local_config(self, work_dir: Path) -> Path | None:
         """Return the first existing local config candidate in ``work_dir``."""
-        names = self.query_cfg_parents(
-            "config_local_names", default=None, include_self=True
-        )
+        names = self.query_cfg_parents("config_local_names", default=None)
         if names is None:
             names = _DEFAULT_LOCAL_NAMES
         app = self._xdg_app_name()
@@ -297,11 +295,7 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
                 if local is not None:
                     logger.debug("Using work-dir config: %s", local)
                     path = str(local)
-            required = bool(
-                self.query_cfg_parents(
-                    "config_required", default=False, include_self=True
-                )
-            )
+            required = bool(self.query_cfg_parents("config_required", default=False))
 
             if not path:
                 data: dict[str, Any] = {}

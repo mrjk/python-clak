@@ -284,7 +284,6 @@ class LoggingOptMixin:
                     self.query_cfg_parents(
                         "log_colors_env",
                         default=DEFAULT_LOG_COLORS_ENV,
-                        include_self=True,
                     )
                     or DEFAULT_LOG_COLORS_ENV
                 )

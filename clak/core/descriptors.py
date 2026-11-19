@@ -447,17 +447,10 @@ class SubParser(ArgParseItem):
         child.command_help = parser_help
         ctx_vars["self"] = child
 
-        child_usage = child.query_cfg_inst("help_usage", default=None)
-        child_desc = first_doc_line(
-            child.query_cfg_inst("help_description", default=child.__doc__)
-        )
-        child_epilog = child.query_cfg_inst("help_epilog", default=None)
-
         # Reconfigure subparser
-        child_usage = prepare_docstring(child_usage, variables=ctx_vars)
-        child_desc = prepare_docstring(child_desc, variables=ctx_vars)
-        child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
-
+        child_usage, child_desc, child_epilog = child.help_texts(
+            ctx_vars, first_line=True
+        )
         subparser.add_help = False
         subparser.usage = child_usage
         subparser.description = child_desc
