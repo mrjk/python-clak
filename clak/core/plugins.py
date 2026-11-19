@@ -3,6 +3,7 @@
 # pylint: disable=too-few-public-methods
 
 import logging
+import warnings
 from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,17 @@ class PluginHelpers:
 
         Example:
             >>> cls.hook_register("test_log", self)
+
+        .. deprecated:: 0.6.2
+            Define ``cli_hook__*`` methods on a mixin instead; they are
+            collected automatically. Removal planned for 0.7.
         """
+        warnings.warn(
+            "PluginHelpers.hook_register is deprecated; define cli_hook__* "
+            "methods on a mixin instead (removal planned for 0.7)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         methods_dict = getattr(instance, "cli_methods", None)
         if methods_dict is None:
             methods_dict = {}
@@ -73,7 +84,9 @@ class PluginHelpers:
 
         methods_dict[name] = _wrapper
         if name.startswith(CLI_HOOK_PREFIX):
-            hooks[name] = _wrapper
+            # Dispatch calls hooks as hook(walk_node, ctx): pass the bound
+            # method as-is so ``instance`` is not supplied twice.
+            hooks[name] = new_method
         logger.debug(
             "Registered plugin method %s.%s = %s",
             instance,

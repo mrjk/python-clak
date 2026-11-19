@@ -387,7 +387,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 if isinstance(value, Argument) and name not in arguments:
                     if name in skip:
                         continue
-                    value.destination = name
                     arguments[name] = value
 
         # Add __cli_self__ argument
@@ -509,7 +508,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         for cls in self.__class__.__mro__:
             for attr_name, attr_value in cls.__dict__.items():
                 if isinstance(attr_value, Command) and attr_name not in subcommands:
-                    attr_value.destination = attr_name
                     subcommands[attr_name] = attr_value
 
         for key, arg in subcommands.items():
@@ -641,4 +639,6 @@ class Parser(ParserNode):
 
         if not self.parent and parse is True:
             logger.debug("Starting automatic arg_parse")
-            self.dispatch(*args)
+            # Positional args belong to ParserNode.__init__ (add_help, ...),
+            # never to argv: dispatch reads sys.argv.
+            self.dispatch()
