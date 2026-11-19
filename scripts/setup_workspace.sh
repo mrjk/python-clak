@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bootstrap mise-pinned tools and the project in-project .venv.
-# Installs Poetry groups needed for local `task test` (dev + docs).
+# Installs uv dependency groups needed for local `task test` (dev + docs).
 
 set -euo pipefail
 
@@ -17,13 +17,10 @@ fi
 echo "Installing mise tools …"
 mise install
 
-poetry_bin="$(mise which poetry)"
+uv_bin="$(mise which uv)"
 python_bin="$(mise which python)"
 
-echo "Configuring Poetry env: ${python_bin}"
-"$poetry_bin" env use "$python_bin"
-
-echo "Installing project deps (dev + docs) …"
-"$poetry_bin" install --with dev,docs --no-interaction
+echo "Installing project deps (dev + docs) into .venv with ${python_bin} …"
+"$uv_bin" sync --python "$python_bin"
 
 echo "Setup complete. Next: task test_pytest"

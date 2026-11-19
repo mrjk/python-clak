@@ -7,14 +7,14 @@ set -euo pipefail
 # Useful for debugging but can be verbose
 # set -x
 
-GET_VERSION_CMD="${GET_VERSION_CMD:-"poetry version -s"}"
+GET_VERSION_CMD="${GET_VERSION_CMD:-"uv version --short"}"
 
 # Display usage instructions 
 show_help() {
     cat << EOF
 Usage: $(basename "$0") [OPTIONS] VERSION
 
-Update project version using poetry and create a git tag.
+Update project version using uv and create a git tag.
 
 Arguments:
     VERSION     New version or bump rule (optional leading v is stripped, e.g. v1.2.3)
@@ -23,10 +23,10 @@ Version Keywords:
     major          Bump major version (1.0.0 -> 2.0.0)
     minor          Bump minor version (1.2.0 -> 1.3.0)
     patch          Bump patch version (1.2.3 -> 1.2.4)
-    premajor       Bump to pre-release major (1.2.3 -> 2.0.0-alpha.0)
-    preminor       Bump to pre-release minor (1.2.3 -> 1.3.0-alpha.0)
-    prepatch       Bump to pre-release patch (1.2.3 -> 1.2.4-alpha.0)
-    prerelease     Bump pre-release version (1.2.3-alpha.0 -> 1.2.3-alpha.1)
+    premajor       Bump to pre-release major (1.2.3 -> 2.0.0a1)
+    preminor       Bump to pre-release minor (1.2.3 -> 1.3.0a1)
+    prepatch       Bump to pre-release patch (1.2.3 -> 1.2.4a1)
+    prerelease     Bump pre-release version (1.2.3a1 -> 1.2.3a2, 1.2.3 -> 1.2.4a1)
 
 Options:
     -h, --help     Show this help message
@@ -34,13 +34,13 @@ Options:
     --next-phase   Use next phase, only for pre-release
 
 Reference:
-    https://python-poetry.org/docs/cli/#version
+    https://docs.astral.sh/uv/reference/cli/#uv-version
 
 Examples:
     # Set exact version:
     $(basename "$0") 1.2.3                    # Set to specific version
     $(basename "$0") v1.2.3                   # Same (leading v is stripped)
-    $(basename "$0") 2.0.0a0                  # Set to specific pre-release version
+    $(basename "$0") 2.0.0a1                  # Set to specific pre-release version
     
     # Release version bumps:
     $(basename "$0") patch                    # 1.2.3 -> 1.2.4
@@ -48,16 +48,16 @@ Examples:
     $(basename "$0") major                    # 1.2.3 -> 2.0.0
     
     # Pre-release version bumps:
-    $(basename "$0") prepatch                 # 1.2.3 -> 1.2.4a0
-    $(basename "$0") preminor                 # 1.2.3 -> 1.3.0a0
-    $(basename "$0") premajor                 # 1.2.3 -> 2.0.0a0
-    $(basename "$0") prerelease               # 1.2.3a0 -> 1.2.3a1
-    $(basename "$0") prerelease               # 1.2.3b0 -> 1.2.3b1
+    $(basename "$0") prepatch                 # 1.2.3 -> 1.2.4a1
+    $(basename "$0") preminor                 # 1.2.3 -> 1.3.0a1
+    $(basename "$0") premajor                 # 1.2.3 -> 2.0.0a1
+    $(basename "$0") prerelease               # 1.2.3a1 -> 1.2.3a2
+    $(basename "$0") prerelease               # 1.2.3b1 -> 1.2.3b2
     
     # Pre-release next-phase:
-    $(basename "$0") prerelease --next-phase  # 1.2.3a0 -> 1.2.3b0
-    $(basename "$0") prerelease --next-phase  # 1.2.3b0 -> 1.2.3rc0
-    $(basename "$0") prerelease --next-phase  # 1.2.3b0 -> 1.2.3
+    $(basename "$0") prerelease --next-phase  # 1.2.3a2 -> 1.2.3b1
+    $(basename "$0") prerelease --next-phase  # 1.2.3b2 -> 1.2.3rc1
+    $(basename "$0") prerelease --next-phase  # 1.2.3rc1 -> 1.2.3
     
     # Preview changes:
     $(basename "$0") --dry patch        # Show what would happen
@@ -96,7 +96,7 @@ is_prerelease() {
     return 1
 }
 
-# Return current project version, by default it uses poetry version -s
+# Return current project version, by default it uses uv version --short
 get_current_version() {
     $GET_VERSION_CMD
 }
@@ -177,33 +177,94 @@ format_version_tag() {
     echo "v$version"
 }
 
-# Update version using poetry and handle dry-run mode
-# Passes all arguments directly to poetry version command
-# Supports various version formats:
-# - Explicit versions (1.2.3 or v1.2.3)
-# - Version parts (major, minor, patch)
-# - Pre-release versions (pre-alpha, pre-beta)
-# --dry is accepted as an alias for poetry's --dry-run
-update_version() {
-    local -a poetry_args=()
+# Translate Poetry-style bump keywords into `uv version` arguments.
+# Prints one argument per line.
+# - major/minor/patch          -> --bump X
+# - premajor/preminor/prepatch -> --bump X --bump alpha
+# - prerelease                 -> bump current pre phase (a/b/rc), or
+#                                 patch+alpha when on a stable version
+# - prerelease --next-phase    -> a -> beta -> rc -> stable
+# - anything else              -> explicit version (leading v stripped)
+uv_version_args() {
+    local next_phase=false
+    local -a positional=()
     local arg
     for arg in "$@"; do
-        if [[ "$arg" == "--dry" ]]; then
-            poetry_args+=("--dry-run")
-        else
-            # Poetry expects bare PEP 440 versions, not git-style v1.2.3
-            poetry_args+=("$(strip_v_prefix "$arg")")
-        fi
+        case "$arg" in
+            --dry|--dry-run) ;;
+            --next-phase) next_phase=true ;;
+            *) positional+=("$arg") ;;
+        esac
     done
 
-    # Forward args to poetry version
-    poetry version "${poetry_args[@]}"
-    local exit_code=$?
-    # Check if poetry command succeeded
-    # Poetry returns non-zero exit code if version format is invalid
-    if [ $exit_code -ne 0 ]; then
+    if [[ ${#positional[@]} -ne 1 ]]; then
+        echo "Error: expected exactly one VERSION argument, got: ${positional[*]:-none}" >&2
+        return 1
+    fi
+
+    local target="${positional[0]}"
+    case "$target" in
+        major|minor|patch)
+            printf '%s\n' --bump "$target"
+            ;;
+        premajor|preminor|prepatch)
+            printf '%s\n' --bump "${target#pre}" --bump alpha
+            ;;
+        prerelease)
+            local current phase=""
+            current="$(get_current_version)"
+            if [[ "$current" =~ [0-9](a|b|rc)[0-9]+$ ]]; then
+                phase="${BASH_REMATCH[1]}"
+            fi
+            if [[ -z "$phase" ]]; then
+                if $next_phase; then
+                    echo "Error: --next-phase requires a current pre-release version (got $current)" >&2
+                    return 1
+                fi
+                printf '%s\n' --bump patch --bump alpha
+            elif $next_phase; then
+                case "$phase" in
+                    a) printf '%s\n' --bump beta ;;
+                    b) printf '%s\n' --bump rc ;;
+                    rc) printf '%s\n' --bump stable ;;
+                esac
+            else
+                case "$phase" in
+                    a) printf '%s\n' --bump alpha ;;
+                    b) printf '%s\n' --bump beta ;;
+                    rc) printf '%s\n' --bump rc ;;
+                esac
+            fi
+            ;;
+        *)
+            # uv expects bare PEP 440 versions, not git-style v1.2.3
+            strip_v_prefix "$target"
+            ;;
+    esac
+}
+
+# Update version using uv and handle dry-run mode
+# --dry is accepted as an alias for uv's --dry-run
+update_version() {
+    local -a uv_args=()
+    local line
+    while IFS= read -r line; do
+        uv_args+=("$line")
+    done < <(uv_version_args "$@" || echo "__ERROR__")
+
+    if [[ ${#uv_args[@]} -eq 0 || " ${uv_args[*]} " == *" __ERROR__ "* ]]; then
+        echo "Error: Failed to compute version arguments"
+        exit 1
+    fi
+
+    if is_dry_run "$@"; then
+        uv_args+=("--dry-run")
+    fi
+
+    # --no-sync: only touch pyproject.toml + uv.lock, not the .venv
+    if ! uv version --no-sync "${uv_args[@]}"; then
         echo "Error: Failed to update version"
-        exit $exit_code
+        exit 1
     fi
 
     # Exit early if dry-run was requested
@@ -217,9 +278,9 @@ update_version() {
 # Create git commit and tag for the version change
 commit_and_tag() {
     echo ">>> Starting commit and tag process"
-    # Get current version from poetry without extra output
+    # Get current version from uv without extra output
     local version tag
-    version=$(strip_v_prefix "$(poetry version -s)")
+    version=$(strip_v_prefix "$(get_current_version)")
     tag=$(format_version_tag "$version")
 
     if git diff --quiet -- pyproject.toml; then
@@ -227,9 +288,9 @@ commit_and_tag() {
         exit 1
     fi
 
-    git add pyproject.toml
+    git add pyproject.toml uv.lock
     echo ">>> Committing version bump and create tag $tag"
-    git commit -m "bump: version $tag" pyproject.toml
+    git commit -m "bump: version $tag" pyproject.toml uv.lock
     git tag -m "release: version $tag" "$tag"
 }
 
@@ -247,7 +308,7 @@ main() {
     check_args "$@"      # Validate input
     check_branch "$@"    # Enforce branch restrictions
     check_git_status "$@"  # Clean tree (warn-only on dry-run)
-    update_version "$@"  # Update version in poetry
+    update_version "$@"  # Update version with uv
     commit_and_tag       # Create git commit and tag
     
     

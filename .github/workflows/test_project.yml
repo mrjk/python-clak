@@ -24,4 +24,4 @@ jobs:
           install_graphviz: "true"
 
       - name: Run full test gate
-        run: poetry run task test
+        run: task test

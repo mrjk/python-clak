@@ -1,12 +1,12 @@
 ---
 name: Setup CI
-description: Install mise-managed tools and Poetry dependencies
+description: Install mise-managed tools and uv dependencies
 
 inputs:
-  poetry_args:
-    description: Extra args for poetry install (e.g. --with docs,dev)
+  uv_args:
+    description: Extra args for uv sync (e.g. --no-group docs)
     required: false
-    default: "--with dev"
+    default: ""
   python_version:
     description: Overrides mise Python via PYTHON_VERSION
     required: false
@@ -33,15 +33,10 @@ runs:
       env:
         PYTHON_VERSION: ${{ inputs.python_version }}
 
-    - name: Configure Poetry
-      shell: bash
-      run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project true
-
     - name: Install dependencies
       shell: bash
       env:
+        PYTHON_VERSION: ${{ inputs.python_version }}
         # rpds-py builds via PyO3; 3.14 is newer than PyO3 0.24's declared max (3.13)
         PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-      run: poetry install ${{ inputs.poetry_args }}
+      run: uv sync --locked --python "$(mise which python)" ${{ inputs.uv_args }}

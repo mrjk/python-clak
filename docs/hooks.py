@@ -1,6 +1,6 @@
 import logging
 import os
-from distutils.dir_util import copy_tree
+import shutil
 
 logger = logging.getLogger("mkdocs")
 
@@ -62,4 +62,4 @@ def patch_pygments_filename(config, **kwargs):
 def copy_get(config, **kwargs):
     site_dir = config["site_dir"]
     logger.info("Copying logo from hook")
-    copy_tree("../logo/", os.path.join(site_dir, "logo"))
+    shutil.copytree("../logo/", os.path.join(site_dir, "logo"), dirs_exist_ok=True)

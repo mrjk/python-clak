@@ -7,7 +7,7 @@ version: "3"
 vars:
   PKG_DIR: '{{.PKG_DIR | default "clak"}}'
   PKG: '{{.PKG | default .PKG_DIR}}'
-  PY: '{{.PY | default "poetry run"}}'
+  PY: '{{.PY | default "uv run"}}'
 
 tasks:
 
@@ -100,4 +100,4 @@ tasks:
     desc: update gh_page branch with new documentation
     cmds:
       - task: build
-      - poetry run mkdocs gh-deploy --force
+      - "{{.PY}} mkdocs gh-deploy --force"

@@ -77,7 +77,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 
 - [x] Automated PyPI publish workflow on `v*` tags (`publish_pypi.yml`; local: `task publish_pypi`)
 - [x] Single-source package version at code level (`clak.__version__` via `importlib.metadata`)
-- [ ] Portable CI toolkit (mise + shared Taskfile CORE) for reuse across small Poetry projects
+- [ ] Portable CI toolkit (mise + shared Taskfile CORE) for reuse across small uv projects
 
 ## Deliberately out of scope (for now)
 

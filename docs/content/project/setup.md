@@ -20,17 +20,18 @@ Development **always** uses a project-local virtualenv — never install into th
 
 | Env | Path | Role |
 | --- | --- | --- |
-| Daily / release | **`.venv/`** | Poetry in-project env (`poetry.toml`: `virtualenvs.in-project = true`) |
+| Daily / release | **`.venv/`** | uv project env (`uv sync`, locked by `uv.lock`) |
 | Version matrix | **`.venvs/pyX.Y/`** | Isolated envs for `task test_matrix` (does not replace `.venv`) |
 
 Both directories are gitignored.
 
 ## Prerequisites
 
-- [mise](https://mise.jdx.dev/) — pins **Python 3.12**, **Poetry**, and **Task** (`mise.toml`)
+- [mise](https://mise.jdx.dev/) — pins **Python 3.12**, **uv**, and **Task** (`mise.toml`)
 - A shell with mise activated (`eval "$(mise activate bash)"`, or direnv + `use mise` in `.envrc`)
 
-Poetry and Task come from mise after `mise install` — you do **not** need a system-wide Poetry install.
+uv and Task come from mise after `mise install` — you do **not** need a system-wide uv install.
+`mise.toml` also sets `UV_PYTHON` / `UV_PYTHON_PREFERENCE=only-system` so uv uses the mise Python instead of downloading its own.
 
 ## Bootstrap (daily env)
 
@@ -44,9 +45,9 @@ eval "$(mise activate bash)"   # or: eval "$(mise activate zsh)"
 task setup
 ```
 
-`task setup` runs `scripts/setup_workspace.sh`: `mise install`, points Poetry at the mise Python, then `poetry install --with dev,docs`. That includes `pytest-tagging`, which provides the `--tags` flag used by `task test_pytest`.
+`task setup` runs `scripts/setup_workspace.sh`: `mise install`, then `uv sync --python <mise python>`, which installs the `dev` and `docs` dependency groups (`[tool.uv] default-groups`). That includes `pytest-tagging`, which provides the `--tags` flag used by `task test_pytest`.
 
-After bootstrap, run Task as usual — Python tools are invoked via `poetry run`
+After bootstrap, run Task as usual — Python tools are invoked via `uv run`
 (see `PY` in the root Taskfile), so you do **not** need to activate `.venv`:
 
 ```bash
@@ -54,13 +55,13 @@ task test
 task fix_lint
 ```
 
-`mise` (and thus `poetry` / `task`) must be on your PATH (from `mise activate` / `.envrc`).
+`mise` (and thus `uv` / `task`) must be on your PATH (from `mise activate` / `.envrc`).
 
 Useful subsets:
 
 | Task | What it runs |
 |------|----------------|
-| `task setup` | Bootstrap mise tools + `.venv` (`--with dev,docs`) |
+| `task setup` | Bootstrap mise tools + `.venv` (dev + docs groups) |
 | `task test_pytest` | Unit + example unit tags, with coverage |
 | `task test_regressions` | Example regressions (in-process + CLI; `CLAK_COLORS=false`) |
 | `task test_lint_full` | Lint + docs checks |
@@ -91,7 +92,7 @@ task setup
 
 ## Local Python matrix
 
-To exercise 3.10–3.14 without touching daily `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it points Poetry/pytest at each venv with `VIRTUAL_ENV` + `PATH`.
+To exercise 3.10–3.14 without touching daily `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it runs `uv sync` with `UV_PROJECT_ENVIRONMENT=.venvs/pyX.Y` and runs pytest with `VIRTUAL_ENV` + `PATH`.
 
 ```bash
 task test_matrix                       # all of 3.10–3.14
@@ -117,7 +118,7 @@ If a previous failed run left empty dirs, remove them: `rm -rf .venvs/py3.10` (e
 
 ## CI
 
-GitHub Actions also uses an in-project `.venv` (`virtualenvs-in-project: true`) and runs the same Python matrix. Local `task test_matrix` complements that; it does not replace CI.
+GitHub Actions also uses an in-project `.venv` (`uv sync --locked`) and runs the same Python matrix. Local `task test_matrix` complements that; it does not replace CI.
 
 See [`.github/workflows/test_project.yml`](https://github.com/mrjk/python-clak/blob/develop/.github/workflows/test_project.yml).
 

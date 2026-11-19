@@ -20,11 +20,11 @@ Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: test gate, then
 ## Prerequisites
 
 - Clean git working tree for a real bump (untracked files are fine; modified/staged files are not). `task *-show` dry-runs warn on a dirty tree instead of failing.
-- Poetry project deps on the **daily Python 3.12** env (in-project **`.venv/`** via `poetry install --with dev`)
+- uv project deps on the **daily Python 3.12** env (in-project **`.venv/`** via `uv sync`)
 - For stable releases: checkout `main` or `master`
-- For pre-releases (`pre*`, or a version like `1.2.3a0`): any branch **except** `main`/`master` (usually `develop`)
+- For pre-releases (`pre*`, or a version like `1.2.3a1`): any branch **except** `main`/`master` (usually `develop`)
 - For CI publish: GitHub environment `pypi` + secret `PYPI_TOKEN`
-- For local/manual publish: a PyPI API token (`poetry config` or `POETRY_PYPI_TOKEN_PYPI`)
+- For local/manual publish: a PyPI API token (`UV_PUBLISH_TOKEN`)
 
 Supported runtime range for users: **Python 3.10–3.14** (see [Development setup](setup.md)).
 
@@ -40,7 +40,7 @@ task release-show
 Apply:
 
 ```bash
-# Pre-release on develop (e.g. 0.4.0a2 -> 0.4.0a3)
+# Pre-release on develop (e.g. 0.4.0a2 -> 0.4.0a3; from a stable version: 0.4.0 -> 0.4.1a1)
 task pre-release
 
 # Next pre-release phase (a -> b -> rc -> final)
@@ -53,8 +53,8 @@ task release                  # or: task release -- minor | major | 1.2.3
 These tasks wrap `./scripts/release.sh`, which:
 
 1. Checks branch rules and clean tree
-2. Runs `poetry version …`
-3. Commits with `bump: version vX.Y.Z`
+2. Runs `uv version --bump …` (Poetry-style keywords are translated)
+3. Commits `pyproject.toml` + `uv.lock` with `bump: version vX.Y.Z`
 4. Creates annotated tag `vX.Y.Z`
 
 Then push:
@@ -77,8 +77,8 @@ Configure once in the GitHub repo:
    [pypi.org/manage/account/token](https://pypi.org/manage/account/token/)
    (must start with `pypi-`; not a password; not a TestPyPI token)
 
-On `v*` tag push, the workflow configures Poetry with that token and runs
-`poetry run task publish_pypi`.
+On `v*` tag push, the workflow exports it as `UV_PUBLISH_TOKEN` and runs
+`task publish_pypi` (`uv build` + `uv publish`).
 
 If publish fails with `403 Invalid or non-existent authentication information`,
 the secret is usually missing/empty, misnamed, stored as a variable, or not a
@@ -87,9 +87,7 @@ live `pypi-…` token for pypi.org.
 ### Local / manual
 
 ```bash
-poetry config pypi-token.pypi pypi-AgEIcHlwaS5vcmc...
-# or:
-export POETRY_PYPI_TOKEN_PYPI=pypi-AgEIcHlwaS5vcmc...
+export UV_PUBLISH_TOKEN=pypi-AgEIcHlwaS5vcmc...
 task publish_pypi
 ```
 
@@ -97,13 +95,11 @@ If you see `HTTP 403` / access denied, the token is missing or revoked.
 
 ### TestPyPI
 
-`task publish_pypi_test` configures the TestPyPI repository URL. You still need
-a token:
+`task publish_pypi_test` publishes to the `testpypi` index declared in
+`pyproject.toml` (`[[tool.uv.index]]`). You still need a token:
 
 ```bash
-poetry config pypi-token.testpypi pypi-...   # token from test.pypi.org
-# or:
-export POETRY_PYPI_TOKEN_TESTPYPI=pypi-...
+export UV_PUBLISH_TOKEN=pypi-...   # token from test.pypi.org
 task publish_pypi_test
 ```
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run pytest across Python versions using mise + isolated .venvs/pyX.Y.
-# Does not touch the default Poetry .venv. Extra Pythons are installed only here.
+# Does not touch the default uv .venv. Extra Pythons are installed only here.
 # Avoids `source activate`; uses explicit venv bin paths + VIRTUAL_ENV.
 
 set -euo pipefail
@@ -26,17 +26,12 @@ if ! command -v mise >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v poetry >/dev/null 2>&1; then
-  echo "error: poetry is required on PATH" >&2
+if ! command -v uv >/dev/null 2>&1; then
+  echo "error: uv is required on PATH" >&2
   exit 1
 fi
 
 mkdir -p "$VENVS_DIR"
-
-venv_major_minor() {
-  local venv_py="$1"
-  "$venv_py" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
-}
 
 # Resolve interpreter for a version. Prefer `mise which --tool=`; fall back to `mise where`.
 resolve_python() {
@@ -66,7 +61,6 @@ with_matrix_venv() {
   venv_abs="$(cd "$venv_dir" && pwd)"
   env VIRTUAL_ENV="$venv_abs" \
     PATH="${venv_abs}/bin:${PATH}" \
-    POETRY_VIRTUALENVS_CREATE=false \
     "$@"
 }
 
@@ -81,24 +75,12 @@ ensure_venv() {
   py="$(resolve_python "$ver")"
   echo "Using interpreter: ${py}"
 
-  if [[ -x "${venv_dir}/bin/python" ]]; then
-    local current
-    current="$(venv_major_minor "${venv_dir}/bin/python")"
-    if [[ "$current" != "$ver" ]]; then
-      echo "Recreating ${venv_dir} (was ${current}, want ${ver})"
-      rm -rf "$venv_dir"
-    fi
-  fi
-
-  if [[ ! -x "${venv_dir}/bin/python" ]]; then
-    echo "Creating ${venv_dir}"
-    "$py" -m venv "$venv_dir"
-  fi
-
-  echo "poetry install into ${venv_dir}"
+  # uv recreates the env itself if the interpreter version does not match.
+  echo "uv sync into ${venv_dir}"
   # rpds-py (via jsonschema) needs this on Python 3.14 until PyO3 catches up
-  with_matrix_venv "$venv_dir" env PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
-    poetry install --with dev --without docs --no-interaction
+  env UV_PROJECT_ENVIRONMENT="$venv_dir" \
+    PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
+    uv sync --locked --python "$py" --no-group docs
 }
 
 run_tests() {
@@ -107,7 +89,7 @@ run_tests() {
   local pytest_bin="${venv_dir}/bin/pytest"
 
   if [[ ! -x "$pytest_bin" ]]; then
-    echo "error: pytest not found in ${venv_dir} (poetry install failed?)" >&2
+    echo "error: pytest not found in ${venv_dir} (uv sync failed?)" >&2
     return 1
   fi
 
@@ -128,7 +110,7 @@ for ver in "${VERSIONS[@]}"; do
   echo "########################################"
   echo "# Python ${ver}"
   echo "########################################"
-  # Subshell keeps set -e effective (unlike `if cmd`; failures must not continue into poetry/default env).
+  # Subshell keeps set -e effective (unlike `if cmd`; failures must not continue into the default env).
   if (
     set -euo pipefail
     ensure_venv "$ver"

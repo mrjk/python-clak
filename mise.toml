@@ -4,6 +4,11 @@
 
 [tools]
 python = "{{ get_env(name='PYTHON_VERSION', default='3.12') }}"
-poetry = "2.1.4"
+uv = "0.13.9"
 task = "3.52.0"
 shellcheck = "0.10.0"
+
+[env]
+# Make uv use the mise-pinned interpreter instead of downloading its own.
+UV_PYTHON = "{{ get_env(name='PYTHON_VERSION', default='3.12') }}"
+UV_PYTHON_PREFERENCE = "only-system"

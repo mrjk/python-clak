@@ -28,7 +28,7 @@ jobs:
           install_graphviz: "true"
 
       - name: Run full test gate
-        run: poetry run task test
+        run: task test
 
   publish:
     needs: test
@@ -45,8 +45,6 @@ jobs:
       - name: Publish to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          # Avoid keyring prompts/failures in CI; use config + env only.
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
         run: |
           set -euo pipefail
           if [ -z "${PYPI_TOKEN:-}" ]; then
@@ -64,6 +62,5 @@ jobs:
               exit 1
               ;;
           esac
-          poetry config pypi-token.pypi "${PYPI_TOKEN}"
-          export POETRY_PYPI_TOKEN_PYPI="${PYPI_TOKEN}"
-          poetry run task publish_pypi
+          export UV_PUBLISH_TOKEN="${PYPI_TOKEN}"
+          task publish_pypi
