@@ -6,9 +6,10 @@ from unittest.mock import patch
 
 import pytest
 
-from clak import Argument, Parser
+from clak import Argument, Command, Parser
 from clak.comp import logging as logging_plugin
 from clak.comp.logging import LoggingOptMixin, get_app_logger
+from clak.core._dispatch import TRACE_DEST, TRACE_FLAG
 from clak.exception import ClakAppError
 from clak.runtime.settings import resolve_log_colors
 
@@ -98,6 +99,7 @@ def test_resolve_log_colors_env_overrides_tty(monkeypatch):
 
 
 def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", None)
     monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
 
@@ -113,6 +115,7 @@ def test_resolve_log_colors_auto_uses_tty_and_clak_colors(monkeypatch):
 
 
 def test_resolve_log_colors_env_value_overrides_module_global(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
     monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     stream = SimpleNamespace(isatty=lambda: True)
@@ -157,3 +160,33 @@ def test_log_colors_hook_reads_meta_env(monkeypatch):
         App(parse=False, add_help=False).dispatch([])
 
     assert captured.get("colors") is False
+
+
+def test_trace_flag_dest_matches_dispatch_contract():
+    """Dispatch reads TRACE_DEST; LoggingOptMixin must declare that attribute."""
+    arg = vars(LoggingOptMixin)[TRACE_DEST]
+    assert isinstance(arg, Argument)
+    assert arg.args[0] == TRACE_FLAG
+
+
+def test_subcommand_meta_log_suffix_overrides_root(monkeypatch):
+    """A plain subcommand's Meta.log_suffix is honored by the root's hook."""
+    # Avoid global dictConfig: it would detach clak loggers from caplog.
+    monkeypatch.setattr(logging_plugin, "get_app_logger", lambda **_: None)
+    seen = {}
+
+    class Child(Parser):
+        class Meta:
+            log_suffix = "child_suffix"
+
+        def cli_run(self, **_):
+            seen["logger"] = self.logger.name
+
+    class App(LoggingOptMixin, Parser):
+        class Meta:
+            log_prefix = "myapp"
+
+        child = Command(Child)
+
+    App(parse=False).dispatch(["child"])
+    assert seen["logger"] == "myapp.child_suffix"

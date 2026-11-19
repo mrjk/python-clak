@@ -8,19 +8,20 @@ importable. Missing Rich degrades to plain HelpRenderer layout (no ANSI).
 
 from __future__ import annotations
 
-import os
 import sys
 
+from clak._optional import optional
 from clak.core.help_render import HelpDocument, RecursiveHelpFormatter
 from clak.runtime.rich_style import make_rich_console, render_markup_text
-from clak.runtime.settings import ClakSettings, color_backend_uses_rich
+from clak.runtime.settings import (
+    color_backend_uses_rich,
+    colors_enabled,
+    stream_isatty,
+)
 
-try:
-    import rich.console as rich_console
-    from rich.text import Text
-except ImportError:
-    rich_console = None
-    Text = None
+rich_console = optional("rich.console")
+# pylint: disable-next=invalid-name
+Text = getattr(optional("rich.text"), "Text", None)
 
 _HELP_STYLES = {
     "argparse.groups": "bold magenta",
@@ -43,11 +44,7 @@ class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
 
 def help_uses_rich() -> bool:
     """Whether ``--help`` should emit ANSI."""
-    if os.environ.get("NO_COLOR"):
-        return False
-    if not ClakSettings.current().colors:
-        return False
-    if not sys.stdout.isatty():
+    if not colors_enabled() or not stream_isatty(sys.stdout):
         return False
     return color_backend_uses_rich()
 
@@ -56,7 +53,7 @@ def help_document_colorizer(document: HelpDocument) -> str:
     """Style a HelpDocument. No regex on argparse text."""
     if not help_uses_rich() or rich_console is None or Text is None:
         return document.to_plain()
-    styled = Text()
+    styled = Text()  # pylint: disable=not-callable
     max_len = 80
     for line in document.lines:
         line_text = "".join(text for _kind, text in line.parts)

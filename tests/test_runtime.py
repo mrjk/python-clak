@@ -92,7 +92,7 @@ def test_color_level_truecolor(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
-    monkeypatch.setenv("CLAK_COLORS", "1")
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     monkeypatch.setenv("COLORTERM", "truecolor")
     monkeypatch.setenv("TERM", "xterm-256color")
 
@@ -112,7 +112,7 @@ def test_color_level_256_from_term(monkeypatch):
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
     monkeypatch.delenv("COLORTERM", raising=False)
-    monkeypatch.setenv("CLAK_COLORS", "1")
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
     monkeypatch.setenv("TERM", "xterm-256color")
 
     assert detect_runtime().color_level == COLOR_256
@@ -129,7 +129,7 @@ def test_force_color_without_tty(monkeypatch):
     )
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("FORCE_COLOR", "1")
-    monkeypatch.setenv("CLAK_COLORS", "1")
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
 
     assert detect_runtime().color_level == COLOR_16
 
@@ -274,3 +274,21 @@ def test_color_backend_rich_missing_raises(monkeypatch):
         color_backend_uses_rich()
     assert "rich" in str(exc.value.message).lower()
     assert "pip install" in (exc.value.advice or "")
+
+
+def test_terminal_size_prefers_clak_columns(monkeypatch):
+    from clak.core.help_render import (  # pylint: disable=import-outside-toplevel
+        _help_width,
+    )
+    from clak.runtime.runtime import (  # pylint: disable=import-outside-toplevel
+        terminal_size,
+    )
+
+    monkeypatch.setenv("COLUMNS", "100")
+    monkeypatch.setenv("LINES", "30")
+    monkeypatch.delenv("CLAK_COLUMNS", raising=False)
+    monkeypatch.delenv("CLAK_LINES", raising=False)
+    assert terminal_size() == (100, 30)
+    monkeypatch.setenv("CLAK_COLUMNS", "60")
+    assert terminal_size() == (60, 30)
+    assert _help_width() == 58

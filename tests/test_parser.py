@@ -705,3 +705,33 @@ def test_one_level_unknown_flag_prints_root_usage(capsys):
     assert "usage:" in output
     assert "usage: app" in output
     assert "unrecognized arguments: --nope" in output
+
+
+def test_shared_argument_descriptor_is_not_mutated():
+    """A class-level Argument reused by two parsers keeps its kwargs intact."""
+    shared = Arg("name", help="Name")
+    original = dict(shared.kwargs)
+
+    class AppA(Parser):
+        name = shared
+
+    class AppB(Parser):
+        name = shared
+
+    AppA(parse=False)
+    AppB(parse=False)
+    assert shared.kwargs == original
+
+
+def test_parser_positional_args_are_not_forwarded_to_dispatch(monkeypatch):
+    """Parser(False) means add_help=False, not argv=False."""
+    seen = {}
+
+    class App(Parser):
+        def cli_run(self, **_):
+            seen["ran"] = True
+
+    monkeypatch.setattr(sys, "argv", ["app"])
+    app = App(False)
+    assert app.add_help is False
+    assert seen == {"ran": True}

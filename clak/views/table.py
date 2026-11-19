@@ -47,25 +47,28 @@ def parse_columns(value):
     return cols
 
 
-def normalize_columns(value):
-    """Normalize Meta.view_columns (string, int index, or sequence) for render."""
+def _normalize_column_spec(value, label, parse_str, parse_seq=list):
+    """Normalize a Meta column spec: None, int index, string, or sequence."""
     if value is None:
         return None
     if isinstance(value, bool):
         raise TypeError(
-            "view_columns must be a string, int, or sequence, "
-            f"got {type(value).__name__}"
+            f"{label} must be a string, int, or sequence, got {type(value).__name__}"
         )
     if isinstance(value, int):
         return [value]
     if isinstance(value, str):
-        return parse_columns(value)
+        return parse_str(value)
     if isinstance(value, (list, tuple)):
-        return list(value)
+        return parse_seq(value)
     raise TypeError(
-        "view_columns must be a string, int, or sequence, "
-        f"got {type(value).__name__}"
+        f"{label} must be a string, int, or sequence, got {type(value).__name__}"
     )
+
+
+def normalize_columns(value):
+    """Normalize Meta.view_columns (string, int index, or sequence) for render."""
+    return _normalize_column_spec(value, "view_columns", parse_columns)
 
 
 def parse_sort_columns(value):
@@ -83,23 +86,7 @@ def parse_sort_columns(value):
 
 def normalize_sort_columns(value):
     """Normalize Meta.view_sort_columns (string, int index, or sequence)."""
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError(
-            "view_sort_columns must be a string, int, or sequence, "
-            f"got {type(value).__name__}"
-        )
-    if isinstance(value, int):
-        return [value]
-    if isinstance(value, str):
-        return parse_sort_columns(value)
-    if isinstance(value, (list, tuple)):
-        return list(value)
-    raise TypeError(
-        "view_sort_columns must be a string, int, or sequence, "
-        f"got {type(value).__name__}"
-    )
+    return _normalize_column_spec(value, "view_sort_columns", parse_sort_columns)
 
 
 def _dedupe_wrap_specs(specs):
@@ -146,25 +133,7 @@ def parse_wrap(value):
 
 def normalize_wrap(value):
     """Normalize Meta.view_wrap (keyword or flexible column specs)."""
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError(
-            "view_wrap must be a string, int, or sequence, "
-            f"got {type(value).__name__}"
-        )
-    if isinstance(value, int):
-        return [value]
-    if isinstance(value, str):
-        return parse_wrap(value)
-    if isinstance(value, (list, tuple)):
-        specs = _dedupe_wrap_specs(list(value))
-        if not specs:
-            raise ValueError("wrap column list must not be empty")
-        return specs
-    raise TypeError(
-        "view_wrap must be a string, int, or sequence, " f"got {type(value).__name__}"
-    )
+    return _normalize_column_spec(value, "view_wrap", parse_wrap, parse_seq=parse_wrap)
 
 
 def normalize_wrap_min(value):
@@ -313,6 +282,26 @@ def format_list_payload(
     return _dump_structured_payload(projected, fmt)
 
 
+def _sorted_mapping_order(items, sort_columns, sort_mode):
+    """Row indexes of mapping *items* in sorted order, or None if unsorted."""
+    headers = list(items[0].keys())
+    if sort_columns is None:
+        sort_columns = default_sort_columns(headers)
+    if not sort_columns:
+        return None
+    indexed = [
+        [idx] + [item.get(header, "") for header in headers]
+        for idx, item in enumerate(items)
+    ]
+    sorted_indexed = sort_table_rows(
+        indexed,
+        ["__idx__"] + headers,
+        _remap_sort_cols_after_index(sort_columns),
+        sort_mode=sort_mode,
+    )
+    return [row[0] for row in sorted_indexed]
+
+
 def _sort_mapping_payload(payload, sort_columns, sort_mode):
     """Sort a dict-of-row-mappings; preserve key association."""
     if not payload:
@@ -321,18 +310,9 @@ def _sort_mapping_payload(payload, sort_columns, sort_mode):
     values = list(payload.values())
     if not isinstance(values[0], Mapping):
         return payload
-    headers = list(values[0].keys())
-    if sort_columns is None:
-        sort_columns = default_sort_columns(headers)
-    if not sort_columns:
+    order = _sorted_mapping_order(values, sort_columns, sort_mode)
+    if order is None:
         return payload
-    rows = [[item.get(header, "") for header in headers] for item in values]
-    indexed = [[idx] + row for idx, row in enumerate(rows)]
-    remapped = _remap_sort_cols_after_index(sort_columns)
-    sorted_indexed = sort_table_rows(
-        indexed, ["__idx__"] + headers, remapped, sort_mode=sort_mode
-    )
-    order = [row[0] for row in sorted_indexed]
     return {keys[i]: values[i] for i in order}
 
 
@@ -378,18 +358,10 @@ def _sort_sequence_of_mappings(items, sort_columns=None, sort_mode="asc"):
     """Sort a list of mapping rows; return original dicts in sorted order."""
     if not items:
         return items
-    headers = list(items[0].keys())
-    if sort_columns is None:
-        sort_columns = default_sort_columns(headers)
-    if not sort_columns:
+    order = _sorted_mapping_order(items, sort_columns, sort_mode)
+    if order is None:
         return items
-    rows = [[item.get(header, "") for header in headers] for item in items]
-    indexed = [[idx] + row for idx, row in enumerate(rows)]
-    remapped = _remap_sort_cols_after_index(sort_columns)
-    sorted_indexed = sort_table_rows(
-        indexed, ["__idx__"] + headers, remapped, sort_mode=sort_mode
-    )
-    return [items[row[0]] for row in sorted_indexed]
+    return [items[i] for i in order]
 
 
 class TableView(ClakView):

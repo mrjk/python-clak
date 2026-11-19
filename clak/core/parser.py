@@ -37,6 +37,7 @@ from clak.core.descriptors import (  # pylint: disable=unused-import
     MetaSetting,
     Opt,
     SubParser,
+    first_doc_line,
     prepare_docstring,
 )
 from clak.core.help_render import HelpRenderer
@@ -53,7 +54,7 @@ Command = SubParser
 PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
 
 
-class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
+class ParserNode(Node):  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """An extensible argument parser that can be inherited to create custom CLIs.
 
     This class provides a framework for building complex command-line interfaces with:
@@ -239,16 +240,27 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
     def __repr__(self):
         return f"<{self.__class__.__module__}.{self.__class__.__name__}>"
 
+    def help_texts(self, variables: dict, first_line: bool = False) -> tuple:
+        """Return prepared ``(usage, description, epilog)`` for this node.
+
+        Reads ``Meta.help_usage`` / ``help_description`` (default: class
+        docstring) / ``help_epilog`` and formats them with *variables*.
+        *first_line* keeps only the description's first line (subcommands).
+        """
+        desc = self.query_cfg_inst("help_description", default=self.__doc__)
+        if first_line:
+            desc = first_doc_line(desc)
+        texts = (
+            self.query_cfg_inst("help_usage", default=None),
+            desc,
+            self.query_cfg_inst("help_epilog", default=None),
+        )
+        return tuple(prepare_docstring(text, variables=variables) for text in texts)
+
     def create_parser(self):
         "Create a new parser"
-        usage = self.query_cfg_parents("help_usage", default=None)
-        desc = self.query_cfg_parents("help_description", default=self.__doc__)
-        epilog = self.query_cfg_parents("help_epilog", default=None)
-
-        fenv = FormatEnv({"self": self})
-        usage = prepare_docstring(usage, variables=fenv.get())
-        desc = prepare_docstring(desc, variables=fenv.get())
-        epilog = prepare_docstring(epilog, variables=fenv.get())
+        usage, desc, epilog = self.help_texts(FormatEnv({"self": self}).get())
+        # parse_intermixed / allow_abbrev are set by _install_help.
         parser = ArgumentParserPlus(
             prog=self.proc_name,
             usage=usage,
@@ -258,12 +270,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             add_help=self.add_help,
             exit_on_error=False,
             clak_instance=self,
-            parse_intermixed=self.query_cfg_parents(
-                "parse_intermixed", default=True, include_self=True
-            ),
-            allow_abbrev=self.query_cfg_parents(
-                "abbrev_options", default=True, include_self=True
-            ),
         )
         return parser
 
@@ -281,7 +287,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         return self.query_cfg_parents(
             "help_formatter",
             default=RichRecursiveHelpFormatter,
-            include_self=True,
         )
 
     def _install_help(self):
@@ -295,12 +300,10 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             subcommands=self.query_cfg_parents(
                 "help_subcommands",
                 default=HELP_SUBCOMMANDS_ALL,
-                include_self=True,
             ),
             hide_parent=self.query_cfg_parents(
                 "help_hide_parent",
                 default=True,
-                include_self=True,
             ),
             command_groups=tuple(
                 self.query_cfg_inst("command_groups", default=()) or ()
@@ -315,12 +318,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             self.parser.clak_help_renderer = renderer
         if hasattr(self.parser, "parse_intermixed"):
             self.parser.parse_intermixed = self.query_cfg_parents(
-                "parse_intermixed", default=True, include_self=True
+                "parse_intermixed", default=True
             )
         # Subparsers built by add_parser() get argparse's default; read at
         # parse time, so setting it after build is enough.
         self.parser.allow_abbrev = bool(
-            self.query_cfg_parents("abbrev_options", default=True, include_self=True)
+            self.query_cfg_parents("abbrev_options", default=True)
         )
 
     def __getitem__(self, key):
@@ -341,9 +344,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 parser_class=ArgumentParserPlus,
                 action=SubParsersAction,
                 allow_abbrev=bool(
-                    self.query_cfg_parents(
-                        "abbrev_commands", default=False, include_self=True
-                    )
+                    self.query_cfg_parents("abbrev_commands", default=False)
                 ),
             )
         return self._subparsers
@@ -387,7 +388,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 if isinstance(value, Argument) and name not in arguments:
                     if name in skip:
                         continue
-                    value.destination = name
                     arguments[name] = value
 
         # Add __cli_self__ argument
@@ -408,7 +408,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
 
         self.local_flag_arguments = local_flags
 
-        if self.query_cfg_parents("propagate_options", default=True, include_self=True):
+        if self.query_cfg_parents("propagate_options", default=True):
             self._attach_inherited_parent_flags(arguments, local_flags)
 
     def _ancestor_flag_index(self) -> tuple[set[str], set[str]]:
@@ -435,7 +435,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         group = self.query_cfg_parents(
             "propagate_options_group",
             default=PROPAGATE_OPTIONS_GROUP_DEFAULT,
-            include_self=True,
         )
         group_extra = {
             "option_group": group,
@@ -509,7 +508,6 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
         for cls in self.__class__.__mro__:
             for attr_name, attr_value in cls.__dict__.items():
                 if isinstance(attr_value, Command) and attr_name not in subcommands:
-                    attr_value.destination = attr_name
                     subcommands[attr_name] = attr_value
 
         for key, arg in subcommands.items():
@@ -641,4 +639,6 @@ class Parser(ParserNode):
 
         if not self.parent and parse is True:
             logger.debug("Starting automatic arg_parse")
-            self.dispatch(*args)
+            # Positional args belong to ParserNode.__init__ (add_help, ...),
+            # never to argv: dispatch reads sys.argv.
+            self.dispatch()

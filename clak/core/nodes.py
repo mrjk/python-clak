@@ -161,14 +161,19 @@ class Node:
             return ".".join(fname) or ""
         return ""
 
-    def query_cfg_parents(  # pylint: disable=too-many-branches
+    def query_cfg_parents(
         self,
         name: str,
         default: Any = UNSET_ARG,
         include_self: bool = True,
         report: bool = False,
     ) -> Union[Any, Tuple[Any, Union[str, List[str]]]]:
-        """Query configuration from parent objects in the hierarchy.
+        """Query configuration from this node up to the root.
+
+        The setting must be declared (``meta__config__<name>``) on at least
+        one node of the lookup chain; values are then read from every node,
+        closest first, so a plain subcommand's ``Meta`` overrides a setting
+        declared by a mixin on an ancestor.
 
         Args:
             name: Configuration setting name to query
@@ -183,74 +188,47 @@ class Node:
                 Tuple of (value, report_str) where report_str contains search details
 
         Raises:
-            ConfigurationError: If no parent exists, include_self=False, and no default provided
+            MissingMetaError: The setting is not declared in the lookup chain
+            ConfigurationError: No value found and no default provided
         """
 
-        # Fast exit or raise exception
-        if not self.parent and include_self is False:
-            if default is not UNSET_ARG:
-                if report:
-                    return default, "No parents, return default value"
-                return default
-            msg = (
-                f"Setting '{name}' has not been declared in hierarchy of '{repr(self)}'"
-            )
-            raise ConfigurationError(msg)
+        def _done(value, details):
+            return (value, details) if report else value
 
-        # Prepare lookup chain
-        _report = []
-        parents = self.get_hierarchy()
+        chain = self.get_hierarchy()
         if include_self is False:
-            parents = parents[:-1]
-        parents.reverse()  # Start from self/immediate parent
-        out = NOT_SET
-        last_checked_parent = None
+            chain = chain[:-1]
+        chain.reverse()  # Start from self/immediate parent
 
-        declared = False
-        for parent in parents:
-            last_checked_parent = parent
-            _report.append(f"Check '{name}' in parent {parent}")
+        if not chain:
+            if default is not UNSET_ARG:
+                return _done(default, "No parents, return default value")
+            raise ConfigurationError(
+                f"Setting '{name}' has not been declared in hierarchy of '{self!r}'"
+            )
 
-            # If not found in direct attribute, try query_cfg_inst
-            try:
-                out, _report2 = parent.query_cfg_inst(
-                    name,
-                    default=NOT_SET,
-                    report=True,
-                    raise_on_undeclared=True,
-                )
-                declared = declared or True
-                _report.append(_report2)
-                if out is not NOT_SET:
-                    _report.append(f"Found '{name}' in parent {parent}= {out}")
-                    break
-            except MissingMetaError:
-                declared = declared or False
-                continue
-            except IndexError:
-                declared = declared or False
-                continue
-
-        if not declared:
-            msg = (
-                f"Missing 'meta__config__{name}', "
+        declare_attr = f"meta__config__{name}"
+        if all(getattr(node, declare_attr, None) is None for node in chain):
+            raise MissingMetaError(
+                f"Missing '{declare_attr}', "
                 f"this option has not been declared in any parents of {self!r}"
             )
-            raise MissingMetaError(msg)
 
-        if out is NOT_SET:
-            _report.append(f"NotFound '{name}' in parent: {last_checked_parent}")
-        if out is NOT_SET and default is not UNSET_ARG:
-            out = default
-        elif out is NOT_SET:
-            msg = (
-                f"Setting '{name}' has not been declared in hierarchy of '{repr(self)}'"
+        _report = []
+        for node in chain:
+            _report.append(f"Check '{name}' in parent {node}")
+            out, details = node.query_cfg_inst(name, default=NOT_SET, report=True)
+            _report.append(details)
+            if out is not NOT_SET:
+                _report.append(f"Found '{name}' in parent {node}= {out}")
+                return _done(out, _report)
+
+        _report.append(f"NotFound '{name}' in parent: {chain[-1]}")
+        if default is UNSET_ARG:
+            raise ConfigurationError(
+                f"Setting '{name}' has not been declared in hierarchy of '{self!r}'"
             )
-            raise ConfigurationError(msg)
-
-        if report:
-            return out, _report
-        return out
+        return _done(default, _report)
 
     def query_cfg_inst(  # pylint: disable=too-many-positional-arguments,too-many-arguments
         self,

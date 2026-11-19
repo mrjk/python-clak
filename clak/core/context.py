@@ -23,7 +23,7 @@ class ClakContext(ObjectNamespace):
     One instance is created in ``cli_execute`` and mutated as the command
     hierarchy walks. Attribute access matches the old dict/namespace bag
     (``ctx.runtime``, ``ctx.args``, ``ctx.cli_self``, ...). ``cli_group``
-    still receives ``**ctx.__dict__``.
+    still receives ``**ctx.as_kwargs()``.
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals,useless-parent-delegation
@@ -45,7 +45,6 @@ class ClakContext(ObjectNamespace):
         plugins: Optional[dict] = None,
         cli_first: bool = True,
         cli_state: Optional[str] = None,
-        cli_methods: Any = None,
         cli_parent: Any = None,
         cli_parents: Optional[list] = None,
         cli_children: Optional[dict] = None,
@@ -78,7 +77,6 @@ class ClakContext(ObjectNamespace):
             plugins=plugins,
             cli_first=cli_first,
             cli_state=cli_state,
-            cli_methods=cli_methods,
             cli_parent=cli_parent,
             cli_parents=[] if cli_parents is None else cli_parents,
             cli_children={} if cli_children is None else cli_children,

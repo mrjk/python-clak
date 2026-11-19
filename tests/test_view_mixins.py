@@ -748,3 +748,67 @@ def test_view_logging_xdg_mixin_composition():
     assert "DEMO_LOG_COLORS" in help_text
     conf = next(a.default for a in app.parser._actions if a.dest == "conf_file")
     assert "demo-app" in str(conf)
+
+
+def test_subcommand_meta_overrides_root_view_mixin_defaults():
+    """A plain subcommand's Meta.view_* wins over the root mixin host."""
+    seen = {}
+
+    class Child(Parser):
+        class Meta:
+            view_columns = ("name",)
+
+        def cli_run(self, ctx, **_):
+            seen["columns"] = ctx.view_settings.get("columns")
+
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_columns = ("name", "role")
+
+        child = Command(Child)
+
+    App(parse=False).dispatch(["child"])
+    assert seen["columns"] == ["name"]
+
+
+def test_root_meta_view_defaults_reach_child_with_same_mixin():
+    """Without per-class None defaults, an ancestor Meta.view_* is inherited."""
+    seen = {}
+
+    class Child(ListViewMixin, Parser):
+        def cli_run(self, ctx, **_):
+            seen["columns"] = ctx.view_settings.get("columns")
+            return [{"name": "a"}]
+
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_columns = ("name",)
+
+        child = Command(Child)
+
+    App(parse=False).dispatch(["child"])
+    assert seen["columns"] == ["name"]
+
+
+@pytest.mark.parametrize(
+    "mixin, expected",
+    [
+        (
+            ShowViewMixin,
+            {"width", "columns", "add_index", "format", "sort_columns"}
+            | {"sort_mode", "wrap"},
+        ),
+        (
+            ListViewMixin,
+            {"width", "columns", "add_index", "format", "sort_columns"}
+            | {"sort_mode", "wrap", "expand_keys"},
+        ),
+        (PprintViewMixin, {"line_length"}),
+    ],
+)
+def test_view_option_registry_per_mixin(mixin, expected):
+    """Each mixin exposes exactly its registry options, with Meta declarations."""
+    assert set(mixin._view_option_map()) == expected
+    for name in expected:
+        assert isinstance(getattr(mixin, name), Argument)
+        assert getattr(mixin, f"meta__config__view_{name}") is not None

@@ -71,9 +71,10 @@ import logging.config
 import os
 from types import SimpleNamespace
 
+from clak._optional import optional
 from clak.common import to_boolean
+from clak.core._dispatch import TRACE_FLAG
 from clak.core.descriptors import Argument, MetaSetting
-from clak.core.plugins import PluginHelpers
 from clak.exception import ClakAppError
 from clak.runtime.log_levels import register_clak_log_levels
 from clak.runtime.settings import (
@@ -86,12 +87,7 @@ from clak.runtime.settings import (
 DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 
 # pylint: disable=invalid-name
-coloredlogs = None
-if ClakSettings.current().colors:
-    try:
-        import coloredlogs  # type: ignore
-    except ImportError:
-        pass
+coloredlogs = optional("coloredlogs") if ClakSettings.current().colors else None
 
 
 if coloredlogs:
@@ -212,7 +208,7 @@ def get_app_logger(
     logging.config.dictConfig(logging_config)
 
 
-class LoggingOptMixin(PluginHelpers):
+class LoggingOptMixin:
     "Logging options support"
 
     verbosity = Argument(
@@ -231,7 +227,7 @@ class LoggingOptMixin(PluginHelpers):
     )
 
     app_trace_mode = Argument(
-        "--trace",
+        TRACE_FLAG,
         default=False,
         action=argparse.BooleanOptionalAction,
         help="Enable trace logging on errors",
@@ -288,7 +284,6 @@ class LoggingOptMixin(PluginHelpers):
                     self.query_cfg_parents(
                         "log_colors_env",
                         default=DEFAULT_LOG_COLORS_ENV,
-                        include_self=True,
                     )
                     or DEFAULT_LOG_COLORS_ENV
                 )
@@ -382,30 +377,21 @@ class LoggingOptMixin(PluginHelpers):
 
         logger.debug("Load Logging hook for %s", instance)
 
-        log_prefix = self.query_cfg_parents(
-            "log_prefix", default=None, include_self=True
-        )
-        log_suffix = self.query_cfg_parents(
-            "log_suffix", default=None, include_self=True
-        )
+        # Read config from the walked node so a subcommand's Meta wins.
+        log_prefix = instance.query_cfg_parents("log_prefix", default=None)
+        log_suffix = instance.query_cfg_parents("log_suffix", default=None)
 
         if ctx.cli_first:
-            log_levels = self.query_cfg_parents(
-                "log_levels", default=None, include_self=True
-            )
-            log_silent = self.query_cfg_parents(
-                "log_silent", default=None, include_self=True
-            )
-            log_default_level = self.query_cfg_parents(
-                "log_default_level", default=DEFAULT_LOG_LEVEL, include_self=True
+            log_levels = instance.query_cfg_parents("log_levels", default=None)
+            log_silent = instance.query_cfg_parents("log_silent", default=None)
+            log_default_level = instance.query_cfg_parents(
+                "log_default_level", default=DEFAULT_LOG_LEVEL
             )
             if log_default_level is None:
                 log_default_level = DEFAULT_LOG_LEVEL
             log_verbosity = ctx.args.verbosity
-            log_colors_env = self.query_cfg_parents(
-                "log_colors_env",
-                default=DEFAULT_LOG_COLORS_ENV,
-                include_self=True,
+            log_colors_env = instance.query_cfg_parents(
+                "log_colors_env", default=DEFAULT_LOG_COLORS_ENV
             )
             if not log_colors_env:
                 log_colors_env = DEFAULT_LOG_COLORS_ENV

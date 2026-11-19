@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 
+from clak._optional import available, install_hint, optional
 from clak.common import resolve_bool_option, to_boolean
 from clak.exception import ClakUserError
 from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
@@ -11,7 +12,6 @@ from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_
 COLOR_BACKENDS = frozenset({"none", "rich", "auto"})
 CLAK_COLOR_BACKEND_ENV = "CLAK_COLOR_BACKEND"
 DEFAULT_COLOR_BACKEND = "auto"
-_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 
 LOG_STYLES = {
     "debug": {"color": "magenta"},
@@ -55,11 +55,7 @@ def resolve_color_backend(value=None) -> str:
 
 
 def _rich_importable() -> bool:
-    try:
-        import rich  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError:
-        return False
-    return True
+    return available("rich")
 
 
 def color_backend_uses_rich(value=None) -> bool:
@@ -72,15 +68,15 @@ def color_backend_uses_rich(value=None) -> bool:
     backend = resolve_color_backend(value)
     if backend == "none":
         return False
-    available = _rich_importable()
+    rich_ok = _rich_importable()
     if backend == "rich":
-        if not available:
+        if not rich_ok:
             raise ClakUserError(
                 "CLAK_COLOR_BACKEND=rich requires the rich package",
-                advice=f"Install with: {_RICH_INSTALL_HINT}",
+                advice=f"Install with: {install_hint('rich')}",
             )
         return True
-    return available
+    return rich_ok
 
 
 class ClakSettings:
@@ -146,13 +142,10 @@ class ClakSettings:
         register_clak_log_levels()
 
         if self.colors:
-            try:
-                import coloredlogs  # pylint: disable=import-outside-toplevel
-
+            coloredlogs = optional("coloredlogs")
+            if coloredlogs is not None:
                 apply_coloredlogs_defaults(coloredlogs)
                 coloredlogs.install(level="DEBUG")
-            except ImportError:
-                pass
         else:
             logging.basicConfig(
                 level=logging.DEBUG,
@@ -172,13 +165,37 @@ CLAK_COLORS = _PROCESS_SETTINGS.colors
 CLAK_LOG_COLORS = _PROCESS_SETTINGS.log_colors
 
 
+def colors_enabled(*, clak_colors=None, env=None) -> bool:
+    """Global color kill switches shared by help, logs, views and runtime.
+
+    False when ``NO_COLOR`` is set and non-empty (https://no-color.org) or
+    ``CLAK_COLORS`` is false. *clak_colors* overrides the process
+    ``CLAK_COLORS`` value (e.g. one captured on a dispatch context).
+    Per-surface rules (TTY, explicit flags, backend) build on top.
+    """
+    env = os.environ if env is None else env
+    if env.get("NO_COLOR"):
+        return False
+    if clak_colors is None:
+        clak_colors = CLAK_COLORS
+    return bool(clak_colors)
+
+
+def stream_isatty(stream) -> bool:
+    """``stream.isatty()`` that tolerates missing, closed or fake streams."""
+    try:
+        return bool(stream.isatty())
+    except (AttributeError, ValueError, OSError):
+        return False
+
+
 def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     """Resolve whether colored logs should be enabled.
 
     Precedence:
     1. Explicit CLI ``--log-colors`` / ``--no-log-colors`` (``cli_value`` not None)
     2. ``env_value`` when not omitted (default: ``CLAK_LOG_COLORS``); ``None`` means unset
-    3. Auto: ``CLAK_COLORS`` and ``stream.isatty()`` (default stream: stderr)
+    3. Auto: :func:`colors_enabled` and ``stream.isatty()`` (default: stderr)
     """
     if stream is None:
         stream = sys.stderr
@@ -187,7 +204,7 @@ def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
     return resolve_bool_option(
         cli_value,
         env_value=env_value,
-        auto=lambda: bool(CLAK_COLORS) and stream.isatty(),
+        auto=lambda: colors_enabled() and stream_isatty(stream),
     )
 
 

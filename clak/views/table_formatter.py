@@ -18,25 +18,17 @@ import json
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
+from clak._optional import require
 from clak.common import replace_tabs
-from clak.exception import ClakUserError
 from clak.runtime.settings import ClakSettings
 from clak.views.base import DEFAULT_WIDTH_MODE, strip_ansi
 
 SORT_MODES = frozenset({"asc", "desc"})
-_YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
 
 
 def require_yaml():
     """Import PyYAML or raise ClakUserError with the config extra hint."""
-    try:
-        import yaml  # pylint: disable=import-outside-toplevel
-    except ImportError as err:
-        raise ClakUserError(
-            "YAML output requires the PyYAML package",
-            advice=f"Install with: {_YAML_INSTALL_HINT}",
-        ) from err
-    return yaml
+    return require("yaml", "YAML output")
 
 
 # pylint: disable=invalid-name

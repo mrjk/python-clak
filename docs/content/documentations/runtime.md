@@ -43,6 +43,11 @@ Eager, local-only. No DNS or NSS.
 `interactive` is for “classic interactive CLI” defaults. Piped stdin with a
 controlling terminal still possible: use `ctty` (open `/dev/tty`) for prompts.
 
+Not the same as **may prompt**: prompts go to stderr, so `clak.ui` and
+`RuntimeOptMixin` use `clak.ui.detect_interactive()` (TTY on stdin and
+stderr, outside `CI`), exposed as `ctx.interactive`. See
+[Batch mode](unattended.md).
+
 ### Display / env
 
 | Field | Type | Meaning |

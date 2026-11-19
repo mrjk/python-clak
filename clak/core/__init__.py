@@ -6,7 +6,7 @@ from clak.core.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
 from clak.core.context import ClakContext, CliArgs, DataStore, PluginStore
 from clak.core.descriptors import Arg, Argument, MetaSetting, Opt, SubParser
 from clak.core.parser import Command, Parser, ParserNode
-from clak.core.plugins import CLI_HOOK_PREFIX, PluginHelpers
+from clak.core.plugins import CLI_HOOK_PREFIX
 
 __all__ = [
     "CLI_HOOK_PREFIX",
@@ -27,6 +27,5 @@ __all__ = [
     "Opt",
     "Parser",
     "ParserNode",
-    "PluginHelpers",
     "SubParser",
 ]

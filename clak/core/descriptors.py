@@ -151,10 +151,9 @@ class ArgParseItem(Fn):
         Raises:
             ValueError: If no arguments are found
         """
-        # Create parser arguments
-        kwargs = self.kwargs
+        # Copy: descriptors are shared class attributes, never mutate them.
+        kwargs = dict(self.kwargs)
 
-        # kind = "option"
         if len(self.args) > 0:
             if len(self.args) > 2:
                 raise ValueError(
@@ -169,7 +168,6 @@ class ArgParseItem(Fn):
                 # ValueError: dest supplied twice for positional argument
                 kwargs["metavar"] = args[0]
                 args = ()
-                # kind = "argument"
 
         elif dest:
             if len(dest) <= 2:
@@ -184,18 +182,6 @@ class ArgParseItem(Fn):
         # Update dest if forced
         if dest:
             kwargs["dest"] = dest
-
-        # if kind == "argument":
-        #     if "dest" in kwargs:
-        #         if len(args) == 1:
-        #             # Remove first position arg to avoid argparse error:
-        #             # ValueError: dest supplied twice for positional argument
-        #             kwargs["metavar"] = args[0]
-        #             args = ()
-        #         else:
-        #             raise ValueError(
-        #                 f"Too many arguments found for {self.__class__.__name__}: {self.__dict__}"
-        #             )
 
         return args, kwargs
 
@@ -320,17 +306,6 @@ def _check_arg_opt_names(args, expect_option: bool, cls_name: str) -> None:
             "Use Opt() or Argument() for dest-derived flags."
         )
     for arg in args:
-        is_flag = str(arg).startswith("-")
-        if expect_option and not is_flag:
-            raise ValueError(
-                f"{cls_name}() is for option flags, got positional {arg!r}. "
-                "Use Arg() or Argument() for positionals."
-            )
-        if not expect_option and is_flag:
-            raise ValueError(
-                f"{cls_name}() is for positional arguments, got option flag "
-                f"{arg!r}. Use Opt() or Argument() for flags."
-            )
         is_flag = str(arg).startswith("-")
         if expect_option and not is_flag:
             raise ValueError(
@@ -472,17 +447,10 @@ class SubParser(ArgParseItem):
         child.command_help = parser_help
         ctx_vars["self"] = child
 
-        child_usage = child.query_cfg_inst("help_usage", default=None)
-        child_desc = first_doc_line(
-            child.query_cfg_inst("help_description", default=child.__doc__)
-        )
-        child_epilog = child.query_cfg_inst("help_epilog", default=None)
-
         # Reconfigure subparser
-        child_usage = prepare_docstring(child_usage, variables=ctx_vars)
-        child_desc = prepare_docstring(child_desc, variables=ctx_vars)
-        child_epilog = prepare_docstring(child_epilog, variables=ctx_vars)
-
+        child_usage, child_desc, child_epilog = child.help_texts(
+            ctx_vars, first_line=True
+        )
         subparser.add_help = False
         subparser.usage = child_usage
         subparser.description = child_desc

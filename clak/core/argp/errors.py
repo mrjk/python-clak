@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from gettext import gettext as _
 
 
 class ErrorRenderer:
@@ -46,8 +47,8 @@ class ErrorRenderer:
 
     @staticmethod
     def unrecognized_arguments_message(argv) -> str:
-        """Stdlib wording, with gettext left to the caller if needed."""
-        return "unrecognized arguments: " + " ".join(argv)
+        """Stdlib wording (translated through argparse's gettext domain)."""
+        return _("unrecognized arguments: %s") % " ".join(argv)
 
 
 _DEFAULT_RENDERER = ErrorRenderer()

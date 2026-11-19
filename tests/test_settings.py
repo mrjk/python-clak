@@ -1,10 +1,15 @@
-"""Tests for ClakSettings and plugin hook registration."""
+"""Tests for ClakSettings and plugin hook collection."""
 
 import pytest
 
 from clak import LoggingOptMixin, Parser
-from clak.core.plugins import CLI_HOOK_PREFIX, PluginHelpers
-from clak.runtime.settings import ClakSettings, apply_debug_logging
+from clak.core.plugins import CLI_HOOK_PREFIX
+from clak.runtime.settings import (
+    ClakSettings,
+    apply_debug_logging,
+    colors_enabled,
+    resolve_log_colors,
+)
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -45,30 +50,6 @@ def test_apply_debug_logging_skips_when_not_debug(monkeypatch):
     )
 
 
-def test_hook_register_uses_hook_list_not_setattr():
-    class Host:
-        pass
-
-    class Plugin(PluginHelpers):
-        def cli_hook__demo(self, instance, ctx, **_):
-            return "ok"
-
-        def extra(self, **_):
-            return 1
-
-    host = Host()
-    plugin = Plugin()
-    plugin.hook_register("cli_hook__demo", host)
-    plugin.hook_register("extra", host)
-
-    assert not hasattr(host, "cli_hook__demo")
-    assert not hasattr(host, "extra")
-    assert "cli_hook__demo" in host._cli_hooks
-    assert "extra" in host.cli_methods
-    assert "extra" not in host._cli_hooks
-    assert host.cli_methods["extra"]() == 1
-
-
 def test_parser_collects_mixin_hooks_at_build():
     class App(LoggingOptMixin, Parser):
         def cli_run(self, **_):
@@ -78,3 +59,25 @@ def test_parser_collects_mixin_hooks_at_build():
     hook_name = f"{CLI_HOOK_PREFIX}logging"
     assert hook_name in app._cli_hooks
     assert callable(app._cli_hooks[hook_name])
+
+
+def test_colors_enabled_kill_switches(monkeypatch):
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    assert colors_enabled(env={}) is True
+    assert colors_enabled(env={"NO_COLOR": "1"}) is False
+    assert colors_enabled(env={"NO_COLOR": ""}) is True
+    assert colors_enabled(clak_colors=False, env={}) is False
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
+    assert colors_enabled(env={}) is False
+
+
+def test_no_color_disables_auto_log_colors(monkeypatch):
+    class _Tty:
+        def isatty(self):
+            return True
+
+    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    monkeypatch.setenv("NO_COLOR", "1")
+    assert resolve_log_colors(None, stream=_Tty(), env_value=None) is False
+    # Explicit flag still wins over NO_COLOR.
+    assert resolve_log_colors(True, stream=_Tty(), env_value=None) is True
