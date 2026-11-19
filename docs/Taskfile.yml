@@ -67,17 +67,24 @@ tasks:
       - mkdir -p content/images
       - "{{.PY}} pyreverse -my -A -o svg -p {{.PKG}} -d content/images/ ../{{.PKG_DIR}}/"
       - for:
-          - parser
-          - plugins
-          - argparse_
-          - nodes
-          - common
+          # Format: "<schema name>:<source paths, space separated>".
+          # Point at real implementation modules, not compat re-export shims
+          # (pyreverse renders an empty graph for re-export-only files).
+          - "parser:core/parser.py"
+          - "plugins:core/plugins.py"
+          - "argparse_:core/argp core/help_render.py"
+          - "nodes:core/nodes.py"
+          - "common:common.py"
         cmd: |
-          mkdir -p content/images/schema_{{.ITEM | replace "/" "_" }}
+          item="{{.ITEM}}"
+          name=${item%%:*}
+          srcs=""
+          for s in ${item#*:}; do srcs="$srcs ../{{.PKG_DIR}}/$s"; done
+          mkdir -p content/images/schema_$name
           {{.PY}} pyreverse -my -A -o svg \
             -p {{.PKG}} \
-            -d content/images/schema_{{.ITEM | replace "/" "_"}} \
-            ../{{.PKG_DIR}}/{{.ITEM}}.py
+            -d content/images/schema_$name \
+            $srcs
       - >
         echo "Image generated in: content/images/"
 
