@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import textwrap
 
-from clak.exception import ClakUserError
+from clak._optional import require
 from clak.runtime.rich_style import (
     make_rich_console,
     resolve_syntax_theme,
@@ -20,9 +20,6 @@ from clak.views.base import (
     pformat_truncated,
     resolve_wrap_budget,
 )
-
-_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
-_DOCUTILS_INSTALL_HINT = "pip install 'mrjk.clak[rst]'"
 
 
 def _as_text(payload) -> str:
@@ -46,32 +43,13 @@ def _wrap_text(
 
 def require_rich():
     """Import rich for markdown terminal rendering, or raise ClakUserError."""
-    try:
-        import rich.console  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-        import rich.markdown  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError as err:
-        raise ClakUserError(
-            "Markdown rendering requires the rich package",
-            advice=f"Install with: {_RICH_INSTALL_HINT}",
-        ) from err
-    import rich.console as rich_console  # pylint: disable=import-outside-toplevel
-    import rich.markdown as rich_markdown  # pylint: disable=import-outside-toplevel
-
-    return rich_console, rich_markdown
+    purpose = "Markdown rendering"
+    return require("rich.console", purpose), require("rich.markdown", purpose)
 
 
 def require_docutils():
     """Import docutils for RST rendering, or raise ClakUserError."""
-    try:
-        import docutils.core  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError as err:
-        raise ClakUserError(
-            "RST rendering requires the docutils package",
-            advice=f"Install with: {_DOCUTILS_INSTALL_HINT}",
-        ) from err
-    import docutils.core as docutils_core  # pylint: disable=import-outside-toplevel
-
-    return docutils_core
+    return require("docutils.core", "RST rendering")
 
 
 _FG_MARKDOWN_CLS = None

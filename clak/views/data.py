@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 
+from clak._optional import available, require
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.rich_style import make_rich_console, syntax_kwargs
@@ -16,37 +17,17 @@ from clak.views.table_formatter import require_yaml
 
 DATA_FORMATS = frozenset({"json", "yaml"})
 
-_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
-
-
-def _yaml_available() -> bool:
-    try:
-        import yaml  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError:
-        return False
-    return True
-
 
 def require_rich_for_data():
     """Import rich syntax helpers or raise ClakUserError."""
-    try:
-        import rich.console  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-        import rich.syntax  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError as err:
-        raise ClakUserError(
-            "Colored data output requires the rich package",
-            advice=f"Install with: {_RICH_INSTALL_HINT}",
-        ) from err
-    import rich.console as rich_console  # pylint: disable=import-outside-toplevel
-    import rich.syntax as rich_syntax  # pylint: disable=import-outside-toplevel
-
-    return rich_console, rich_syntax
+    purpose = "Colored data output"
+    return require("rich.console", purpose), require("rich.syntax", purpose)
 
 
 def resolve_data_format(fmt=None) -> str:
     """Resolve ``json`` / ``yaml``; ``None`` / ``view`` means auto (yaml if available)."""
     if fmt is None or (isinstance(fmt, str) and fmt.lower() == "view"):
-        return "yaml" if _yaml_available() else "json"
+        return "yaml" if available("yaml") else "json"
     if not isinstance(fmt, str):
         raise TypeError(f"format must be a string, got {type(fmt).__name__}")
     fmt = fmt.lower()

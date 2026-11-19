@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 
+from clak._optional import available, install_hint, optional
 from clak.common import resolve_bool_option, to_boolean
 from clak.exception import ClakUserError
 from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
@@ -11,7 +12,6 @@ from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_
 COLOR_BACKENDS = frozenset({"none", "rich", "auto"})
 CLAK_COLOR_BACKEND_ENV = "CLAK_COLOR_BACKEND"
 DEFAULT_COLOR_BACKEND = "auto"
-_RICH_INSTALL_HINT = "pip install 'mrjk.clak[markdown]'"
 
 LOG_STYLES = {
     "debug": {"color": "magenta"},
@@ -55,11 +55,7 @@ def resolve_color_backend(value=None) -> str:
 
 
 def _rich_importable() -> bool:
-    try:
-        import rich  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
-    except ImportError:
-        return False
-    return True
+    return available("rich")
 
 
 def color_backend_uses_rich(value=None) -> bool:
@@ -72,15 +68,15 @@ def color_backend_uses_rich(value=None) -> bool:
     backend = resolve_color_backend(value)
     if backend == "none":
         return False
-    available = _rich_importable()
+    rich_ok = _rich_importable()
     if backend == "rich":
-        if not available:
+        if not rich_ok:
             raise ClakUserError(
                 "CLAK_COLOR_BACKEND=rich requires the rich package",
-                advice=f"Install with: {_RICH_INSTALL_HINT}",
+                advice=f"Install with: {install_hint('rich')}",
             )
         return True
-    return available
+    return rich_ok
 
 
 class ClakSettings:
@@ -146,13 +142,10 @@ class ClakSettings:
         register_clak_log_levels()
 
         if self.colors:
-            try:
-                import coloredlogs  # pylint: disable=import-outside-toplevel
-
+            coloredlogs = optional("coloredlogs")
+            if coloredlogs is not None:
                 apply_coloredlogs_defaults(coloredlogs)
                 coloredlogs.install(level="DEBUG")
-            except ImportError:
-                pass
         else:
             logging.basicConfig(
                 level=logging.DEBUG,

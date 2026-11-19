@@ -71,6 +71,7 @@ import logging.config
 import os
 from types import SimpleNamespace
 
+from clak._optional import optional
 from clak.common import to_boolean
 from clak.core._dispatch import TRACE_FLAG
 from clak.core.descriptors import Argument, MetaSetting
@@ -87,12 +88,7 @@ from clak.runtime.settings import (
 DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 
 # pylint: disable=invalid-name
-coloredlogs = None
-if ClakSettings.current().colors:
-    try:
-        import coloredlogs  # type: ignore
-    except ImportError:
-        pass
+coloredlogs = optional("coloredlogs") if ClakSettings.current().colors else None
 
 
 if coloredlogs:

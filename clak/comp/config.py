@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
+from clak._optional import install_hint, optional
 from clak.common import ObjectNamespace
 from clak.core.descriptors import Argument, MetaSetting
 from clak.exception import ClakUserError
@@ -29,10 +30,7 @@ from clak.exception import ClakUserError
 logger = logging.getLogger(__name__)
 
 # Optional YAML support (extra: mrjk.clak[config])
-try:
-    import yaml as _yaml  # type: ignore
-except ImportError:
-    _yaml = None
+_yaml = optional("yaml")
 
 _DEFAULT_XDG = {
     "XDG_CONFIG_HOME": "~/.config",
@@ -44,7 +42,6 @@ _UNSAFE_APP_NAME = re.compile(r"[^\w.-]+")
 
 _YAML_SUFFIXES = {".yaml", ".yml"}
 _JSON_SUFFIXES = {".json"}
-_YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
 
 _DEFAULT_LOCAL_NAMES = (".{app}.yaml", ".{app}.yml", ".{app}.json")
 
@@ -114,7 +111,7 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
         if _yaml is None:
             raise ClakUserError(
                 f"YAML config requires PyYAML ({conf_path})",
-                advice=f"Install with: {_YAML_INSTALL_HINT}",
+                advice=f"Install with: {install_hint('yaml')}",
             )
         try:
             with conf_path.open(encoding="utf-8") as handle:
