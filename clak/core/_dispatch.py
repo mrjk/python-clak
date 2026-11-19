@@ -19,6 +19,11 @@ from clak.views import ClakView
 # Same logger as parser.py so tests can patch clak.core.parser.logger
 logger = logging.getLogger("clak.core.parser")
 
+# Trace switch contract shared with LoggingOptMixin (``--trace``): dispatch
+# reads the parsed dest, or sniffs the raw flag when parsing failed.
+TRACE_DEST = "app_trace_mode"
+TRACE_FLAG = "--trace"
+
 
 class Dispatcher:
     """Argv parse, hook walk, and view render. Owned by a ParserNode."""
@@ -84,7 +89,7 @@ class Dispatcher:
         except argparse.ArgumentError as err:
             # Parsing failed: args dict is unavailable, so sniff raw argv
             raw = args if isinstance(args, list) else sys.argv[1:]
-            if isinstance(raw, list) and "--trace" in raw:
+            if isinstance(raw, list) and TRACE_FLAG in raw:
                 trace = True
             error = exception.ClakParseError(
                 format_argument_error(err),
@@ -98,8 +103,8 @@ class Dispatcher:
                 )
 
             # Check for trace mode
-            if "app_trace_mode" in args:
-                trace = args["app_trace_mode"]
+            if TRACE_DEST in args:
+                trace = args[TRACE_DEST]
             if settings.debug:
                 trace = True
 

@@ -294,3 +294,16 @@ def test_missing_meta_error_interpolates_node_repr():
     msg = str(exc.value)
     assert "{repr(self)}" not in msg
     assert repr(node) in msg
+
+
+def test_query_cfg_parents_reads_undeclaring_child_meta():
+    """A child that does not declare a setting may still override its value."""
+    root = Node(name="root")
+    root.meta__config__color = True
+    root._color = "root"
+
+    child = Node(name="child", parent=root)
+    child._color = "child"
+
+    assert child.query_cfg_parents("color") == "child"
+    assert child.query_cfg_parents("color", include_self=False) == "root"

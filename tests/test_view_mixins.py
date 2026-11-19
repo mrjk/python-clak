@@ -748,3 +748,24 @@ def test_view_logging_xdg_mixin_composition():
     assert "DEMO_LOG_COLORS" in help_text
     conf = next(a.default for a in app.parser._actions if a.dest == "conf_file")
     assert "demo-app" in str(conf)
+
+
+def test_subcommand_meta_overrides_root_view_mixin_defaults():
+    """A plain subcommand's Meta.view_* wins over the root mixin host."""
+    seen = {}
+
+    class Child(Parser):
+        class Meta:
+            view_columns = ("name",)
+
+        def cli_run(self, ctx, **_):
+            seen["columns"] = ctx.view_settings.get("columns")
+
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_columns = ("name", "role")
+
+        child = Command(Child)
+
+    App(parse=False).dispatch(["child"])
+    assert seen["columns"] == ["name"]

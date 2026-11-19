@@ -158,11 +158,11 @@ class _ViewMixinBase(PluginHelpers):
     )
     meta__view_cli_options = True
 
-    def _enabled_view_options(self) -> Set[str]:
+    def _enabled_view_options(self, node=None) -> Set[str]:
+        """View option names enabled by ``Meta.view_cli_options`` on *node*."""
+        node = node or self
         available = set(self._view_cli_option_names)
-        configured = self.query_cfg_parents(
-            "view_cli_options", default=True, include_self=True
-        )
+        configured = node.query_cfg_parents("view_cli_options", default=True)
         if configured is True:
             return available
         if configured is False:
@@ -252,9 +252,14 @@ class _ViewMixinBase(PluginHelpers):
         return settings
 
     def _apply_meta_view_defaults(
-        self, settings: dict, enabled: Set[str] | None = None
+        self, settings: dict, enabled: Set[str] | None = None, node=None
     ) -> None:
-        """Fill unset settings from Meta.view_* defaults (enabled options only)."""
+        """Fill unset settings from Meta.view_* defaults (enabled options only).
+
+        Config is read from *node* (default: self), so a subcommand's own
+        ``Meta.view_*`` wins over the mixin host's.
+        """
+        node = node or self
         meta_defaults = (
             ("columns", "view_columns", normalize_columns),
             ("sort_columns", "view_sort_columns", normalize_sort_columns),
@@ -275,35 +280,34 @@ class _ViewMixinBase(PluginHelpers):
                 continue
             if key in settings:
                 continue
-            value = self.query_cfg_parents(meta_name, default=None, include_self=True)
+            value = node.query_cfg_parents(meta_name, default=None)
             if value is None:
                 continue
             settings[key] = normalizer(value) if normalizer else value
 
         if "wrap" in self._view_cli_option_names and "wrap_min" not in settings:
-            value = self.query_cfg_parents(
-                "view_wrap_min", default=None, include_self=True
-            )
+            value = node.query_cfg_parents("view_wrap_min", default=None)
             if value is not None:
                 settings["wrap_min"] = normalize_wrap_min(value)
 
         if getattr(self, "_uses_syntax_theme", False) and "theme" not in settings:
-            value = self.query_cfg_parents(
-                "view_syntax_theme", default=None, include_self=True
-            )
+            value = node.query_cfg_parents("view_syntax_theme", default=None)
             if value is not None:
                 settings["theme"] = value
 
-    def collect_view_settings(self, args: Any) -> dict:
-        """Build view render kwargs from parsed CLI args (only set flags)."""
-        enabled = self._enabled_view_options()
+    def collect_view_settings(self, args: Any, node=None) -> dict:
+        """Build view render kwargs from parsed CLI args (only set flags).
+
+        *node* is the parser whose ``Meta`` supplies defaults (default: self).
+        """
+        enabled = self._enabled_view_options(node)
         settings = self._collect_enabled_cli_settings(args, enabled)
-        self._apply_meta_view_defaults(settings, enabled)
+        self._apply_meta_view_defaults(settings, enabled, node=node)
         return settings
 
     def cli_hook__views(self, instance, ctx, **_):  # pylint: disable=unused-argument
         "Collect view CLI options into ctx.plugins and stash on root for dispatch."
-        settings = self.collect_view_settings(ctx.args)
+        settings = self.collect_view_settings(ctx.args, node=instance)
         runtime = getattr(ctx, "runtime", None)
         if runtime is not None:
             runtime.get_size()
