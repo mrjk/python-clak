@@ -268,7 +268,7 @@ class Dispatcher:
                 logger.info(
                     "Group function execute: %d:%s.%s", idx, walk_node, fn_group_name
                 )
-                group_fn(ctx=ctx, **ctx.__dict__)
+                group_fn(ctx=ctx, **ctx.as_kwargs())
 
             ctx.cli_state = "run_exec"
             if last_node is True:

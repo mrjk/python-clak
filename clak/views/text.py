@@ -18,7 +18,7 @@ from clak.views.base import (
     TEXT_FORMATS,
     ClakView,
     pformat_truncated,
-    resolve_wrap_budget,
+    resolve_line_length,
 )
 
 
@@ -35,7 +35,9 @@ def _wrap_text(
     text: str, line_length=None, term_width=None, stdout_tty=None, **_
 ) -> str:
     """Optionally wrap plain text to the resolved line length."""
-    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
+    wrap, budget = resolve_line_length(
+        line_length=line_length, term_width=term_width, stdout_tty=stdout_tty
+    )
     if not wrap or budget is None:
         return text
     return textwrap.fill(text, width=budget, replace_whitespace=False)
@@ -100,7 +102,9 @@ def render_markdown_text(
     rich_console, rich_markdown = require_rich()
     import rich.syntax as rich_syntax  # pylint: disable=import-outside-toplevel
 
-    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
+    wrap, budget = resolve_line_length(
+        line_length=line_length, term_width=term_width, stdout_tty=stdout_tty
+    )
     width = budget if wrap and budget is not None else None
     console = make_rich_console(rich_console, width=width)
     resolved = resolve_syntax_theme(theme)
@@ -119,7 +123,9 @@ def render_markdown_text(
 def render_rst_text(text: str, line_length=None, term_width=None, stdout_tty=None, **_):
     """Render reStructuredText source to plain text via docutils."""
     docutils_core = require_docutils()
-    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
+    wrap, budget = resolve_line_length(
+        line_length=line_length, term_width=term_width, stdout_tty=stdout_tty
+    )
     document = docutils_core.publish_doctree(
         source=text,
         settings_overrides={

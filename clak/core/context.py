@@ -23,7 +23,7 @@ class ClakContext(ObjectNamespace):
     One instance is created in ``cli_execute`` and mutated as the command
     hierarchy walks. Attribute access matches the old dict/namespace bag
     (``ctx.runtime``, ``ctx.args``, ``ctx.cli_self``, ...). ``cli_group``
-    still receives ``**ctx.__dict__``.
+    still receives ``**ctx.as_kwargs()``.
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals,useless-parent-delegation

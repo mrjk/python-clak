@@ -34,6 +34,15 @@ logger = logging.getLogger(__name__)
 # ============================
 
 
+def _resolve_prog(ctx) -> str:
+    """Executable name to complete: app proc name, root prog, then argv[0]."""
+    return (
+        getattr(ctx, "app_proc_name", None)
+        or getattr(ctx.cli_root, "proc_name", None)
+        or sys.argv[0]
+    )
+
+
 class CompRenderMixin:  # pylint: disable=too-few-public-methods
     "Completion support Methods"
 
@@ -120,12 +129,7 @@ class CompRenderCmdMixin(CompRenderMixin):
         args = ctx.args
         executable = getattr(args, "executable", None)
         if not executable:
-            prog = getattr(ctx, "app_proc_name", None) or getattr(
-                ctx.cli_root, "proc_name", None
-            )
-            if not prog:
-                prog = sys.argv[0]
-            args.executable = [prog]
+            args.executable = [_resolve_prog(ctx)]
         self.print_completion_stdout(args)
 
 
@@ -156,15 +160,8 @@ class CompRenderOptMixin(CompRenderMixin):
         """
 
         args = ctx.args
-
-        prog = getattr(ctx, "app_proc_name", None) or getattr(
-            ctx.cli_root, "proc_name", None
-        )
-        if not prog:
-            prog = sys.argv[0]
-
         kwargs = {
-            "executable": [prog],
+            "executable": [_resolve_prog(ctx)],
             "shell": "bash",
             "use_defaults": True,
             "complete_arguments": [],

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import difflib
-from gettext import gettext as _
 
 from clak.core.argp.actions import SubParsersAction
 from clak.core.argp.capabilities import ArgparseCapabilities
@@ -125,7 +124,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):
         parsed, argv = self.parse_known_args(args, namespace)
         if argv:
-            msg = _("unrecognized arguments: %s") % " ".join(argv)
+            msg = self.error_renderer.unrecognized_arguments_message(argv)
             if self.exit_on_error:
                 self.error(msg)
             err = argparse.ArgumentError(None, msg)

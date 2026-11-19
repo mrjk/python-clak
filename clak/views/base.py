@@ -90,14 +90,6 @@ class ClakView:
         return merged
 
 
-def merge_view_settings(existing=None, cli_settings=None):
-    """Merge CLI view settings over existing view settings.
-
-    Thin wrapper around ``ClakView.merge_settings``.
-    """
-    return ClakView.merge_settings(existing, cli_settings)
-
-
 def normalize_width_mode(mode: Optional[str] = None) -> str:
     """Return a canonical table width mode (``content`` / ``fit`` / ``terminal``).
 
@@ -217,18 +209,11 @@ def resolve_line_length(
     return True, min(term, int(parsed))
 
 
-def resolve_wrap_budget(line_length=None, term_width=None, stdout_tty=None):
-    """Resolve wrap flag and column budget with DEFAULT_LINE_LENGTH fallback."""
-    return resolve_line_length(
-        line_length=line_length if line_length is not None else DEFAULT_LINE_LENGTH,
-        term_width=term_width,
-        stdout_tty=stdout_tty,
-    )
-
-
 def pformat_truncated(data, line_length=None, term_width=None, stdout_tty=None, **_):
     """Pretty-print *data*, optionally wrapping to the resolved line length."""
-    wrap, budget = resolve_wrap_budget(line_length, term_width, stdout_tty)
+    wrap, budget = resolve_line_length(
+        line_length=line_length, term_width=term_width, stdout_tty=stdout_tty
+    )
     if not wrap or budget is None:
         return pformat(data)
 
