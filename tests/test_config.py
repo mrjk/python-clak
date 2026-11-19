@@ -8,7 +8,10 @@ import pytest
 from clak import Parser
 from clak.comp import config as config_mod
 from clak.comp.config import (
-    XDGConfigMixin,
+    XDGCacheDirMixin,
+    XDGConfFileMixin,
+    XDGDataDirMixin,
+    XDGLogDirMixin,
     load_config_file,
     resolve_xdg_paths,
     sanitize_xdg_app_name,
@@ -47,43 +50,75 @@ def test_resolve_xdg_paths_respects_env(monkeypatch, tmp_path):
     assert paths["log_dir"] == str(tmp_path / "cache" / "demo" / "logs")
 
 
-def test_xdg_config_mixin_defaults_use_meta_app_name(monkeypatch, tmp_path):
+def _option_dests(app):
+    return {a.dest: a.default for a in app.parser._actions}
+
+
+def test_xdg_mixins_defaults_use_meta_app_name(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
 
-    class App(XDGConfigMixin, Parser):
+    class App(
+        XDGConfFileMixin, XDGDataDirMixin, XDGCacheDirMixin, XDGLogDirMixin, Parser
+    ):
         class Meta:
             app_name = "cool-cli"
 
         def cli_run(self, **_):
             return None
 
-    app = App(parse=False)
-    defaults = {
-        action.dest: action.default
-        for action in app.parser._actions
-        if action.dest in ("xdg_config", "xdg_data_dir", "xdg_cache_dir", "xdg_log_dir")
-    }
-    assert defaults["xdg_config"] == str(
+    defaults = _option_dests(App(parse=False))
+    assert defaults["conf_file"] == str(
         tmp_path / "config" / "cool-cli" / "config.yaml"
     )
-    assert defaults["xdg_data_dir"] == str(tmp_path / "data" / "cool-cli")
-    assert defaults["xdg_cache_dir"] == str(tmp_path / "cache" / "cool-cli")
-    assert defaults["xdg_log_dir"] == str(tmp_path / "cache" / "cool-cli" / "logs")
+    assert defaults["data_dir"] == str(tmp_path / "data" / "cool-cli")
+    assert defaults["cache_dir"] == str(tmp_path / "cache" / "cool-cli")
+    assert defaults["log_dir"] == str(tmp_path / "cache" / "cool-cli" / "logs")
 
 
-def test_xdg_config_mixin_falls_back_to_class_name(monkeypatch, tmp_path):
+def test_conf_file_mixin_alone_adds_only_conf_file():
+    class App(XDGConfFileMixin, Parser):
+        def cli_run(self, **_):
+            return None
+
+    dests = _option_dests(App(parse=False))
+    assert "conf_file" in dests
+    for name in ("data_dir", "cache_dir", "log_dir"):
+        assert name not in dests
+
+
+def test_data_dir_mixin_alone_has_no_conf_file(tmp_path):
+    seen = {}
+
+    class App(XDGDataDirMixin, Parser):
+        class Meta:
+            app_name = "data-only"
+
+        def cli_run(self, ctx=None, **_):
+            seen["config"] = getattr(ctx, "config", None)
+            return None
+
+    app = App(parse=False)
+    dests = _option_dests(app)
+    assert "data_dir" in dests
+    assert "conf_file" not in dests
+    assert "--data-dir" in app.parser.format_help()
+    app.cli_execute({"data_dir": str(tmp_path), "__cli_self__": app})
+    assert seen["config"] is None
+
+
+def test_conf_file_mixin_falls_back_to_class_name(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
 
-    class DemoTool(XDGConfigMixin, Parser):
+    class DemoTool(XDGConfFileMixin, Parser):
         def cli_run(self, **_):
             return None
 
     app = DemoTool(parse=False)
-    conf = next(a.default for a in app.parser._actions if a.dest == "xdg_config")
+    conf = next(a.default for a in app.parser._actions if a.dest == "conf_file")
     assert conf == str(tmp_path / "config" / "DemoTool" / "config.yaml")
 
 
@@ -143,7 +178,7 @@ def test_hook_missing_file_yields_empty(monkeypatch, tmp_path):
 
     seen = {}
 
-    class App(XDGConfigMixin, Parser):
+    class App(XDGConfFileMixin, Parser):
         class Meta:
             app_name = "hook-demo"
 
@@ -155,7 +190,7 @@ def test_hook_missing_file_yields_empty(monkeypatch, tmp_path):
     app = App(parse=False)
     missing = tmp_path / "config" / "hook-demo" / "config.yaml"
     assert not missing.exists()
-    result = app.cli_execute({"xdg_config": str(missing), "__cli_self__": app})
+    result = app.cli_execute({"conf_file": str(missing), "__cli_self__": app})
     assert result == {}
     assert seen["config"] == {}
     assert seen["root"] is not None
@@ -166,7 +201,7 @@ def test_hook_loads_json(tmp_path):
     conf.write_text(json.dumps({"port": 8080}), encoding="utf-8")
     seen = {}
 
-    class App(XDGConfigMixin, Parser):
+    class App(XDGConfFileMixin, Parser):
         def cli_run(self, ctx=None, **_):
             seen["config"] = dict(ctx.config)
             seen["port"] = self.config.port
@@ -174,14 +209,14 @@ def test_hook_loads_json(tmp_path):
             return seen["config"]
 
     app = App(parse=False)
-    result = app.cli_execute({"xdg_config": str(conf), "__cli_self__": app})
+    result = app.cli_execute({"conf_file": str(conf), "__cli_self__": app})
     assert result == {"port": 8080}
     assert seen["port"] == 8080
     assert seen["path"] == str(conf)
 
 
 def test_hook_config_required_missing_file(tmp_path):
-    class App(XDGConfigMixin, Parser):
+    class App(XDGConfFileMixin, Parser):
         class Meta:
             config_required = True
 
@@ -191,4 +226,4 @@ def test_hook_config_required_missing_file(tmp_path):
     app = App(parse=False)
     missing = tmp_path / "nope.json"
     with pytest.raises(ClakUserError, match="not found"):
-        app.cli_execute({"xdg_config": str(missing), "__cli_self__": app})
+        app.cli_execute({"conf_file": str(missing), "__cli_self__": app})

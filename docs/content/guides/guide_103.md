@@ -17,7 +17,7 @@ Clak does **not** auto-map arbitrary environment variables to CLI options.
 Library flags that *do* read the environment:
 
 * `CLAK_DEBUG`, `CLAK_LOG_COLORS`, `CLAK_COLORS` — see [Logging](../docs/logging.md)
-* `$XDG_*` — see [Config](../docs/config.md) when using `XDGConfigMixin`
+* `$XDG_*` — see [Config](../docs/config.md) when using the XDG mixins
 
 Env-var → option mapping is on the [roadmap](../project/roadmap.md).
 

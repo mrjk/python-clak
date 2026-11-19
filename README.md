@@ -115,7 +115,7 @@ class MainApp(Parser):
 | Tables / structured output | `ListViewMixin`, `ShowViewMixin`, `PprintViewMixin` | [Views](https://mrjk.github.io/python-clak/docs/views/) |
 | Colored `--help` | default (Rich extra, TTY) | [Colored help](https://mrjk.github.io/python-clak/docs/help/) |
 | Logging + `-v` | `LoggingOptMixin` | [Logging](https://mrjk.github.io/python-clak/docs/logging/) |
-| XDG paths + config file | `XDGConfigMixin` | [Config](https://mrjk.github.io/python-clak/docs/config/) |
+| XDG paths + config file | `XDGConfFileMixin` (+ `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`) | [Config](https://mrjk.github.io/python-clak/docs/config/) |
 | Shell completion scripts | `CompCmdRender` | [Completion](https://mrjk.github.io/python-clak/docs/completion/) |
 
 ## Learn more

@@ -93,8 +93,9 @@ Mix in only what you need:
 
 ### Config
 
-- `XDGConfigMixin`: `--conf-file` and XDG data/cache/log paths from
-  `Meta.app_name`.
+- `XDGConfFileMixin`: `--conf-file` with an XDG default from `Meta.app_name`.
+- `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`: opt-in
+  `--data-dir` / `--cache-dir` / `--log-dir`, one flag per mixin.
 - Loads JSON always; YAML via `mrjk.clak[config]`.
 - Guide: [Config](config.md).
 

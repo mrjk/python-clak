@@ -27,7 +27,7 @@ from clak import (
     LoggingOptMixin, RichHelpMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin, DataViewMixin,
     RawViewMixin, MarkdownViewMixin, RstViewMixin, CompositeViewMixin,
-    XDGConfigMixin,
+    XDGConfFileMixin, XDGDataDirMixin, XDGCacheDirMixin, XDGLogDirMixin,
     CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin,
     OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, SUPPRESS, RecursiveHelpFormatter,
 )
@@ -142,7 +142,7 @@ Views Meta (with view mixins):
         view_sort_columns = ("name",) | "name,-1" | [-1, 1]
         view_sort_mode = "asc" | "desc"
 
-Config Meta (with XDGConfigMixin):
+Config Meta (with XDGConfFileMixin):
         app_name = "myapp"
         config_required = False            # True → missing file is error
 
@@ -278,7 +278,7 @@ CLAK_COLORS=0 is a hard kill-switch for coloredlogs / Clak color integration.
 CONFIG (XDG)
 ==============================================================================
 
-class App(XDGConfigMixin, Parser):
+class App(XDGConfFileMixin, Parser):
     class Meta:
         app_name = "cool-cli"
 
@@ -286,8 +286,12 @@ class App(XDGConfigMixin, Parser):
         data = ctx.config          # dict
         # also root.config as attribute namespace
 
-Flags: --conf-file (visible); --data-dir / --cache-dir / --log-dir (hidden).
-Defaults under $XDG_CONFIG_HOME/<app>/config.yaml etc.
+One mixin per flag (opt-in; combine as needed):
+  XDGConfFileMixin  --conf-file  $XDG_CONFIG_HOME/<app>/config.yaml (+ loading)
+  XDGDataDirMixin   --data-dir   $XDG_DATA_HOME/<app>
+  XDGCacheDirMixin  --cache-dir  $XDG_CACHE_HOME/<app>
+  XDGLogDirMixin    --log-dir    $XDG_CACHE_HOME/<app>/logs
+Dests: conf_file, data_dir, cache_dir, log_dir.
 JSON always; YAML needs mrjk.clak[config].
 Missing file → {} unless config_required=True.
 Config is NOT merged into argparse destinations — read ctx.config explicitly.

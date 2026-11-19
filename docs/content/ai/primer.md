@@ -115,7 +115,7 @@ class Meta:
 | Colored --help | default when Rich + TTY (mrjk.clak[markdown]); opt out Meta.help_formatter = RecursiveHelpFormatter |
 | Nested --help listing | Meta.help_subcommands = "all" (default) or "top"; Meta.help_hide_parent = True (default) hides parent path |
 | -v logging + self.logger | LoggingOptMixin |
-| XDG paths + load config file | XDGConfigMixin (--conf-file → ctx.config) |
+| XDG paths + load config file | XDGConfFileMixin (--conf-file → ctx.config); XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin (one flag each) |
 | Emit shell completion script | CompCmdRender as a Command |
 | TTY / size / color on ctx | ctx.runtime (core); optional ctx.facts (host/user/distro); ctx.settings (CLAK_* flags) |
 

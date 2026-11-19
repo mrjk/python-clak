@@ -38,12 +38,12 @@ Configure `-v` tiers, formatters, and `self.logger`.
 
 ## Config
 
-Expose XDG paths and load a JSON/YAML config file into `ctx.config`:
+Expose `--conf-file` (XDG default) and load a JSON/YAML config file into `ctx.config`:
 
 ```python
-from clak import Parser, XDGConfigMixin
+from clak import Parser, XDGConfFileMixin
 
-class App(XDGConfigMixin, Parser):
+class App(XDGConfFileMixin, Parser):
     class Meta:
         app_name = "myapp"
 

@@ -16,7 +16,7 @@ These are the current **star features** — each has user documentation:
 | Views (`Show`/`List`/`Pprint`/`Raw`/`Markdown`/`Rst`/`Composite` mixins) | [Views](../docs/views.md) |
 | Logging (`LoggingOptMixin`, `-v` tiers, custom levels) | [Logging](../docs/logging.md) |
 | Error handling (`ClakUserError`, `Meta.known_exceptions`, …) | [Error handling](../docs/exceptions.md) |
-| XDG paths + config file load (`XDGConfigMixin`) | [Config](../docs/config.md) |
+| XDG paths + config file load (`XDGConfFileMixin` + per-flag dir mixins) | [Config](../docs/config.md) |
 | Shell completion script generation (`CompCmdRender`) | [Completion](../docs/completion.md) |
 | Runtime / facts (`ctx.runtime`, `ctx.facts`) | [Runtime](../docs/runtime.md) |
 

@@ -1,16 +1,17 @@
 # Config
 
-`XDGConfigMixin` adds XDG Base Directory path flags and loads a config file
-once during dispatch.
+Clak provides one opt-in mixin per XDG Base Directory path flag. Most apps
+only need `XDGConfFileMixin`, which adds `--conf-file` and loads the file once
+during dispatch.
 
 API reference: [Config component](../api/plugin_config.md).
 
 ## Quick start
 
 ```python
-from clak import Parser, XDGConfigMixin
+from clak import Parser, XDGConfFileMixin
 
-class App(XDGConfigMixin, Parser):
+class App(XDGConfFileMixin, Parser):
     class Meta:
         app_name = "cool-cli"  # used under ~/.config/cool-cli/...
 
@@ -32,14 +33,30 @@ Default `--conf-file` path (when `Meta.app_name = "cool-cli"`):
 
 If `XDG_CONFIG_HOME` is unset, that is `~/.config/cool-cli/config.yaml`.
 
-## CLI flags
+## Mixins and flags
 
-| Flag | Default | Visible | Purpose |
-| --- | --- | --- | --- |
-| `--conf-file` | `$XDG_CONFIG_HOME/<app>/config.yaml` | yes | Config file to load |
-| `--data-dir` | `$XDG_DATA_HOME/<app>` | hidden | App data directory |
-| `--cache-dir` | `$XDG_CACHE_HOME/<app>` | hidden | Cache directory |
-| `--log-dir` | `$XDG_CACHE_HOME/<app>/logs` | hidden | Log directory |
+Each flag is its own mixin; add only the ones you need.
+
+| Mixin | Flag | Dest | Default | Purpose |
+| --- | --- | --- | --- | --- |
+| `XDGConfFileMixin` | `--conf-file` | `conf_file` | `$XDG_CONFIG_HOME/<app>/config.yaml` | Config file to load |
+| `XDGDataDirMixin` | `--data-dir` | `data_dir` | `$XDG_DATA_HOME/<app>` | App data directory |
+| `XDGCacheDirMixin` | `--cache-dir` | `cache_dir` | `$XDG_CACHE_HOME/<app>` | Cache directory |
+| `XDGLogDirMixin` | `--log-dir` | `log_dir` | `$XDG_CACHE_HOME/<app>/logs` | Log directory |
+
+Only `XDGConfFileMixin` loads anything; the directory mixins just expose a
+path flag with an XDG default.
+
+```python
+from clak import Parser, XDGConfFileMixin, XDGDataDirMixin
+
+class App(XDGConfFileMixin, XDGDataDirMixin, Parser):
+    class Meta:
+        app_name = "cool-cli"
+
+    def cli_run(self, ctx, data_dir, **_):
+        print(ctx.config, data_dir)
+```
 
 `<app>` comes from `Meta.app_name`, otherwise the parser name / class name
 (sanitized for paths).
@@ -60,7 +77,7 @@ If `XDG_CONFIG_HOME` is unset, that is `~/.config/cool-cli/config.yaml`.
 - Load runs once on the first dispatch hop via `cli_hook__config`.
 
 ```python
-class App(XDGConfigMixin, Parser):
+class App(XDGConfFileMixin, Parser):
     class Meta:
         app_name = "cool-cli"
         config_required = True  # fail if --conf-file is missing or absent

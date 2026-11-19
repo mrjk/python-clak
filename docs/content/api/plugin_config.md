@@ -5,9 +5,9 @@ User guide: [Config](../docs/config.md).
 ## Usage
 
 ```python
-from clak import Parser, XDGConfigMixin
+from clak import Parser, XDGConfFileMixin
 
-class App(XDGConfigMixin, Parser):
+class App(XDGConfFileMixin, Parser):
     class Meta:
         app_name = "cool-cli"
         # config_required = True  # fail if file is missing

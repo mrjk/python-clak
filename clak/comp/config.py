@@ -1,13 +1,16 @@
 """XDG Base Directory path helpers and config-file loading.
 
-Provides ``XDGConfigMixin`` so apps can expose standard config/data/cache/log
-path flags with defaults from ``Meta.app_name`` / ``$XDG_*``, and load
-``--conf-file`` once via ``cli_hook__config``.
+Each XDG path flag is its own opt-in mixin, with defaults from
+``Meta.app_name`` / ``$XDG_*``:
+
+- ``XDGConfFileMixin``: ``--conf-file``, loaded once via ``cli_hook__config``
+- ``XDGDataDirMixin``: ``--data-dir``
+- ``XDGCacheDirMixin``: ``--cache-dir``
+- ``XDGLogDirMixin``: ``--log-dir``
 """
 
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 import os
@@ -136,56 +139,16 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
     return dict(data)
 
 
-# Configuration and workdir support
+# XDG path mixins (one per flag, opt-in)
 # ============================
 
 
-class XDGConfigMixin:  # pylint: disable=too-few-public-methods
-    """XDG path flags and config-file loading.
+class _XDGPathMixin:  # pylint: disable=too-few-public-methods
+    """Shared helpers for XDG path mixins.
 
-    Adds:
-    - ``--conf-file``: ``$XDG_CONFIG_HOME/<app>/config.yaml``
-    - ``--data-dir``: ``$XDG_DATA_HOME/<app>`` (hidden)
-    - ``--cache-dir``: ``$XDG_CACHE_HOME/<app>`` (hidden)
-    - ``--log-dir``: ``$XDG_CACHE_HOME/<app>/logs`` (hidden)
-
-    ``<app>`` comes from ``Meta.app_name``, else the parser name / class name.
-    Defaults respect ``$XDG_CONFIG_HOME``, ``$XDG_DATA_HOME``, and
-    ``$XDG_CACHE_HOME`` when set.
-
-    On dispatch, ``cli_hook__config`` loads ``--conf-file`` (JSON always;
-    YAML with the ``config`` extra). Missing file yields ``{}`` unless
-    ``Meta.config_required`` is true. Loaded data is available as
-    ``ctx.config`` (dict) and ``cli_root.config`` (attribute namespace).
+    Subclasses declare one ``Argument`` and call ``_xdg_apply_default`` from
+    ``add_arguments`` before chaining to ``super()``.
     """
-
-    xdg_config = Argument(
-        "--conf-file",
-        help="Configuration file to use",
-    )
-    xdg_data_dir = Argument(
-        "--data-dir",
-        help=argparse.SUPPRESS,
-    )
-    xdg_cache_dir = Argument(
-        "--cache-dir",
-        help=argparse.SUPPRESS,
-    )
-    xdg_log_dir = Argument(
-        "--log-dir",
-        help=argparse.SUPPRESS,
-    )
-
-    meta__config__config_required = MetaSetting(
-        help="If true, missing --conf-file raises ClakUserError",
-    )
-
-    _XDG_ARG_DEFAULTS = (
-        ("xdg_config", "conf_file"),
-        ("xdg_data_dir", "data_dir"),
-        ("xdg_cache_dir", "cache_dir"),
-        ("xdg_log_dir", "log_dir"),
-    )
 
     def _xdg_app_name(self) -> str:
         """Resolve the application name used in XDG paths."""
@@ -194,31 +157,60 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
             name = getattr(self, "name", None) or self.__class__.__name__
         return sanitize_xdg_app_name(name)
 
-    def add_arguments(self, arguments: dict = None):
-        """Apply XDG defaults from app name / env, then register arguments."""
+    def _xdg_arguments(self, arguments: dict | None) -> dict:
+        """Normalize the ``arguments`` mapping passed to ``add_arguments``."""
         if arguments is None:
             arguments = getattr(self, "meta__arguments_dict", None)
-        arguments = dict(arguments or {})
+        return dict(arguments or {})
+
+    def _xdg_apply_default(
+        self, arguments: dict, attr_name: str, path_key: str
+    ) -> None:
+        """Insert ``attr_name`` into ``arguments`` with its XDG default path."""
+        if attr_name in arguments:
+            return
+        template = getattr(type(self), attr_name, None)
+        if not isinstance(template, Argument):
+            return
         paths = resolve_xdg_paths(self._xdg_app_name())
+        kwargs = dict(template.kwargs)
+        kwargs.setdefault("default", paths[path_key])
+        arg = Argument(*template.args, **kwargs)
+        arg.destination = attr_name
+        arguments[attr_name] = arg
 
-        for attr_name, path_key in self._XDG_ARG_DEFAULTS:
-            template = getattr(type(self), attr_name, None)
-            if not isinstance(template, Argument):
-                continue
-            if attr_name in arguments:
-                continue
-            kwargs = dict(template.kwargs)
-            kwargs.setdefault("default", paths[path_key])
-            arg = Argument(*template.args, **kwargs)
-            arg.destination = attr_name
-            arguments[attr_name] = arg
 
+class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
+    """``--conf-file`` flag and config-file loading.
+
+    Default: ``$XDG_CONFIG_HOME/<app>/config.yaml``, where ``<app>`` comes
+    from ``Meta.app_name``, else the parser name / class name.
+
+    On dispatch, ``cli_hook__config`` loads ``--conf-file`` (JSON always;
+    YAML with the ``config`` extra). Missing file yields ``{}`` unless
+    ``Meta.config_required`` is true. Loaded data is available as
+    ``ctx.config`` (dict) and ``cli_root.config`` (attribute namespace).
+    """
+
+    conf_file = Argument(
+        "--conf-file",
+        help="Configuration file to use",
+    )
+
+    meta__config__config_required = MetaSetting(
+        help="If true, missing --conf-file raises ClakUserError",
+    )
+
+    def add_arguments(self, arguments: dict = None):
+        """Apply the XDG default for ``--conf-file``, then chain."""
+        arguments = self._xdg_arguments(arguments)
+        self._xdg_apply_default(arguments, "conf_file", "conf_file")
         return super().add_arguments(arguments)
 
     def cli_hook__config(self, instance, ctx, **_):
         """Load ``--conf-file`` once and expose it on ctx / root."""
         if ctx.cli_first:
-            path = getattr(ctx.args, "xdg_config", None)
+            path = getattr(ctx.args, "conf_file", None)
             required = bool(
                 self.query_cfg_parents(
                     "config_required", default=False, include_self=True
@@ -259,3 +251,48 @@ class XDGConfigMixin:  # pylint: disable=too-few-public-methods
 
         # Re-attach each hierarchy step (fresh ObjectNamespace per node)
         ctx.config = ctx.plugins.get("config", {})
+
+
+class XDGDataDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
+    """``--data-dir`` flag, default ``$XDG_DATA_HOME/<app>``."""
+
+    data_dir = Argument(
+        "--data-dir",
+        help="Data directory",
+    )
+
+    def add_arguments(self, arguments: dict = None):
+        """Apply the XDG default for ``--data-dir``, then chain."""
+        arguments = self._xdg_arguments(arguments)
+        self._xdg_apply_default(arguments, "data_dir", "data_dir")
+        return super().add_arguments(arguments)
+
+
+class XDGCacheDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
+    """``--cache-dir`` flag, default ``$XDG_CACHE_HOME/<app>``."""
+
+    cache_dir = Argument(
+        "--cache-dir",
+        help="Cache directory",
+    )
+
+    def add_arguments(self, arguments: dict = None):
+        """Apply the XDG default for ``--cache-dir``, then chain."""
+        arguments = self._xdg_arguments(arguments)
+        self._xdg_apply_default(arguments, "cache_dir", "cache_dir")
+        return super().add_arguments(arguments)
+
+
+class XDGLogDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
+    """``--log-dir`` flag, default ``$XDG_CACHE_HOME/<app>/logs``."""
+
+    log_dir = Argument(
+        "--log-dir",
+        help="Log directory",
+    )
+
+    def add_arguments(self, arguments: dict = None):
+        """Apply the XDG default for ``--log-dir``, then chain."""
+        arguments = self._xdg_arguments(arguments)
+        self._xdg_apply_default(arguments, "log_dir", "log_dir")
+        return super().add_arguments(arguments)

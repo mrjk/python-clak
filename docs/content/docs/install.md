@@ -62,7 +62,7 @@ when the package is installed.
 
 ### Config / YAML
 
-YAML config files for `XDGConfigMixin`, and YAML output for views
+YAML config files for `XDGConfFileMixin`, and YAML output for views
 (`--format yaml`), need PyYAML:
 
 ```bash

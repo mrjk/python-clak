@@ -5,7 +5,8 @@ and enhances Python's argparse with features like:
 
 - Simplified parser composition and inheritance
 - Rich command completion support
-- XDG Base Directory path flags and config-file loading (`XDGConfigMixin`)
+- XDG Base Directory path flags and config-file loading (`XDGConfFileMixin`,
+  `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`)
 - Structured logging configuration
 - Recursive subcommand handling
 
@@ -17,7 +18,7 @@ Canonical public API (import from ``clak``):
 
 Optional mixins (also from ``clak``): LoggingOptMixin, RichHelpMixin,
 Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin, completion,
-XDGConfigMixin.
+XDGConfFileMixin / XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin.
 
 Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.comp`` (mixins). Internal layout: ``clak.core``, ``clak.runtime``,
@@ -27,7 +28,12 @@ Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 from importlib.metadata import PackageNotFoundError, version
 
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
-from clak.comp.config import XDGConfigMixin
+from clak.comp.config import (
+    XDGCacheDirMixin,
+    XDGConfFileMixin,
+    XDGDataDirMixin,
+    XDGLogDirMixin,
+)
 from clak.comp.help import RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.views import (
@@ -88,6 +94,9 @@ __all__ = [
     "ShowViewMixin",
     "SubCommand",
     "SubParser",
-    "XDGConfigMixin",
+    "XDGCacheDirMixin",
+    "XDGConfFileMixin",
+    "XDGDataDirMixin",
+    "XDGLogDirMixin",
     "ZERO_OR_MORE",
 ]
