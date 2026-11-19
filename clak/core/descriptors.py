@@ -5,6 +5,7 @@ Public imports remain available from ``clak``, ``clak.parser``, and
 ``clak.core.descriptors``.
 """
 
+import copy
 import inspect
 import logging
 from typing import Any, Dict, Optional, Tuple
@@ -223,6 +224,15 @@ class Argument(ArgParseItem):
     - ``propagate``: Copy this flag onto descendant parsers (default True).
       Set False to keep it on this parser only.
     """
+
+    def with_kwargs(self, **overrides) -> "Argument":
+        """Return a shallow copy with ``overrides`` merged into ``kwargs``.
+
+        Keeps ``args`` and the destination; the original is left untouched.
+        """
+        clone = copy.copy(self)
+        clone.kwargs = {**self.kwargs, **overrides}
+        return clone
 
     def propagates(self) -> bool:
         """True when this flag should be copied onto descendant parsers."""

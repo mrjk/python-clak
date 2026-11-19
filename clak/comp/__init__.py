@@ -7,6 +7,7 @@ This module provides core component mixins for extending parser functionality:
 - CompRenderOptMixin: Adds option completion support to parsers
 - XDGConfFileMixin: Adds --conf-file (XDG default) and config-file loading
 - XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin: Add one XDG path flag each
+- WorkDirMixin: Adds -W/--work-dir (changes the process working directory)
 - LoggingOptMixin: Adds structured logging configuration
 - RichHelpMixin: Optional re-opt-in for Rich-colored --help after a parent opt-out
 - Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin: Auto CLI views + options
@@ -18,6 +19,7 @@ mixins provide XDG paths, config loading, and logging setup.
 
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import (
+    WorkDirMixin,
     XDGCacheDirMixin,
     XDGConfFileMixin,
     XDGDataDirMixin,

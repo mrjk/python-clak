@@ -36,7 +36,6 @@ Example:
 from __future__ import annotations
 
 import argparse
-import copy
 import logging
 from typing import Any, Mapping, Set
 
@@ -200,10 +199,11 @@ class _ViewMixinBase(PluginHelpers):
         return _VIEW_CLI_OPTION_DESTS - enabled
 
     def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+        arg = super()._prepare_argument(key, arg)
         if key in ("columns", "sort_columns", "wrap"):
-            arg = copy.copy(arg)
-            arg.kwargs = dict(arg.kwargs)
-            arg.kwargs["help"] = self._column_flag_help(arg.kwargs.get("help", ""))
+            arg = arg.with_kwargs(
+                help=self._column_flag_help(arg.kwargs.get("help", ""))
+            )
         return arg
 
     @staticmethod

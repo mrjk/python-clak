@@ -7,6 +7,10 @@ Each XDG path flag is its own opt-in mixin, with defaults from
 - ``XDGDataDirMixin``: ``--data-dir``
 - ``XDGCacheDirMixin``: ``--cache-dir``
 - ``XDGLogDirMixin``: ``--log-dir``
+
+Plus ``WorkDirMixin`` (``-W/--work-dir``), which changes the process working
+directory. ``XDGConfFileMixin`` looks up a project-local config file in the
+work directory before falling back to the XDG default.
 """
 
 from __future__ import annotations
@@ -41,6 +45,8 @@ _UNSAFE_APP_NAME = re.compile(r"[^\w.-]+")
 _YAML_SUFFIXES = {".yaml", ".yml"}
 _JSON_SUFFIXES = {".json"}
 _YAML_INSTALL_HINT = "pip install 'mrjk.clak[config]'"
+
+_DEFAULT_LOCAL_NAMES = (".{app}.yaml", ".{app}.yml", ".{app}.json")
 
 
 def xdg_dir(env_var: str, default: str | None = None) -> str:
@@ -139,6 +145,56 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
     return dict(data)
 
 
+def resolve_work_dir(ctx) -> Path:
+    """Resolve (and apply once) the work directory for this dispatch.
+
+    Idempotent: the first call reads ``ctx.args.work_dir``; when set, it
+    changes the process cwd to it. The result is cached in
+    ``ctx.plugins["work_dir"]``. Without ``--work-dir``, the inherited cwd is
+    the work directory. Any hook may call this, whatever the hook order.
+
+    Raises:
+        ClakUserError: ``--work-dir`` is not an existing directory.
+    """
+    cached = ctx.plugins.get("work_dir")
+    if cached is not None:
+        return Path(cached)
+
+    raw = getattr(ctx.args, "work_dir", None)
+    if raw:
+        target = Path(os.path.expanduser(str(raw)))
+        if not target.is_dir():
+            raise ClakUserError(
+                f"Work directory not found: {target}",
+                advice="Pass an existing directory to --work-dir",
+            )
+        os.chdir(target)
+        logger.debug("Changed working directory to %s", target)
+
+    work_dir = Path.cwd()
+    ctx.plugins["work_dir"] = str(work_dir)
+    return work_dir
+
+
+class WorkDirMixin:  # pylint: disable=too-few-public-methods
+    """``-W/--work-dir`` flag: run as if started in another directory.
+
+    Defaults to the current directory inherited from the parent process.
+    The resolved path is available as ``ctx.work_dir`` and
+    ``ctx.plugins["work_dir"]``.
+    """
+
+    work_dir = Argument(
+        "-W",
+        "--work-dir",
+        help="Run as if started in this directory (default: current directory)",
+    )
+
+    def cli_hook__work_dir(self, instance, ctx, **_):  # pylint: disable=unused-argument
+        """Apply ``--work-dir`` once and expose it on ctx."""
+        ctx.work_dir = str(resolve_work_dir(ctx))
+
+
 # XDG path mixins (one per flag, opt-in)
 # ============================
 
@@ -146,8 +202,9 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
 class _XDGPathMixin:  # pylint: disable=too-few-public-methods
     """Shared helpers for XDG path mixins.
 
-    Subclasses declare one ``Argument`` and call ``_xdg_apply_default`` from
-    ``add_arguments`` before chaining to ``super()``.
+    Subclasses declare one ``Argument`` plus ``_xdg_path_keys`` (attribute name
+    -> ``resolve_xdg_paths`` key); the default is injected by
+    ``_prepare_argument``.
     """
 
     def _xdg_app_name(self) -> str:
@@ -157,27 +214,25 @@ class _XDGPathMixin:  # pylint: disable=too-few-public-methods
             name = getattr(self, "name", None) or self.__class__.__name__
         return sanitize_xdg_app_name(name)
 
-    def _xdg_arguments(self, arguments: dict | None) -> dict:
-        """Normalize the ``arguments`` mapping passed to ``add_arguments``."""
-        if arguments is None:
-            arguments = getattr(self, "meta__arguments_dict", None)
-        return dict(arguments or {})
+    # Class attribute name -> key in ``resolve_xdg_paths()``; set per mixin.
+    _xdg_path_keys: dict[str, str] = {}
 
-    def _xdg_apply_default(
-        self, arguments: dict, attr_name: str, path_key: str
-    ) -> None:
-        """Insert ``attr_name`` into ``arguments`` with its XDG default path."""
-        if attr_name in arguments:
-            return
-        template = getattr(type(self), attr_name, None)
-        if not isinstance(template, Argument):
-            return
-        paths = resolve_xdg_paths(self._xdg_app_name())
-        kwargs = dict(template.kwargs)
-        kwargs.setdefault("default", paths[path_key])
-        arg = Argument(*template.args, **kwargs)
-        arg.destination = attr_name
-        arguments[attr_name] = arg
+    def _xdg_path_key(self, attr_name: str) -> str | None:
+        """Look ``attr_name`` up in ``_xdg_path_keys`` across all mixins in the MRO."""
+        for cls in type(self).__mro__:
+            keys = vars(cls).get("_xdg_path_keys")
+            if keys and attr_name in keys:
+                return keys[attr_name]
+        return None
+
+    def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+        """Inject the XDG default path for this mixin's flag."""
+        arg = super()._prepare_argument(key, arg)
+        path_key = self._xdg_path_key(key)
+        if path_key is not None and "default" not in arg.kwargs:
+            paths = resolve_xdg_paths(self._xdg_app_name())
+            arg = arg.with_kwargs(default=paths[path_key])
+        return arg
 
 
 class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
@@ -186,11 +241,23 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     Default: ``$XDG_CONFIG_HOME/<app>/config.yaml``, where ``<app>`` comes
     from ``Meta.app_name``, else the parser name / class name.
 
+    Lookup order (first match wins, one file is loaded):
+
+    1. explicit ``--conf-file`` (relative paths resolve against the work dir)
+    2. first existing file from ``Meta.config_local_names`` in the work dir
+       (default ``.<app>.yaml``, ``.<app>.yml``, ``.<app>.json``; ``{app}``
+       is substituted; ``[]`` disables the local lookup)
+    3. the XDG default above
+
+    The work dir is ``--work-dir`` when ``WorkDirMixin`` is used, else the cwd.
+
     On dispatch, ``cli_hook__config`` loads ``--conf-file`` (JSON always;
     YAML with the ``config`` extra). Missing file yields ``{}`` unless
     ``Meta.config_required`` is true. Loaded data is available as
     ``ctx.config`` (dict) and ``cli_root.config`` (attribute namespace).
     """
+
+    _xdg_path_keys = {"conf_file": "conf_file"}
 
     conf_file = Argument(
         "--conf-file",
@@ -201,16 +268,38 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
         help="If true, missing --conf-file raises ClakUserError",
     )
 
-    def add_arguments(self, arguments: dict = None):
-        """Apply the XDG default for ``--conf-file``, then chain."""
-        arguments = self._xdg_arguments(arguments)
-        self._xdg_apply_default(arguments, "conf_file", "conf_file")
-        return super().add_arguments(arguments)
+    meta__config__config_local_names = MetaSetting(
+        help=(
+            "Config file names looked up in the work dir before the XDG "
+            "default ('{app}' is replaced by the app name; [] disables)"
+        ),
+    )
+
+    def _find_local_config(self, work_dir: Path) -> Path | None:
+        """Return the first existing local config candidate in ``work_dir``."""
+        names = self.query_cfg_parents(
+            "config_local_names", default=None, include_self=True
+        )
+        if names is None:
+            names = _DEFAULT_LOCAL_NAMES
+        app = self._xdg_app_name()
+        for name in names:
+            candidate = work_dir / str(name).format(app=app)
+            if candidate.is_file():
+                return candidate
+        return None
 
     def cli_hook__config(self, instance, ctx, **_):
         """Load ``--conf-file`` once and expose it on ctx / root."""
         if ctx.cli_first:
+            work_dir = resolve_work_dir(ctx)
             path = getattr(ctx.args, "conf_file", None)
+            xdg_default = resolve_xdg_paths(self._xdg_app_name())["conf_file"]
+            if not path or str(path) == xdg_default:
+                local = self._find_local_config(work_dir)
+                if local is not None:
+                    logger.debug("Using work-dir config: %s", local)
+                    path = str(local)
             required = bool(
                 self.query_cfg_parents(
                     "config_required", default=False, include_self=True
@@ -256,43 +345,31 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
 class XDGDataDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--data-dir`` flag, default ``$XDG_DATA_HOME/<app>``."""
 
+    _xdg_path_keys = {"data_dir": "data_dir"}
+
     data_dir = Argument(
         "--data-dir",
         help="Data directory",
     )
 
-    def add_arguments(self, arguments: dict = None):
-        """Apply the XDG default for ``--data-dir``, then chain."""
-        arguments = self._xdg_arguments(arguments)
-        self._xdg_apply_default(arguments, "data_dir", "data_dir")
-        return super().add_arguments(arguments)
-
 
 class XDGCacheDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--cache-dir`` flag, default ``$XDG_CACHE_HOME/<app>``."""
+
+    _xdg_path_keys = {"cache_dir": "cache_dir"}
 
     cache_dir = Argument(
         "--cache-dir",
         help="Cache directory",
     )
 
-    def add_arguments(self, arguments: dict = None):
-        """Apply the XDG default for ``--cache-dir``, then chain."""
-        arguments = self._xdg_arguments(arguments)
-        self._xdg_apply_default(arguments, "cache_dir", "cache_dir")
-        return super().add_arguments(arguments)
-
 
 class XDGLogDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--log-dir`` flag, default ``$XDG_CACHE_HOME/<app>/logs``."""
+
+    _xdg_path_keys = {"log_dir": "log_dir"}
 
     log_dir = Argument(
         "--log-dir",
         help="Log directory",
     )
-
-    def add_arguments(self, arguments: dict = None):
-        """Apply the XDG default for ``--log-dir``, then chain."""
-        arguments = self._xdg_arguments(arguments)
-        self._xdg_apply_default(arguments, "log_dir", "log_dir")
-        return super().add_arguments(arguments)

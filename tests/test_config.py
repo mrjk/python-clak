@@ -8,6 +8,7 @@ import pytest
 from clak import Parser
 from clak.comp import config as config_mod
 from clak.comp.config import (
+    WorkDirMixin,
     XDGCacheDirMixin,
     XDGConfFileMixin,
     XDGDataDirMixin,
@@ -227,3 +228,153 @@ def test_hook_config_required_missing_file(tmp_path):
     missing = tmp_path / "nope.json"
     with pytest.raises(ClakUserError, match="not found"):
         app.cli_execute({"conf_file": str(missing), "__cli_self__": app})
+
+
+# Work dir
+# ============================
+
+
+def _run(app, argv):
+    args = vars(app.parse_args(argv))
+    args.setdefault("__cli_self__", app)
+    return app.cli_execute(args)
+
+
+def _xdg_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+
+
+def _make_app(seen, *bases, meta=None):
+    attrs = {"app_name": "wd"}
+    attrs.update(meta or {})
+
+    class App(*bases, Parser):
+        Meta = type("Meta", (), attrs)
+
+        def cli_run(self, ctx=None, **_):
+            seen["cwd"] = os.getcwd()
+            seen["work_dir"] = getattr(ctx, "work_dir", None)
+            seen["config"] = dict(getattr(ctx, "config", {}) or {})
+            seen["config_path"] = ctx.plugins.get("config_path")
+            return None
+
+    return App(parse=False)
+
+
+def test_work_dir_flag_in_help():
+    app = _make_app({}, WorkDirMixin)
+    help_text = app.parser.format_help()
+    assert "-W" in help_text and "--work-dir" in help_text
+
+
+def test_work_dir_defaults_to_cwd(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    seen = {}
+    _run(_make_app(seen, WorkDirMixin), [])
+    assert seen["work_dir"] == str(tmp_path)
+    assert seen["cwd"] == str(tmp_path)
+
+
+def test_work_dir_changes_cwd(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    target = tmp_path / "proj"
+    target.mkdir()
+    seen = {}
+    _run(_make_app(seen, WorkDirMixin), ["-W", str(target)])
+    assert seen["cwd"] == str(target)
+    assert seen["work_dir"] == str(target)
+
+
+def test_work_dir_missing_raises(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    app = _make_app({}, WorkDirMixin)
+    with pytest.raises(ClakUserError, match="Work directory not found"):
+        _run(app, ["--work-dir", str(tmp_path / "nope")])
+
+
+@pytest.mark.parametrize(
+    "bases",
+    [(WorkDirMixin, XDGConfFileMixin), (XDGConfFileMixin, WorkDirMixin)],
+)
+def test_work_dir_local_config_found(monkeypatch, tmp_path, bases):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / ".wd.json").write_text(json.dumps({"src": "local"}), encoding="utf-8")
+    seen = {}
+    _run(_make_app(seen, *bases), ["-W", str(proj)])
+    assert seen["config"] == {"src": "local"}
+    assert seen["config_path"] == str(proj / ".wd.json")
+
+
+def test_work_dir_falls_back_to_xdg(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    seen = {}
+    _run(_make_app(seen, WorkDirMixin, XDGConfFileMixin), ["-W", str(proj)])
+    assert seen["config"] == {}
+    assert seen["config_path"] == str(tmp_path / "xdg" / "wd" / "config.yaml")
+
+
+def test_explicit_conf_file_beats_local(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".wd.json").write_text(json.dumps({"src": "local"}), encoding="utf-8")
+    explicit = tmp_path / "explicit.json"
+    explicit.write_text(json.dumps({"src": "explicit"}), encoding="utf-8")
+    seen = {}
+    _run(
+        _make_app(seen, WorkDirMixin, XDGConfFileMixin),
+        ["--conf-file", str(explicit)],
+    )
+    assert seen["config"] == {"src": "explicit"}
+
+
+def test_relative_conf_file_resolves_in_work_dir(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "rel.json").write_text(json.dumps({"src": "rel"}), encoding="utf-8")
+    seen = {}
+    _run(
+        _make_app(seen, WorkDirMixin, XDGConfFileMixin),
+        ["-W", str(proj), "--conf-file", "rel.json"],
+    )
+    assert seen["config"] == {"src": "rel"}
+
+
+def test_custom_local_names(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".wd.json").write_text(json.dumps({"src": "dot"}), encoding="utf-8")
+    (tmp_path / "wd-conf.json").write_text(
+        json.dumps({"src": "custom"}), encoding="utf-8"
+    )
+    seen = {}
+    meta = {"config_local_names": ["{app}-conf.json"]}
+    _run(_make_app(seen, XDGConfFileMixin, meta=meta), [])
+    assert seen["config"] == {"src": "custom"}
+
+
+def test_local_lookup_disabled(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".wd.json").write_text(json.dumps({"src": "dot"}), encoding="utf-8")
+    seen = {}
+    _run(_make_app(seen, XDGConfFileMixin, meta={"config_local_names": []}), [])
+    assert seen["config"] == {}
+
+
+def test_local_config_without_work_dir_mixin(monkeypatch, tmp_path):
+    _xdg_env(monkeypatch, tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".wd.json").write_text(json.dumps({"src": "cwd"}), encoding="utf-8")
+    seen = {}
+    _run(_make_app(seen, XDGConfFileMixin), [])
+    assert seen["config"] == {"src": "cwd"}

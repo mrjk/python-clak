@@ -278,28 +278,22 @@ class LoggingOptMixin(PluginHelpers):
 
     logger = None
 
-    def add_arguments(self, arguments: dict = None):
-        """Format ``--log-colors`` help with ``Meta.log_colors_env``, then register."""
-        if arguments is None:
-            arguments = getattr(self, "meta__arguments_dict", None)
-        arguments = dict(arguments or {})
-        env_name = self.query_cfg_parents(
-            "log_colors_env", default=DEFAULT_LOG_COLORS_ENV, include_self=True
-        )
-        if not env_name:
-            env_name = DEFAULT_LOG_COLORS_ENV
-
-        template = getattr(type(self), "log_colors", None)
-        if isinstance(template, Argument) and "log_colors" not in arguments:
-            kwargs = dict(template.kwargs)
-            help_text = kwargs.get("help")
+    def _prepare_argument(self, key: str, arg: Argument) -> Argument:
+        """Format ``--log-colors`` help with ``Meta.log_colors_env``."""
+        arg = super()._prepare_argument(key, arg)
+        if key == "log_colors":
+            help_text = arg.kwargs.get("help")
             if isinstance(help_text, str) and "{log_colors_env}" in help_text:
-                kwargs["help"] = help_text.format(log_colors_env=env_name)
-            arg = Argument(*template.args, **kwargs)
-            arg.destination = "log_colors"
-            arguments["log_colors"] = arg
-
-        return super().add_arguments(arguments)
+                env_name = (
+                    self.query_cfg_parents(
+                        "log_colors_env",
+                        default=DEFAULT_LOG_COLORS_ENV,
+                        include_self=True,
+                    )
+                    or DEFAULT_LOG_COLORS_ENV
+                )
+                arg = arg.with_kwargs(help=help_text.format(log_colors_env=env_name))
+        return arg
 
     @staticmethod
     def _log_level(value):

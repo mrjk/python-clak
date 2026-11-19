@@ -18,7 +18,8 @@ Canonical public API (import from ``clak``):
 
 Optional mixins (also from ``clak``): LoggingOptMixin, RichHelpMixin,
 Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin, completion,
-XDGConfFileMixin / XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin.
+XDGConfFileMixin / XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin,
+WorkDirMixin.
 
 Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.comp`` (mixins). Internal layout: ``clak.core``, ``clak.runtime``,
@@ -29,6 +30,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import (
+    WorkDirMixin,
     XDGCacheDirMixin,
     XDGConfFileMixin,
     XDGDataDirMixin,
@@ -94,6 +96,7 @@ __all__ = [
     "ShowViewMixin",
     "SubCommand",
     "SubParser",
+    "WorkDirMixin",
     "XDGCacheDirMixin",
     "XDGConfFileMixin",
     "XDGDataDirMixin",

@@ -43,6 +43,7 @@ Each flag is its own mixin; add only the ones you need.
 | `XDGDataDirMixin` | `--data-dir` | `data_dir` | `$XDG_DATA_HOME/<app>` | App data directory |
 | `XDGCacheDirMixin` | `--cache-dir` | `cache_dir` | `$XDG_CACHE_HOME/<app>` | Cache directory |
 | `XDGLogDirMixin` | `--log-dir` | `log_dir` | `$XDG_CACHE_HOME/<app>/logs` | Log directory |
+| `WorkDirMixin` | `-W`, `--work-dir` | `work_dir` | current directory | Run as if started there |
 
 Only `XDGConfFileMixin` loads anything; the directory mixins just expose a
 path flag with an XDG default.
@@ -60,6 +61,36 @@ class App(XDGConfFileMixin, XDGDataDirMixin, Parser):
 
 `<app>` comes from `Meta.app_name`, otherwise the parser name / class name
 (sanitized for paths).
+
+## Work directory
+
+`WorkDirMixin` adds `-W/--work-dir`, which changes the process working
+directory before the command runs, like `git -C`. Without it, the work
+directory is the cwd inherited from the parent process. The resolved path is
+available as `ctx.work_dir` and `ctx.plugins["work_dir"]`.
+
+`XDGConfFileMixin` uses the work directory (with or without `WorkDirMixin`)
+to find a project-local config. First match wins, and only one file is loaded:
+
+1. an explicit `--conf-file` (relative paths resolve against the work dir)
+2. the first existing name from `Meta.config_local_names` in the work dir
+   (default: `.<app>.yaml`, `.<app>.yml`, `.<app>.json`)
+3. the XDG default `$XDG_CONFIG_HOME/<app>/config.yaml`
+
+```python
+from clak import Parser, WorkDirMixin, XDGConfFileMixin
+
+class App(WorkDirMixin, XDGConfFileMixin, Parser):
+    class Meta:
+        app_name = "cool-cli"
+        config_local_names = ["{app}.yaml", ".{app}.yaml"]  # [] disables
+
+    def cli_run(self, ctx, **_):
+        print(ctx.work_dir, ctx.plugins["config_path"], ctx.config)
+```
+
+`{app}` is replaced by the sanitized app name. `ctx.plugins["config_path"]`
+reports the file that was actually picked.
 
 ## File formats
 
