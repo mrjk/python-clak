@@ -40,7 +40,6 @@ import logging
 from typing import Any, Mapping, Set
 
 from clak.core.descriptors import Argument, MetaSetting
-from clak.core.plugins import PluginHelpers
 from clak.views import (
     DATA_FORMATS,
     FORMAT_SCOPES,
@@ -145,7 +144,7 @@ _FORMAT_SCOPE_HELP = (
 )
 
 
-class _ViewMixinBase(PluginHelpers):
+class _ViewMixinBase:
     """Shared view-mixin plumbing: option filtering, hook, settings collection."""
 
     _view_cli_option_names: frozenset[str] = frozenset()

@@ -24,14 +24,14 @@ def test_compat_core_reexports():
     from clak.nodes import NOT_SET, Node
     from clak.parser import Argument as ParserArgument
     from clak.parser import Parser
-    from clak.plugins import PluginHelpers
+    from clak.plugins import CLI_HOOK_PREFIX
 
     assert Parser is TopParser is CoreParser
     assert ParserArgument is Argument
     assert SubParser is not None
     assert NOT_SET is not None
     assert Node is not None
-    assert PluginHelpers is not None
+    assert CLI_HOOK_PREFIX == "cli_hook__"
     assert OPTIONAL is not None
     assert SUPPRESS is not None
     from clak.core.argp.parser import ArgumentParser as ArgpParser

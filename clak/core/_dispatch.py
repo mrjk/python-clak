@@ -261,7 +261,6 @@ class Dispatcher:
                 logger.info("Run hook %d:%s.%s", idx, walk_node, hook_name)
                 hook_fn(walk_node, ctx)
 
-            ctx.cli_methods = getattr(walk_node, "cli_methods", {})
             ctx.cli_state = "run_groups"
 
             group_fn = getattr(walk_node, fn_group_name, None)

@@ -1,9 +1,9 @@
-"""Tests for ClakSettings and plugin hook registration."""
+"""Tests for ClakSettings and plugin hook collection."""
 
 import pytest
 
 from clak import LoggingOptMixin, Parser
-from clak.core.plugins import CLI_HOOK_PREFIX, PluginHelpers
+from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.settings import (
     ClakSettings,
     apply_debug_logging,
@@ -48,51 +48,6 @@ def test_apply_debug_logging_skips_when_not_debug(monkeypatch):
         )._DEBUG_LOGGING_APPLIED
         is False
     )
-
-
-def test_hook_register_uses_hook_list_not_setattr():
-    class Host:
-        pass
-
-    class Plugin(PluginHelpers):
-        def cli_hook__demo(self, instance, ctx, **_):
-            return "ok"
-
-        def extra(self, **_):
-            return 1
-
-    host = Host()
-    plugin = Plugin()
-    with pytest.warns(DeprecationWarning):
-        plugin.hook_register("cli_hook__demo", host)
-    with pytest.warns(DeprecationWarning):
-        plugin.hook_register("extra", host)
-
-    assert not hasattr(host, "cli_hook__demo")
-    assert not hasattr(host, "extra")
-    assert "cli_hook__demo" in host._cli_hooks
-    assert "extra" in host.cli_methods
-    assert "extra" not in host._cli_hooks
-    assert host.cli_methods["extra"]() == 1
-
-
-def test_hook_register_hook_runs_through_dispatch():
-    seen = []
-
-    class Plugin(PluginHelpers):
-        def cli_hook__demo(self, instance, ctx, **_):
-            seen.append((instance, ctx.cli_index))
-
-    class App(Parser):
-        def cli_run(self, **_):
-            return "done"
-
-    app = App(parse=False)
-    with pytest.warns(DeprecationWarning):
-        Plugin().hook_register("cli_hook__demo", app)
-
-    assert app.cli_execute(args={}) == "done"
-    assert seen == [(app, 0)]
 
 
 def test_parser_collects_mixin_hooks_at_build():

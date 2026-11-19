@@ -75,7 +75,6 @@ from clak._optional import optional
 from clak.common import to_boolean
 from clak.core._dispatch import TRACE_FLAG
 from clak.core.descriptors import Argument, MetaSetting
-from clak.core.plugins import PluginHelpers
 from clak.exception import ClakAppError
 from clak.runtime.log_levels import register_clak_log_levels
 from clak.runtime.settings import (
@@ -209,7 +208,7 @@ def get_app_logger(
     logging.config.dictConfig(logging_config)
 
 
-class LoggingOptMixin(PluginHelpers):
+class LoggingOptMixin:
     "Logging options support"
 
     verbosity = Argument(
