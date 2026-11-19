@@ -82,6 +82,10 @@ class Dispatcher:
             args = self.parse_args(args)
             args = args.__dict__
         except argparse.ArgumentError as err:
+            # Parsing failed: args dict is unavailable, so sniff raw argv
+            raw = args if isinstance(args, list) else sys.argv[1:]
+            if isinstance(raw, list) and "--trace" in raw:
+                trace = True
             error = exception.ClakParseError(
                 format_argument_error(err),
                 parser=getattr(err, "clak_parser", None),
@@ -136,6 +140,10 @@ class Dispatcher:
 
             except Exception as err:  # pylint: disable=broad-exception-caught
                 error = err
+            except KeyboardInterrupt as err:
+                if trace is True:
+                    logger.error("".join(traceback.format_exception(err)))
+                raise
 
         if trace is True:
             logger.error("".join(traceback.format_exception(error)))
