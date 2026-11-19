@@ -104,3 +104,30 @@ def replace_with_placeholders(input_str: str, regex_rules: list = None) -> str:
         result = re.sub(regex, replace, result)
 
     return result
+
+
+def cli_case_ids(cases) -> list:
+    """Stable pytest ids for ``(cli_args, expected_output, expected_exit)`` cases.
+
+    The id comes from argv only, so regression snapshot names survive edits to
+    the expected text and reordering of cases. Repeated argv gets ``#2``,
+    ``#3``... Raises if two ids would map to the same snapshot file name
+    (pytest-regressions replaces non-word characters with ``_``).
+    """
+    ids = []
+    seen = {}
+    for case in cases:
+        base = " ".join(case[0]) or "no-args"
+        seen[base] = seen.get(base, 0) + 1
+        ids.append(base if seen[base] == 1 else f"{base} #{seen[base]}")
+
+    files = {}
+    for case_id in ids:
+        fname = re.sub(r"\W", "_", case_id)
+        if fname in files:
+            raise ValueError(
+                f"Case ids {files[fname]!r} and {case_id!r} share snapshot name "
+                f"{fname!r}; reword one cli_args"
+            )
+        files[fname] = case_id
+    return ids

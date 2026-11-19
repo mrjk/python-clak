@@ -7,7 +7,7 @@ import os.path
 import pytest
 
 import tests.features.demo_features.demo103_nested as example
-from tests.common import replace_with_placeholders, run_cli_script
+from tests.common import cli_case_ids, replace_with_placeholders, run_cli_script
 
 
 @pytest.fixture
@@ -65,7 +65,11 @@ TEST_PARAMETERS = [
 
 
 @pytest.mark.tags("examples", "examples-unit")
-@pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+@pytest.mark.parametrize(
+    "cli_args, expected_output, expected_exit",
+    TEST_PARAMETERS,
+    ids=cli_case_ids(TEST_PARAMETERS),
+)
 def test_demo103_nested_cli(
     demo103_app, capsys, cli_args, expected_output, expected_exit
 ):
@@ -94,7 +98,11 @@ def test_demo103_nested_cli(
 
 
 @pytest.mark.tags("examples", "examples-regressions")
-@pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+@pytest.mark.parametrize(
+    "cli_args, expected_output, expected_exit",
+    TEST_PARAMETERS,
+    ids=cli_case_ids(TEST_PARAMETERS),
+)
 def test_demo103_nested_cli_regression(
     demo103_app, capsys, data_regression, cli_args, expected_output, expected_exit
 ):
@@ -125,7 +133,11 @@ def test_demo103_nested_cli_regression(
 
 
 @pytest.mark.tags("examples", "examples-regressions-cli")
-@pytest.mark.parametrize("cli_args, expected_output, expected_exit", TEST_PARAMETERS)
+@pytest.mark.parametrize(
+    "cli_args, expected_output, expected_exit",
+    TEST_PARAMETERS,
+    ids=cli_case_ids(TEST_PARAMETERS),
+)
 def test_demo103_basic_minimal_script_regression(
     capsys, data_regression, cli_args, demo103_file, expected_output, expected_exit
 ):
