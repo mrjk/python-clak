@@ -173,6 +173,8 @@ it.
 | `help_hide_parent` | Hide the parent path in nested command lists (default `True`). |
 | `command_groups` | Ordered `(key, title)` pairs to split subcommands into help sections. |
 | `parse_intermixed` | Mix flags and positionals freely (default `True`). |
+| `abbrev_commands` | Accept a unique prefix of a subcommand name (default `False`). See [Abbreviations](advanced.md#abbreviations). |
+| `abbrev_options` | Accept a unique prefix of a long flag (default `True`). |
 | `propagate_options` | Copy ancestor flags onto this command (default `True`). |
 | `propagate_options_group` | Help section title for those copied flags (default `parent options`). |
 | `known_exceptions`, `exception_handlers` | Extra exceptions turned into clean errors. See [Error handling](exceptions.md). |

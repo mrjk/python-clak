@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 from gettext import gettext as _
 
+from clak.core.argp.actions import SubParsersAction
 from clak.core.argp.capabilities import ArgparseCapabilities
 from clak.core.argp.errors import ErrorRenderer
 
@@ -52,9 +54,37 @@ class ArgumentParser(argparse.ArgumentParser):
         raise err
 
     def _check_value(self, action, value):
+        if isinstance(action, SubParsersAction):
+            self._check_command(action, value)
+            return
         if action.choices is not None and value not in action.choices:
             msg = self.error_renderer.invalid_choice_message(value, action.choices)
             raise argparse.ArgumentError(action, msg)
+
+    def _check_command(self, action, value):
+        """Validate a subcommand name; the action expands a unique prefix.
+
+        Errors use ``ArgumentError(None, ...)`` so the internal
+        ``__cli_cmd__N`` dest never reaches the user.
+        """
+        if action.resolve(value) is not None:
+            return
+        names = action.command_names()
+        renderer = self.error_renderer
+        if action.allow_abbrev:
+            matches = action.prefix_matches(value) if value else []
+            if len(matches) > 1:
+                raise argparse.ArgumentError(
+                    None, renderer.ambiguous_command_message(value, matches)
+                )
+        suggestions = [name for name in names if value and name.startswith(value)]
+        for name in difflib.get_close_matches(value, names, n=3, cutoff=0.75):
+            if name not in suggestions:
+                suggestions.append(name)
+        raise argparse.ArgumentError(
+            None,
+            renderer.unknown_command_message(value, names, suggestions[:3]),
+        )
 
     def _supports_intermixed(self):
         """True when argparse intermixed parse can run on this parser.

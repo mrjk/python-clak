@@ -21,6 +21,7 @@ from clak.core._exception import (  # noqa: F401  # pylint: disable=unused-impor
     Terminator,
     _exit_broken_pipe,
 )
+from clak.core.argp import SubParsersAction
 from clak.core.argparse_ import (
     HELP_SUBCOMMANDS_ALL,
     ArgumentParserPlus,
@@ -125,6 +126,18 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             "Mix this command's flags and positionals (default True). "
             "Inherited; set False for argparse leftover errors after a flag. "
             "No-op on parsers with subcommands or nargs=REMAINDER."
+        ),
+    )
+    meta__config__abbrev_commands = MetaSetting(
+        help=(
+            "Accept a unique prefix of a subcommand name, e.g. 'bu' for "
+            "'buzz' (default False). Inherited; ambiguous prefixes error."
+        ),
+    )
+    meta__config__abbrev_options = MetaSetting(
+        help=(
+            "Accept a unique prefix of a long flag, e.g. '--verb' for "
+            "'--verbose' (default True, argparse allow_abbrev). Inherited."
         ),
     )
     meta__config__propagate_options = MetaSetting(
@@ -248,6 +261,9 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             parse_intermixed=self.query_cfg_parents(
                 "parse_intermixed", default=True, include_self=True
             ),
+            allow_abbrev=self.query_cfg_parents(
+                "abbrev_options", default=True, include_self=True
+            ),
         )
         return parser
 
@@ -301,6 +317,11 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
             self.parser.parse_intermixed = self.query_cfg_parents(
                 "parse_intermixed", default=True, include_self=True
             )
+        # Subparsers built by add_parser() get argparse's default; read at
+        # parse time, so setting it after build is enough.
+        self.parser.allow_abbrev = bool(
+            self.query_cfg_parents("abbrev_options", default=True, include_self=True)
+        )
 
     def __getitem__(self, key):
         return self.children[key]
@@ -318,6 +339,12 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes
                 dest=f"__cli_cmd__{level}",
                 help="Available commands",
                 parser_class=ArgumentParserPlus,
+                action=SubParsersAction,
+                allow_abbrev=bool(
+                    self.query_cfg_parents(
+                        "abbrev_commands", default=False, include_self=True
+                    )
+                ),
             )
         return self._subparsers
 

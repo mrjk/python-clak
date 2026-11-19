@@ -686,7 +686,8 @@ def test_invalid_top_level_command_prints_root_usage(capsys):
     assert rc == 2
     assert "usage:" in output
     assert "{group" in output
-    assert "invalid choice" in output
+    assert "unknown command 'nope'" in output
+    assert "__cli_cmd__" not in output
 
 
 def test_one_level_unknown_flag_prints_root_usage(capsys):

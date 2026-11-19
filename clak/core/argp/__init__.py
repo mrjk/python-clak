@@ -6,6 +6,7 @@ ParserNode, descriptors, clak.comp, ClakSettings, or Rich.
 
 import argparse
 
+from clak.core.argp.actions import SubParsersAction
 from clak.core.argp.capabilities import ArgparseCapabilities
 from clak.core.argp.errors import ErrorRenderer, format_argument_error
 from clak.core.argp.parser import ArgumentParser, ArgumentParserPlus
@@ -29,6 +30,7 @@ __all__ = [
     "PARSER",
     "REMAINDER",
     "SUPPRESS",
+    "SubParsersAction",
     "ZERO_OR_MORE",
     "argparse",
     "format_argument_error",

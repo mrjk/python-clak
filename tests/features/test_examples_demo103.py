@@ -50,7 +50,11 @@ TEST_PARAMETERS = [
         0,
     ),
     # Test with invalid command
-    (["invalid-command"], "Could not parse command line: __cli_cmd__1", 2),
+    (
+        ["invalid-command"],
+        "Could not parse command line: unknown command 'invalid-command'",
+        2,
+    ),
     # Test command2 without required name
     (["command2"], "the following arguments are required: NAME", 2),
     # Test with debug flag

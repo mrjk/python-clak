@@ -118,6 +118,8 @@ class App(Parser):
         help_hide_parent = True            # False: show "tool netmap" paths
         command_groups = (("base", "subcommands (base):"),)
         parse_intermixed = False           # opt out: argparse leftover errors
+        abbrev_commands = True             # 'app sub bu' -> 'app sub buzz'
+        abbrev_options = False             # require full long flag names
         propagate_options = False          # disable ancestor flag copy
         propagate_options_group = "parent options"  # leaf --help section title
         known_exceptions = [AppError]      # list of exception types
@@ -371,6 +373,16 @@ argparse leftover errors after a flag (typical with nargs=* / nargs=+).
 No-op on parsers with subcommands or nargs remainder (falls back to
 standard parse). Command path stays ordered. Do not mix a flag and a
 positional in one exclusive_group with this on.
+
+Meta.abbrev_commands = False (default). True accepts a unique prefix of a
+subcommand name at that level and below (inherited; a child may set False).
+An exact name always wins (sub beats subx). Ambiguous prefixes error with
+'ambiguous command'. Aliases of one command count once. The resolved full
+name is what reaches __cli_cmd__N, ctx and hooks.
+Meta.abbrev_options = True (default) keeps argparse allow_abbrev for long
+flags (--verb -> --verbose). Inherited; set False to require full names.
+Unknown subcommands error as "unknown command 'x' (choose from ...)"
+with a did-you-mean hint; the internal __cli_cmd__N dest is never shown.
 
 Meta.propagate_options = True (default) copies ancestor flags onto
 descendants (not positionals). Opt out per flag: propagate=False. Leaf

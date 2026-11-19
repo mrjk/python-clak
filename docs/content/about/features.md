@@ -20,6 +20,10 @@ Cliff: [Comparison](comparison.md).
 - Unix-style mix of a command's flags and positionals (default on).
   Opt out: `Meta.parse_intermixed = False`. No-op on nodes with
   subcommands. See [Advanced](../documentations/advanced.md#parse-intermixed).
+- Shortened commands and flags: `app sub bu` runs `app sub buzz` with
+  `Meta.abbrev_commands = True` (default off). Long flags accept a unique
+  prefix by default (`Meta.abbrev_options`). See
+  [Advanced](../documentations/advanced.md#abbreviations).
 - Ancestor flags are copied onto descendants (default on). Use them before
   or after the subcommand without redeclaring. Leaf `--help` lists them
   under `parent options:`. Opt out per flag: `propagate=False`.

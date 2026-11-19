@@ -29,6 +29,22 @@ class ErrorRenderer:
         return f"invalid choice: {value!r} (choose from {listed})"
 
     @staticmethod
+    def unknown_command_message(value, choices, suggestions=()) -> str:
+        """Unknown subcommand, without the internal ``__cli_cmd__N`` dest."""
+        listed = ", ".join(repr(item) for item in choices)
+        msg = f"unknown command {value!r} (choose from {listed})"
+        if suggestions:
+            hint = ", ".join(repr(item) for item in suggestions)
+            msg += f"; did you mean {hint}?"
+        return msg
+
+    @staticmethod
+    def ambiguous_command_message(value, matches) -> str:
+        """Prefix matches several commands."""
+        listed = ", ".join(repr(item) for item in matches)
+        return f"ambiguous command {value!r} (could be {listed})"
+
+    @staticmethod
     def unrecognized_arguments_message(argv) -> str:
         """Stdlib wording, with gettext left to the caller if needed."""
         return "unrecognized arguments: " + " ".join(argv)
