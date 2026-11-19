@@ -3,11 +3,13 @@ nav:
   - Base:
     - Installation: install.md
     - Core classes: classes.md
+    - Help message: help.md
     - Shipping your CLI: execution.md
 
   - Framework:
     - Plugins: plugins.md
     - Views: views.md
+    - Runtime: runtime.md
 
   - Domain:
     - Logging: logging.md
@@ -19,4 +21,6 @@ nav:
   - Advanced:
     - Error handling: exceptions.md
     - Best practices: advanced.md
+
+  - ...
 

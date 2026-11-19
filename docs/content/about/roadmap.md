@@ -9,7 +9,7 @@ These are the current **star features** — each has user documentation:
 
 | Feature | Docs |
 | --- | --- |
-| Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](features.md), [Quickstart](../general/quickstart.md) |
+| Class-based CLI on `argparse` (`Parser`, `Argument`, `Command`) | [Features](features.md), [Quickstart](../guides/quickstart.md) |
 | Optional `Arg` / `Opt` helpers (positionals vs flags) | [Getting started](../guides/guide_101.md#optional-arg-and-opt-helpers) |
 | Nested subcommands + `--help` listing (`top` / `all`) | [Nested guide](../guides/guide_102.md), [Help](../documentations/help.md) |
 | Colored `--help` (Rich extra; TTY) | [Colored help](../documentations/help.md) |

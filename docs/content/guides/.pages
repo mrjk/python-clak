@@ -1,6 +1,10 @@
 title: Guides
 nav:
-  - Getting started: guide_101.md
-  - Nested commands: guide_102.md
-  - Customization: guide_103.md
-  - Components: guide_104.md
+  - Installation: install.md
+  - Quickstart: quickstart.md
+  - Learn:
+    - Getting started: guide_101.md
+    - Nested commands: guide_102.md
+    - Customization: guide_103.md
+    - Components: guide_104.md
+    - ...

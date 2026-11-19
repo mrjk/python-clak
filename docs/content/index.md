@@ -14,8 +14,8 @@ completion.
 
 ## Start here
 
-1. [Install](general/install.md) — `pip install mrjk.clak`
-2. [Quickstart](general/quickstart.md) — a two-command hello world
+1. [Install](guides/install.md) — `pip install mrjk.clak`
+2. [Quickstart](guides/quickstart.md) — a two-command hello world
 3. [Getting started guide](guides/guide_101.md) — arguments step by step
 
 Then pick what you need:

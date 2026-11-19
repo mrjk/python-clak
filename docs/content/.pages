@@ -1,6 +1,5 @@
 nav:
   - Home: index.md
-  - general
   - guides
   - documentations
   - references

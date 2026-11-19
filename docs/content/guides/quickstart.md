@@ -91,8 +91,8 @@ python hello.py --debug command2 --alias nick Alice
 
 ## What next?
 
-1. Walk through the [basic guide](../guides/guide_101.md), then
-   [nested commands](../guides/guide_102.md).
+1. Walk through the [basic guide](guide_101.md), then
+   [nested commands](guide_102.md).
 2. Add a star feature when you need it:
    [Views](../documentations/views.md),
    [Logging](../documentations/logging.md),
