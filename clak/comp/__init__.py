@@ -28,7 +28,12 @@ from clak.comp.config import (
 )
 from clak.comp.help import RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
-from clak.comp.runtime import RuntimeOptMixin, ui_policy, ui_session
+from clak.comp.runtime import (
+    RuntimeOptMixin,
+    set_ui_settings,
+    ui_policy,
+    ui_session,
+)
 from clak.comp.views import (
     CompositeViewMixin,
     DataViewMixin,

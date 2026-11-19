@@ -35,5 +35,6 @@ See the [unattended runs guide](../docs/unattended.md).
       members:
         - RuntimeOptMixin
         - resolve_runtime
+        - set_ui_settings
         - ui_policy
         - ui_session

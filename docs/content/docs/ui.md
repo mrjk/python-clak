@@ -100,7 +100,9 @@ UIPolicy(interactive=False, responders=(MappingResponder({"Name": "ada"}), Defau
 
 `ConfirmPrompt(..., dangerous=True)` is never accepted from a default. The CLI
 side (`--no-input`, `--yes`, `CI`) is handled by
-[`RuntimeOptMixin`](unattended.md).
+[`RuntimeOptMixin`](unattended.md), but components never depend on it: any flags
+can build a policy (`UIPolicy.build(interactive=..., assume_yes=...)`) or feed
+the generic UI settings, see [custom flags](unattended.md#custom-flags).
 
 ## Testing
 

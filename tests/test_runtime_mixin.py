@@ -5,9 +5,10 @@ import io
 import pytest
 
 from clak import Parser, RuntimeOptMixin
-from clak.comp.runtime import resolve_runtime, ui_policy, ui_session
+from clak.comp.runtime import resolve_runtime, set_ui_settings, ui_policy, ui_session
+from clak.core.descriptors import Argument
 from clak.exception import ClakUserError
-from clak.ui import UINoInputError
+from clak.ui import NO_ANSWER, MappingResponder, Question, UINoInputError, UIPolicy
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -162,13 +163,84 @@ def test_ui_policy_fallback_without_mixin():
 
     pol = ui_policy(Ctx())
     assert isinstance(pol.interactive, bool)
+    assert pol.hint == "" and pol.yes_hint == ""
 
 
-def test_ui_policy_hints():
-    class Ctx:
-        plugins = {"runtime": {"interactive": False, "assume_yes": False}}
-
+def test_mixin_fills_ui_settings(monkeypatch):
+    monkeypatch.delenv("CLAK_INTERACTIVE", raising=False)
+    seen = {}
+    _run(_app(seen), ["--no-input"])
+    settings = seen["ctx"].ui_settings
+    assert settings["interactive"] is False
+    assert "--yes" in settings["yes_hint"]
     with pytest.raises(UINoInputError, match="--interactive"):
-        from clak.ui import Question
+        ui_policy(seen["ctx"]).answer(Question("text", "n"))
 
-        ui_policy(Ctx()).answer(Question("text", "n"))
+
+def test_set_ui_settings_merges_and_appends():
+    class Ctx:
+        plugins = {}
+
+    ctx = Ctx()
+    first, second = (lambda q: NO_ANSWER), (lambda q: NO_ANSWER)
+    set_ui_settings(ctx, interactive=False, responders=[first])
+    settings = set_ui_settings(ctx, hint="h", responders=[second])
+    assert settings == {"interactive": False, "hint": "h", "responders": (first, second)}
+
+
+def test_ui_policy_overrides_and_extra_responders():
+    class Ctx:
+        plugins = {"ui_settings": {"interactive": False}}
+
+    pol = ui_policy(Ctx(), interactive=True, responders=[MappingResponder({"n": "x"})])
+    assert pol.interactive is True
+    assert pol.answer(Question("text", "n")) == "x"
+    assert pol.answer(Question("text", "other")) is NO_ANSWER
+
+
+def _custom_app(seen):
+    class App(Parser):
+        class Meta:
+            app_name = "custom"
+
+        batch = Argument("--batch", action="store_true", default=False)
+        force = Argument("--force", action="store_true", default=False)
+
+        def cli_hook__ui(self, instance, ctx, **_):  # pylint: disable=unused-argument
+            set_ui_settings(
+                ctx,
+                interactive=not ctx.args.batch,
+                assume_yes=ctx.args.force,
+                hint="drop --batch to allow prompting",
+                yes_hint="pass --force",
+                stdin=io.StringIO(""),
+                stderr=io.StringIO(),
+            )
+
+        def cli_run(self, ctx=None, **_):
+            seen["ctx"] = ctx
+
+    return App(parse=False)
+
+
+def test_custom_flags_drive_ui_session():
+    seen = {}
+    _run(_custom_app(seen), ["--batch"])
+    sess = ui_session(seen["ctx"])
+    assert sess.text("n", default="d") == "d"
+    with pytest.raises(ClakUserError, match="drop --batch"):
+        sess.text("name")
+    with pytest.raises(ClakUserError, match="--force"):
+        sess.confirm("delete?", dangerous=True)
+
+    _run(_custom_app(seen), ["--batch", "--force"])
+    assert ui_session(seen["ctx"]).confirm("delete?", dangerous=True) is True
+
+
+def test_ui_session_explicit_policy():
+    class Ctx:
+        plugins = {"ui_settings": {"interactive": True}}
+
+    sess = ui_session(Ctx(), policy=UIPolicy.never(), stdin=io.StringIO(""))
+    with pytest.raises(ClakUserError):
+        sess.text("name")

@@ -92,6 +92,11 @@ class ClakContext(ObjectNamespace):
         """Copy of view mixin settings (also in ``ctx.plugins['view_settings']``)."""
         return dict(self.plugins.get("view_settings") or {})
 
+    @property
+    def ui_settings(self) -> dict:
+        """Copy of UI settings (also in ``ctx.plugins['ui_settings']``)."""
+        return dict(self.plugins.get("ui_settings") or {})
+
     def as_kwargs(self) -> dict:
         """Context fields as a dict (same keys as ``__dict__``)."""
         return dict(self.__dict__)

@@ -95,3 +95,46 @@ ctx.plugins["runtime"]  # {"interactive", "assume_yes", "mode", "source"}
 `clak.ui` answers unattended questions through *responders*, see the
 [UI guide](ui.md#policies-and-responders). `ui_policy(ctx)` builds the standard
 policy; build your own `UIPolicy` for other needs.
+
+## Custom flags
+
+`ui_session(ctx)` is not tied to `RuntimeOptMixin`: it only reads the generic UI
+settings in `ctx.plugins["ui_settings"]` (also `ctx.ui_settings`). Producers fill
+them with `set_ui_settings()`, consumers just call `ui_session(ctx)`.
+
+| Key | Meaning |
+| --- | --- |
+| `interactive` | may prompt (missing: TTY / `CI` autodetection) |
+| `assume_yes` | answer confirmations with yes |
+| `hint` / `yes_hint` | appended to "input required" / "confirmation required" errors |
+| `responders` | extra responders tried first (appended across calls) |
+| anything else | passed to components (`stdin`, `stderr`...) |
+
+`RuntimeOptMixin` is just one producer. With your own flags:
+
+```python
+from clak import Parser
+from clak.comp.runtime import set_ui_settings, ui_session
+from clak.core.descriptors import Argument
+
+
+class App(Parser):
+    batch = Argument("--batch", action="store_true", help="Never prompt")
+    force = Argument("--force", action="store_true", help="Assume yes")
+
+    def cli_hook__ui(self, instance, ctx, **_):
+        set_ui_settings(
+            ctx,
+            interactive=not ctx.args.batch,
+            assume_yes=ctx.args.force,
+            hint="drop --batch to allow prompting",
+            yes_hint="pass --force",
+        )
+
+    def cli_run(self, ctx, **_):
+        if ui_session(ctx).confirm("Delete everything?", dangerous=True):
+            ...
+```
+
+For a one-off, pass a policy directly: `ui_session(ctx, policy=UIPolicy.never())`,
+or override settings: `ui_policy(ctx, interactive=True)`.
