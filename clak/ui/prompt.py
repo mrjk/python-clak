@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Optional, Sequence
 
-from .base import UIComponent, UIAbort
+from .base import UIAbort, UIComponent
+from .policy import NO_ANSWER
 
 TRUE_WORDS = frozenset({"y", "yes", "true", "1", "on"})
 FALSE_WORDS = frozenset({"n", "no", "false", "0", "off"})
@@ -34,6 +35,11 @@ class TextPrompt(UIComponent):
 
     def ask(self) -> Any:
         """Return the answer. Raises UIAbort on abort or too many bad answers."""
+        pre = self.preanswer(
+            "text", self.message, default=self.default, required=self.required
+        )
+        if pre is not NO_ANSWER:
+            return pre
         suffix = f" [{self.default}]" if self.default is not None else ""
         for _ in range(self.max_tries):
             raw = self.readline(f"{self.message}{suffix}: ").strip()
@@ -60,13 +66,27 @@ class TextPrompt(UIComponent):
 class ConfirmPrompt(UIComponent):
     """Yes / no question."""
 
-    def __init__(self, message: str, *, default: Optional[bool] = None, **kwargs):
+    def __init__(
+        self,
+        message: str,
+        *,
+        default: Optional[bool] = None,
+        dangerous: bool = False,
+        **kwargs,
+    ):
+        """``dangerous``: never accepted from defaults, only an explicit yes."""
         super().__init__(**kwargs)
         self.message = message
         self.default = default
+        self.dangerous = dangerous
 
     def ask(self) -> bool:
         """Return True/False. Raises UIAbort on abort."""
+        pre = self.preanswer(
+            "confirm", self.message, default=self.default, dangerous=self.dangerous
+        )
+        if pre is not NO_ANSWER:
+            return pre
         hint = {True: "[Y/n]", False: "[y/N]", None: "[y/n]"}[self.default]
         while True:
             raw = self.readline(f"{self.message} {hint} ").strip().lower()
@@ -101,6 +121,11 @@ class ChoicePrompt(UIComponent):
 
     def ask(self) -> Any:
         """Return the selected item. Raises UIAbort on abort / bad answers."""
+        pre = self.preanswer(
+            "choice", self.message, default=self.default, choices=self.choices
+        )
+        if pre is not NO_ANSWER:
+            return pre
         self.write(self.message)
         for idx, item in enumerate(self.choices, 1):
             self.write(f"  {idx}) {item}")

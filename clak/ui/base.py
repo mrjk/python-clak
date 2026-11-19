@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import sys
-from typing import IO, Optional
+from typing import IO, TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .policy import UIPolicy
 
 
 class UIAbort(Exception):
@@ -23,9 +26,11 @@ class UIComponent:
         stdin: Optional[IO[str]] = None,
         stderr: Optional[IO[str]] = None,
         interactive: Optional[bool] = None,
+        policy: Optional["UIPolicy"] = None,
     ):
         self.stdin = stdin
         self.stderr = stderr
+        self.policy = policy
         self._interactive = interactive
 
     @property
@@ -41,6 +46,8 @@ class UIComponent:
         """True when both input and output are terminals."""
         if self._interactive is not None:
             return self._interactive
+        if self.policy is not None:
+            return self.policy.interactive
         try:
             return self._in.isatty() and self._out.isatty()
         except (AttributeError, ValueError):
@@ -64,3 +71,16 @@ class UIComponent:
             self.write()
             raise UIAbort("end of input")
         return line.rstrip("\r\n")
+
+    def preanswer(self, kind: str, message: str, **fields: Any) -> Any:
+        """Ask the policy first. Returns an answer or ``NO_ANSWER``.
+
+        Without a policy nothing is decided here: the component reads input.
+        Raises ``UINoInputError`` when prompting is forbidden and nobody answers.
+        """
+        # pylint: disable=import-outside-toplevel
+        from .policy import NO_ANSWER, Question
+
+        if self.policy is None:
+            return NO_ANSWER
+        return self.policy.answer(Question(kind, message, **fields))

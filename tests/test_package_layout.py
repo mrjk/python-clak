@@ -64,3 +64,21 @@ def test_compat_views_reexports():
     assert ShowView is not None
     assert ListView is not None
     assert TableShowFormatter is not None
+
+
+def test_ui_package_is_portable():
+    """clak.ui must stay copy-pasteable: no import of the rest of clak."""
+    import ast
+    from pathlib import Path
+
+    ui_dir = Path(clak.__file__).parent / "ui"
+    for path in ui_dir.glob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.ImportFrom):
+                assert not (node.module or "").startswith("clak"), path
+                assert node.level >= 1 or node.module in {
+                    "__future__", "typing", "dataclasses", "itertools", "os",
+                    "sys", "threading", "time", "re", "collections.abc",
+                }, (path, node.module)
+            elif isinstance(node, ast.Import):
+                assert not any(a.name.startswith("clak") for a in node.names), path

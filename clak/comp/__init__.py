@@ -9,6 +9,7 @@ This module provides core component mixins for extending parser functionality:
 - XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin: Add one XDG path flag each
 - WorkDirMixin: Adds -W/--work-dir (changes the process working directory)
 - LoggingOptMixin: Adds structured logging configuration
+- RuntimeOptMixin: Adds --interactive/--no-input/--yes runtime flags
 - RichHelpMixin: Optional re-opt-in for Rich-colored --help after a parent opt-out
 - Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin: Auto CLI views + options
 
@@ -27,6 +28,7 @@ from clak.comp.config import (
 )
 from clak.comp.help import RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
+from clak.comp.runtime import RuntimeOptMixin, ui_policy, ui_session
 from clak.comp.views import (
     CompositeViewMixin,
     DataViewMixin,

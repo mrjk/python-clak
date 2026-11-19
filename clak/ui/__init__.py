@@ -7,6 +7,16 @@ Prompts go to stderr by default so stdout stays clean for piped data.
 
 from .base import UIComponent, UIAbort
 from .flow import ContinuePrompt, WaitSpinner, prompt_continue, wait_spinner
+from .policy import (
+    NO_ANSWER,
+    DefaultsResponder,
+    MappingResponder,
+    Question,
+    UINoInputError,
+    UIPolicy,
+    YesResponder,
+    detect_interactive,
+)
 from .prompt import (
     ChoicePrompt,
     ConfirmPrompt,
@@ -15,8 +25,18 @@ from .prompt import (
     prompt_confirm,
     prompt_text,
 )
+from .session import UISession
 
 __all__ = [
+    "NO_ANSWER",
+    "DefaultsResponder",
+    "MappingResponder",
+    "Question",
+    "UINoInputError",
+    "UIPolicy",
+    "UISession",
+    "YesResponder",
+    "detect_interactive",
     "ChoicePrompt",
     "UIComponent",
     "ConfirmPrompt",

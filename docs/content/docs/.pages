@@ -4,6 +4,7 @@ nav:
     - Comparison: comparison.md
     - Views: views.md
     - Interactive UI: ui.md
+    - Unattended runs: unattended.md
     - Logging: logging.md
     - Config: config.md
     - Completion: completion.md

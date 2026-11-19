@@ -58,14 +58,49 @@ except UIAbort:
 
 ## Non-interactive sessions
 
-When stdin/stderr are not terminals (`UIComponent.interactive` is false):
+Without a policy, components keep it simple: `ContinuePrompt` returns `True`
+when the session is not a terminal, `WaitSpinner` prints plain lines, and other
+prompts read lines from stdin (so piped answers work). Force the detection with
+`interactive=True|False`.
 
-- `ContinuePrompt` returns `True` immediately, never blocking.
-- `WaitSpinner` prints plain `message...` / `message... done` lines, with no
-  animation.
-- Other prompts still read lines from stdin, so piped answers work.
+For real automation use a policy, below.
 
-Force the detection with `interactive=True|False`.
+## Policies and responders
+
+A `UIPolicy` says whether prompting is allowed and who may answer without
+asking. Pass it to a component (`policy=`) or bind it once in a `UISession`.
+
+```python
+from clak.ui import UIPolicy, UISession
+
+ui = UISession(UIPolicy.never(assume_yes=True))   # CI: defaults, yes to confirms
+ui = UISession(UIPolicy.auto())                    # TTY and not CI: prompt
+ui.confirm("Deploy?", default=True)
+ui.text("Name")                                    # raises UINoInputError, no default
+```
+
+| Policy | Behaviour |
+| --- | --- |
+| `UIPolicy.always()` | Prompt (optionally answering confirms with `assume_yes`) |
+| `UIPolicy.never()` | Never read input: defaults, else `UINoInputError` |
+| `UIPolicy.auto()` | `always` on a TTY outside CI (`detect_interactive`), else `never` |
+
+Responders are tried in order before any input is read. A responder is any
+callable taking a `Question` and returning an answer or `NO_ANSWER`:
+
+| Responder | Answers |
+| --- | --- |
+| `YesResponder` | every confirmation, dangerous ones included |
+| `DefaultsResponder` | the default; refuses `dangerous` confirms |
+| `MappingResponder(dict)` | preseeded answers by message (tests, answer files) |
+
+```python
+UIPolicy(interactive=False, responders=(MappingResponder({"Name": "ada"}), DefaultsResponder()))
+```
+
+`ConfirmPrompt(..., dangerous=True)` is never accepted from a default. The CLI
+side (`--no-input`, `--yes`, `CI`) is handled by
+[`RuntimeOptMixin`](unattended.md).
 
 ## Testing
 
@@ -79,7 +114,7 @@ assert ConfirmPrompt("ok?", stdin=io.StringIO("y\n"), stderr=out).ask() is True
 
 ## Example
 
-See `examples/script_ui.py`.
+See `examples/script_ui.py` (run with `--no-input`, `--yes`, `--interactive=always`).
 
 ## Extending
 
