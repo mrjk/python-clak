@@ -43,15 +43,21 @@ class UIComponent:
 
     @property
     def interactive(self) -> bool:
-        """True when both input and output are terminals."""
+        """True when prompting is allowed (see ``policy.detect_interactive``).
+
+        Explicit ``interactive`` wins, then the policy, then autodetection
+        on this component's streams (TTY on input and output, outside CI).
+        """
         if self._interactive is not None:
             return self._interactive
         if self.policy is not None:
             return self.policy.interactive
-        try:
-            return self._in.isatty() and self._out.isatty()
-        except (AttributeError, ValueError):
-            return False
+        # Local import: policy imports this module.
+        from .policy import (  # pylint: disable=import-outside-toplevel
+            detect_interactive,
+        )
+
+        return detect_interactive(self._in, self._out)
 
     def write(self, text: str = "", end: str = "\n") -> None:
         """Write text to the UI stream."""

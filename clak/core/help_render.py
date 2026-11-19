@@ -5,12 +5,12 @@ Walks ParserNode / HelpArg records. Does not regex argparse output.
 
 from __future__ import annotations
 
-import os
-import shutil
 import textwrap
 from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, RawDescriptionHelpFormatter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
+
+from clak.runtime.runtime import terminal_size
 
 HELP_SUBCOMMANDS_TOP = "top"
 HELP_SUBCOMMANDS_ALL = "all"
@@ -288,10 +288,7 @@ class HelpRenderer:
 
 
 def _help_width() -> int:
-    try:
-        width = int(os.environ["COLUMNS"])
-    except (KeyError, ValueError):
-        width = shutil.get_terminal_size().columns
+    width, _height = terminal_size()
     return max(width - 2, 40)
 
 

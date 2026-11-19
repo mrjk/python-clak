@@ -205,6 +205,14 @@ def _resolve_pager() -> Optional[str]:
     return None
 
 
+def terminal_size() -> Tuple[int, int]:
+    """Terminal ``(columns, lines)``: CLAK_COLUMNS/LINES, COLUMNS/LINES, tty, 80x24."""
+    size = shutil.get_terminal_size(fallback=(DEFAULT_TERM_WIDTH, DEFAULT_TERM_HEIGHT))
+    width = _env_int("CLAK_COLUMNS") or int(size.columns)
+    height = _env_int("CLAK_LINES") or int(size.lines)
+    return width, height
+
+
 class RuntimeInfo:  # pylint: disable=too-many-instance-attributes
     """Eager CLI/session snapshot attached as ``ctx.runtime``."""
 
@@ -271,18 +279,7 @@ class RuntimeInfo:  # pylint: disable=too-many-instance-attributes
 
     def get_size(self) -> Tuple[int, int]:
         """Refresh terminal size; honors CLAK_COLUMNS/LINES then COLUMNS/LINES."""
-        size = shutil.get_terminal_size(
-            fallback=(DEFAULT_TERM_WIDTH, DEFAULT_TERM_HEIGHT)
-        )
-        width, height = int(size.columns), int(size.lines)
-
-        clak_cols = _env_int("CLAK_COLUMNS")
-        clak_lines = _env_int("CLAK_LINES")
-        if clak_cols is not None:
-            width = clak_cols
-        if clak_lines is not None:
-            height = clak_lines
-
+        width, height = terminal_size()
         self.term_width = width
         self.term_height = height
         self.is_narrow = width < self.narrow_width

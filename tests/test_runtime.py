@@ -274,3 +274,21 @@ def test_color_backend_rich_missing_raises(monkeypatch):
         color_backend_uses_rich()
     assert "rich" in str(exc.value.message).lower()
     assert "pip install" in (exc.value.advice or "")
+
+
+def test_terminal_size_prefers_clak_columns(monkeypatch):
+    from clak.core.help_render import (  # pylint: disable=import-outside-toplevel
+        _help_width,
+    )
+    from clak.runtime.runtime import (  # pylint: disable=import-outside-toplevel
+        terminal_size,
+    )
+
+    monkeypatch.setenv("COLUMNS", "100")
+    monkeypatch.setenv("LINES", "30")
+    monkeypatch.delenv("CLAK_COLUMNS", raising=False)
+    monkeypatch.delenv("CLAK_LINES", raising=False)
+    assert terminal_size() == (100, 30)
+    monkeypatch.setenv("CLAK_COLUMNS", "60")
+    assert terminal_size() == (60, 30)
+    assert _help_width() == 58
