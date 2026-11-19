@@ -3,6 +3,7 @@ nav:
     - Features: features.md
     - Comparison: comparison.md
     - Views: views.md
+    - Interactive UI: ui.md
     - Logging: logging.md
     - Config: config.md
     - Completion: completion.md

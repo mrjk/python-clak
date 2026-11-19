@@ -113,6 +113,7 @@ class MainApp(Parser):
 | Component | Mixin / class | Docs |
 | --- | --- | --- |
 | Tables / structured output | `ListViewMixin`, `ShowViewMixin`, `PprintViewMixin` | [Views](https://mrjk.github.io/python-clak/docs/views/) |
+| Prompts, confirm, continue/quit, spinner | `clak.ui` (portable, stdlib only) | [UI](https://mrjk.github.io/python-clak/docs/ui/) |
 | Colored `--help` | default (Rich extra, TTY) | [Colored help](https://mrjk.github.io/python-clak/docs/help/) |
 | Logging + `-v` | `LoggingOptMixin` | [Logging](https://mrjk.github.io/python-clak/docs/logging/) |
 | XDG paths + config file | `XDGConfFileMixin` (+ `XDGDataDirMixin`, `XDGCacheDirMixin`, `XDGLogDirMixin`) | [Config](https://mrjk.github.io/python-clak/docs/config/) |
