@@ -140,4 +140,7 @@ On NSS timeout: names are `None` / empty `groups`.
 
 `ctx.settings` is a `ClakSettings` snapshot (`debug`, `colors`, `color_backend`,
 `log_colors`). Env var names are unchanged (`CLAK_DEBUG`, `CLAK_COLORS`, ...).
-Module aliases `CLAK_DEBUG` / `CLAK_COLORS` remain for imports and tests.
+`ClakSettings.current()` is read from the environment once per process;
+override it with `ClakSettings.set_current(ClakSettings.current().replace(colors=False))`
+(tests, embedding apps). The old module aliases `CLAK_DEBUG` / `CLAK_COLORS` /
+`CLAK_LOG_COLORS` were removed.

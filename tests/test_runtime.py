@@ -13,6 +13,7 @@ from clak.runtime import (
     RuntimeInfo,
     detect_runtime,
 )
+from tests.common import use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -92,7 +93,7 @@ def test_color_level_truecolor(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv("COLORTERM", "truecolor")
     monkeypatch.setenv("TERM", "xterm-256color")
 
@@ -112,7 +113,7 @@ def test_color_level_256_from_term(monkeypatch):
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
     monkeypatch.delenv("COLORTERM", raising=False)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv("TERM", "xterm-256color")
 
     assert detect_runtime().color_level == COLOR_256
@@ -129,7 +130,7 @@ def test_force_color_without_tty(monkeypatch):
     )
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("FORCE_COLOR", "1")
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
 
     assert detect_runtime().color_level == COLOR_16
 

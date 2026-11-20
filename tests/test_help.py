@@ -12,6 +12,7 @@ from clak.core.help_render import RecursiveHelpFormatter as CoreRecursiveHelpFor
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
 from clak.views.base import strip_ansi
 from tests.view_fixtures import _has_background_csi
+from tests.common import use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -20,7 +21,7 @@ def _force_help_color(monkeypatch):
     pytest.importorskip("rich")
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
 
 
@@ -61,7 +62,7 @@ def test_opt_out_tty_has_no_ansi(monkeypatch):
     pytest.importorskip("rich")
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
     help_text = _OptOutApp(parse=False, add_help=True).parser.format_help()
     assert "\x1b[" not in help_text
@@ -199,7 +200,7 @@ def test_color_backend_none_is_plain(monkeypatch):
     pytest.importorskip("rich")
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "none")
     help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
     assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()
@@ -210,7 +211,7 @@ def test_clak_colors_off_is_plain(monkeypatch):
     pytest.importorskip("rich")
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
+    use_settings(monkeypatch, colors=False)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
     help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
     assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()
@@ -221,7 +222,7 @@ def test_no_color_is_plain(monkeypatch):
     pytest.importorskip("rich")
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv(CLAK_COLOR_BACKEND_ENV, "auto")
     help_text = _DefaultApp(parse=False, add_help=True).parser.format_help()
     assert help_text == _OptOutApp(parse=False, add_help=True).parser.format_help()

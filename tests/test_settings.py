@@ -10,6 +10,7 @@ from clak.runtime.settings import (
     colors_enabled,
     resolve_log_colors,
 )
+from tests.common import use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -29,9 +30,9 @@ def test_from_env_reads_clak_env(monkeypatch):
 
 
 def test_current_uses_module_aliases(monkeypatch):
-    monkeypatch.setattr("clak.runtime.settings.CLAK_DEBUG", True)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
-    monkeypatch.setattr("clak.runtime.settings.CLAK_LOG_COLORS", True)
+    use_settings(monkeypatch, debug=True)
+    use_settings(monkeypatch, colors=False)
+    use_settings(monkeypatch, log_colors=True)
     settings = ClakSettings.current()
     assert settings.debug is True
     assert settings.colors is False
@@ -39,7 +40,7 @@ def test_current_uses_module_aliases(monkeypatch):
 
 
 def test_apply_debug_logging_skips_when_not_debug(monkeypatch):
-    monkeypatch.setattr("clak.runtime.settings.CLAK_DEBUG", False)
+    use_settings(monkeypatch, debug=False)
     monkeypatch.setattr("clak.runtime.settings._DEBUG_LOGGING_APPLIED", False)
     apply_debug_logging()
     assert (
@@ -62,12 +63,12 @@ def test_parser_collects_mixin_hooks_at_build():
 
 
 def test_colors_enabled_kill_switches(monkeypatch):
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     assert colors_enabled(env={}) is True
     assert colors_enabled(env={"NO_COLOR": "1"}) is False
     assert colors_enabled(env={"NO_COLOR": ""}) is True
     assert colors_enabled(clak_colors=False, env={}) is False
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
+    use_settings(monkeypatch, colors=False)
     assert colors_enabled(env={}) is False
 
 
@@ -76,8 +77,23 @@ def test_no_color_disables_auto_log_colors(monkeypatch):
         def isatty(self):
             return True
 
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", True)
+    use_settings(monkeypatch, colors=True)
     monkeypatch.setenv("NO_COLOR", "1")
     assert resolve_log_colors(None, stream=_Tty(), env_value=None) is False
     # Explicit flag still wins over NO_COLOR.
     assert resolve_log_colors(True, stream=_Tty(), env_value=None) is True
+
+
+def test_settings_current_is_cached_and_replaceable():
+    original = ClakSettings.current()
+    assert ClakSettings.current() is original
+    custom = original.replace(colors=not original.colors)
+    assert custom.debug == original.debug
+    previous = ClakSettings.set_current(custom)
+    try:
+        assert previous is original
+        assert ClakSettings.current() is custom
+        assert colors_enabled(env={}) is custom.colors
+    finally:
+        ClakSettings.set_current(previous)
+    assert ClakSettings.current() is original

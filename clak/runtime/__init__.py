@@ -20,9 +20,6 @@ from clak.runtime.runtime import (
 )
 from clak.runtime.settings import (
     CLAK_COLOR_BACKEND_ENV,
-    CLAK_COLORS,
-    CLAK_DEBUG,
-    CLAK_LOG_COLORS,
     COLOR_BACKENDS,
     DEFAULT_COLOR_BACKEND,
     LOG_FORMAT,
@@ -37,11 +34,8 @@ from clak.runtime.settings import (
 
 __all__ = [
     "CLAK_COLOR_BACKEND_ENV",
-    "CLAK_COLORS",
     "CLAK_CUSTOM_LEVEL_STYLES",
     "CLAK_CUSTOM_LEVELS",
-    "CLAK_DEBUG",
-    "CLAK_LOG_COLORS",
     "ClakSettings",
     "COLOR_BACKENDS",
     "DEFAULT_COLOR_BACKEND",

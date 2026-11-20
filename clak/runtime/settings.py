@@ -82,10 +82,12 @@ def color_backend_uses_rich(value=None) -> bool:
 class ClakSettings:
     """Process-level debug / color / log-format settings.
 
-    ``from_env()`` reads ``CLAK_*`` at call time. ``current()`` prefers the
-    module aliases (``CLAK_DEBUG``, ``CLAK_COLORS``, ``CLAK_LOG_COLORS``) so
-    tests can still monkeypatch those names.
+    ``from_env()`` reads ``CLAK_*`` at call time. ``current()`` returns the
+    process settings, built once from the environment; ``set_current()``
+    replaces them (tests, embedding apps) and ``replace()`` derives a copy.
     """
+
+    _current: "ClakSettings | None" = None
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
@@ -121,15 +123,24 @@ class ClakSettings:
 
     @classmethod
     def current(cls) -> "ClakSettings":
-        """Process defaults; module aliases win so tests can monkeypatch."""
-        return cls(
-            debug=bool(CLAK_DEBUG),
-            colors=bool(CLAK_COLORS),
-            color_backend=resolve_color_backend(),
-            log_colors=CLAK_LOG_COLORS,
-            styles=dict(LOG_STYLES),
-            log_format=LOG_FORMAT,
-        )
+        """Process settings (built from the environment on first use)."""
+        if cls._current is None:
+            cls._current = cls.from_env()
+        return cls._current
+
+    @classmethod
+    def set_current(cls, settings: "ClakSettings | None") -> "ClakSettings | None":
+        """Replace the process settings; None re-reads the env on next use.
+
+        Returns the previous value so callers can restore it.
+        """
+        previous = cls._current
+        cls._current = settings
+        return previous
+
+    def replace(self, **changes) -> "ClakSettings":
+        """Return a copy with *changes* applied (``colors=False``, ...)."""
+        return type(self)(**{**vars(self), **changes})
 
     def apply_debug_logging(self) -> None:
         """Enable debug logging once when ``debug`` is true (not at import)."""
@@ -159,12 +170,6 @@ class ClakSettings:
         )
 
 
-_PROCESS_SETTINGS = ClakSettings.from_env()
-CLAK_DEBUG = _PROCESS_SETTINGS.debug
-CLAK_COLORS = _PROCESS_SETTINGS.colors
-CLAK_LOG_COLORS = _PROCESS_SETTINGS.log_colors
-
-
 def colors_enabled(*, clak_colors=None, env=None) -> bool:
     """Global color kill switches shared by help, logs, views and runtime.
 
@@ -177,7 +182,7 @@ def colors_enabled(*, clak_colors=None, env=None) -> bool:
     if env.get("NO_COLOR"):
         return False
     if clak_colors is None:
-        clak_colors = CLAK_COLORS
+        clak_colors = ClakSettings.current().colors
     return bool(clak_colors)
 
 
@@ -194,13 +199,14 @@ def resolve_log_colors(cli_value=None, stream=None, env_value=_UNSET):
 
     Precedence:
     1. Explicit CLI ``--log-colors`` / ``--no-log-colors`` (``cli_value`` not None)
-    2. ``env_value`` when not omitted (default: ``CLAK_LOG_COLORS``); ``None`` means unset
+    2. ``env_value`` when not omitted (default: ``ClakSettings.current().log_colors``,
+       i.e. ``CLAK_LOG_COLORS``); ``None`` means unset
     3. Auto: :func:`colors_enabled` and ``stream.isatty()`` (default: stderr)
     """
     if stream is None:
         stream = sys.stderr
     if env_value is _UNSET:
-        env_value = CLAK_LOG_COLORS
+        env_value = ClakSettings.current().log_colors
     return resolve_bool_option(
         cli_value,
         env_value=env_value,

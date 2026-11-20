@@ -16,6 +16,7 @@ from clak.runtime.rich_style import (
 from clak.views import CompositeView, DataView
 from clak.views.composite import _section_kind
 from clak.views.data import format_data_payload, resolve_data_format
+from tests.common import use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -135,7 +136,7 @@ def test_data_view_color_auto_off_without_tty():
 
 
 def test_data_view_color_off_with_clak_colors_disabled(monkeypatch):
-    monkeypatch.setattr("clak.runtime.settings.CLAK_COLORS", False)
+    use_settings(monkeypatch, colors=False)
     rendered = DataView(PAYLOAD, format="json", color=None, stdout_tty=True).render(
         stdout=False
     )

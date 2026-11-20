@@ -131,3 +131,14 @@ def cli_case_ids(cases) -> list:
             )
         files[fname] = case_id
     return ids
+
+
+def use_settings(monkeypatch, **changes):
+    """Override process ClakSettings fields for one test (auto-restored)."""
+    from clak.runtime.settings import (  # pylint: disable=import-outside-toplevel
+        ClakSettings,
+    )
+
+    monkeypatch.setattr(
+        ClakSettings, "_current", ClakSettings.current().replace(**changes)
+    )
