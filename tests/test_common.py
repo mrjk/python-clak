@@ -1,6 +1,9 @@
+import copy
+import pickle
+
 import pytest
 
-from clak.common import deindent_docstring, resolve_bool_option
+from clak.common import ObjectNamespace, deindent_docstring, resolve_bool_option
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -107,3 +110,11 @@ def test_deindent_docstring_no_reindent():
 First line
 Second line"""
     assert deindent_docstring(text, reindent=False) == expected
+
+
+def test_object_namespace_supports_copy_and_pickle():
+    ns = ObjectNamespace(a=1, b=[1, 2])
+    assert ns.missing is None
+    for clone in (copy.copy(ns), copy.deepcopy(ns), pickle.loads(pickle.dumps(ns))):
+        assert clone.a == 1 and clone.b == [1, 2]
+    assert copy.deepcopy(ns).b is not ns.b

@@ -144,6 +144,10 @@ class ObjectNamespace:
         self.__dict__.update(kwargs)
 
     def __getattr__(self, key):
+        # Missing plain names read as None (CLI dests may be absent), but
+        # dunder lookups must fail normally so copy/pickle/inspect work.
+        if key.startswith("__") and key.endswith("__"):
+            raise AttributeError(key)
         return self.__dict__.get(key, None)
 
     def __setattr__(self, key, value):
