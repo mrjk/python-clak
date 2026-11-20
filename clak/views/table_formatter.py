@@ -388,6 +388,7 @@ class _TableFormatter(ABC):
         "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
+        "yaml_cells": True,
     }
 
     def __init__(self, data=None, columns=None, **view_options):
@@ -429,11 +430,15 @@ class _TableFormatter(ABC):
         wrap_min = _view_options.pop("wrap_min", None)
         term_width = _view_options.pop("term_width", None)
         stdout_tty = _view_options.pop("stdout_tty", None)
+        yaml_cells = _view_options.pop("yaml_cells", True)
 
-        data_table, headers = self.process_table(data, **_view_options)
+        # YAML cells are a display aid: never applied to yaml/json/csv output
+        data_table, headers = self.process_table(
+            data, yaml_cells=bool(yaml_cells) and fmt == "view", **_view_options
+        )
         self.validate_table_data(data_table)
 
-        if not sort_columns and headers:
+        if sort_columns is None and headers:  # [] = keep the input order
             sort_columns = default_sort_columns(headers)
 
         if sort_columns:
@@ -495,6 +500,29 @@ class _TableFormatter(ABC):
 ################## Public classes
 
 
+def yaml_cell(value):
+    "Complex values (mapping, list) as block yaml text, so a table cell stays readable."
+    if isinstance(value, (Mapping, list, tuple)) and value:
+        try:
+            yaml = require_yaml()
+            return yaml.safe_dump(_plain(value), sort_keys=False, default_flow_style=False,
+                                  allow_unicode=True).rstrip("\n")
+        except Exception:  # not dumpable: keep the raw value
+            return value
+    return value
+
+
+def _plain(value):
+    "Make `value` safe_dump friendly (paths, tuples, mappings, unknown objects)."
+    if isinstance(value, Mapping):
+        return {str(k): _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_plain(v) for v in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
 class TableShowFormatter(_TableFormatter):
     "Table show item"
 
@@ -508,9 +536,12 @@ class TableShowFormatter(_TableFormatter):
         "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
+        "yaml_cells": True,
     }
 
-    def process_table(self, data, columns=None, add_index=True, remove_tabs=True, **_):
+    def process_table(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        self, data, columns=None, add_index=True, remove_tabs=True, yaml_cells=False, **_
+    ):
         "Restructure data to fit to item view"
 
         choices = None
@@ -542,6 +573,8 @@ class TableShowFormatter(_TableFormatter):
 
             if remove_tabs is not False:
                 value = replace_tabs(value, remove_tabs)
+            if yaml_cells:
+                value = yaml_cell(value)
 
             if add_index:
                 ret.append([key, value])
@@ -569,6 +602,7 @@ class TableListFormatter(_TableFormatter):
         "width": DEFAULT_WIDTH_MODE,
         "wrap": "last",
         "wrap_min": None,
+        "yaml_cells": True,
     }
 
     # pylint: disable=too-many-branches,too-many-arguments,too-many-positional-arguments,too-many-statements
@@ -579,6 +613,7 @@ class TableListFormatter(_TableFormatter):
         add_index=None,
         expand_keys=True,
         remove_tabs=True,
+        yaml_cells=False,
         **_,
     ):
         "Restructure data to fit to list view"
@@ -606,7 +641,7 @@ class TableListFormatter(_TableFormatter):
                         value = "-"
                 if remove_tabs is not False:
                     value = replace_tabs(value, remove_tabs)
-                row.append(value)
+                row.append(yaml_cell(value) if yaml_cells else value)
             ret.append(row)
 
         def _resolve_item_columns(item, cols):
@@ -626,7 +661,7 @@ class TableListFormatter(_TableFormatter):
         if isinstance(data, Mapping):
             for idx, value in data.items():
                 if not expand_keys:
-                    ret.append([idx, value])
+                    ret.append([idx, yaml_cell(value) if yaml_cells else value])
                 else:
                     if not isinstance(value, Mapping):
                         if hasattr(value, "__dict__"):
@@ -649,7 +684,8 @@ class TableListFormatter(_TableFormatter):
                 if remove_tabs is not False:
                     value = replace_tabs(value, remove_tabs)
                 if not expand_keys:
-                    ret.append([idx, value])
+                    # Whole item is one cell; expanded items are yamlified per field
+                    ret.append([idx, yaml_cell(value) if yaml_cells else value])
                 else:
                     columns = _resolve_item_columns(value, columns)
                     _process_expanded_item(idx, value, columns)

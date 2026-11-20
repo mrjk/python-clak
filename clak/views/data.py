@@ -157,6 +157,8 @@ class DataView(ClakView):
             compact=compact,
             anchors=anchors,
         )
+        # No leading/trailing blank lines: the output adds its own final newline
+        text = text.strip("\n")
         rendered = colorize_data_text(
             text,
             fmt,

@@ -10,7 +10,8 @@ Option layers (mirror ClakView hierarchy):
 
 1. ClakViewOptMixin — generic (no CLI flags)
 2. TableViewOptMixin — table (Show/List): ``width``, ``columns``,
-   ``add_index``, ``format``, ``sort_columns``, ``sort_mode``, ``wrap``
+   ``add_index``, ``format``, ``sort_columns``, ``sort_mode``, ``wrap``,
+   ``yaml_cells``
 3. ListViewMixin — list-only: ``expand_keys``
 4. TextLayoutOptMixin — text wrap: ``line_length``
 5. TextViewOptMixin — text (Markdown/Rst): ``format`` (``view`` / ``raw``)
@@ -148,6 +149,12 @@ ADD_INDEX = ViewOption(
     meta_help="Default for --add-index / --no-add-index",
     arg_kwargs=_BOOL_FLAG,
 )
+YAML_CELLS = ViewOption(
+    "yaml_cells",
+    help="Render list/dict cells as YAML in table view (default: on)",
+    meta_help="Default for --yaml-cells / --no-yaml-cells",
+    arg_kwargs=_BOOL_FLAG,
+)
 TABLE_FORMAT = ViewOption(
     "format",
     help="Output format (default: view table)",
@@ -265,6 +272,7 @@ _ALL_VIEW_OPTION_NAMES = frozenset(
         SORT_COLUMNS,
         SORT_MODE,
         WRAP,
+        YAML_CELLS,
         EXPAND_KEYS,
         LINE_LENGTH,
         TEXT_FORMAT,
@@ -427,6 +435,7 @@ class TableViewOptMixin(ClakViewOptMixin):
         SORT_COLUMNS,
         SORT_MODE,
         WRAP,
+        YAML_CELLS,
     )
 
     meta__config__view_column_names = MetaSetting(

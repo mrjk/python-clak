@@ -144,6 +144,7 @@ class CompositeView(ClakView):
         "sort_mode": "asc",
         "add_index": None,
         "expand_keys": True,
+        "yaml_cells": True,
     }
 
     def __init__(self, sections=None, *, primary: Optional[str] = None, **kwargs):
@@ -203,6 +204,9 @@ class CompositeView(ClakView):
         child = {key: settings[key] for key in _SHARED_SETTINGS if key in settings}
         if fmt is not None:
             child["format"] = fmt
+        if isinstance(view, TableView) and "yaml_cells" in settings:
+            # Display-only: applies to every table section, not just primary
+            child["yaml_cells"] = settings["yaml_cells"]
         if is_primary and isinstance(view, TableView):
             for key in _PRIMARY_TABLE_SETTINGS:
                 if key not in settings:
@@ -334,11 +338,11 @@ class CompositeView(ClakView):
             envelope["sections"].append(entry)
 
         if fmt == "json":
-            return json.dumps(envelope, indent=2, default=str) + "\n"
+            return json.dumps(envelope, indent=2, default=str)
         if fmt == "yaml":
             return require_yaml().safe_dump(
                 envelope, sort_keys=False, default_flow_style=False
-            )
+            ).strip("\n")
         raise ValueError(f"Unsupported format {fmt!r}")
 
     def _render_envelope_csv(self, sections, settings, primary_name):

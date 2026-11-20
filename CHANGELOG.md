@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Table views (`ShowView`, `ListView`, `CompositeView`) render list/dict
+  cells as block YAML by default. If a value can't be dumped (or PyYAML is
+  missing), the original value is shown unchanged. This only affects
+  `--format view`; yaml/json/csv output is untouched. Opt out with
+  `--no-yaml-cells`, `Meta.view_yaml_cells = False`, or `yaml_cells=False`.
+
 ## 0.7.0a1
 
 Alpha of the 0.7 architecture cleanup. Several **breaking changes**; see

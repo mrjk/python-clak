@@ -698,3 +698,82 @@ def test_table_wrap_min_unknown_column_raises():
             term_width=50,
             stdout_tty=True,
         )
+
+
+################## YAML cells
+
+NESTED = [
+    {"name": "ada", "tags": ["a", "b"], "meta": {"lang": "en"}},
+    {"name": "bob", "tags": [], "meta": {}},
+]
+
+
+def test_list_yaml_cells_default_on():
+    out = TableListFormatter().render(NESTED, width="min")
+    assert "- a" in out and "- b" in out
+    assert "lang: en" in out
+    assert "['a', 'b']" not in out
+    # Empty containers keep their repr
+    assert "[]" in out and "{}" in out
+
+
+def test_list_yaml_cells_opt_out_keeps_repr():
+    out = TableListFormatter().render(NESTED, width="min", yaml_cells=False)
+    assert "['a', 'b']" in out
+    assert "{'lang': 'en'}" in out
+
+
+def test_list_yaml_cells_no_expand_does_not_split_items():
+    out = TableListFormatter().render(
+        [{"name": "linus"}], width="min", expand_keys=False
+    )
+    assert "name: linus" in out
+    out = TableListFormatter().render({"k": {"name": "linus"}}, width="min", expand_keys=False)
+    assert "name: linus" in out
+
+
+def test_list_yaml_cells_expanded_items_keep_columns():
+    rows, headers = TableListFormatter().process_table(
+        [{"name": "linus"}], yaml_cells=True
+    )
+    assert headers == ["name"]
+    assert rows == [["linus"]]
+
+
+def test_show_yaml_cells_default_on_and_opt_out():
+    data = {"name": "ada", "tags": ["a", "b"]}
+    assert "- a" in TableShowFormatter().render(data, width="min")
+    out = TableShowFormatter().render(data, width="min", yaml_cells=False)
+    assert "['a', 'b']" in out
+
+
+@pytest.mark.parametrize("fmt", ["csv", "json", "yaml"])
+def test_yaml_cells_never_applied_to_structured_formats(fmt):
+    out = TableListFormatter().render(NESTED, format=fmt)
+    assert "- a\n- b" not in out
+    assert "lang: en\n" not in out or fmt == "yaml"
+
+
+def test_yaml_cells_csv_keeps_repr():
+    out = TableListFormatter().render(NESTED, format="csv")
+    assert "['a', 'b']" in out
+
+
+def test_yaml_cells_falls_back_silently(monkeypatch):
+    import clak.views.table_formatter as tf
+
+    def _boom():
+        raise RuntimeError("no yaml")
+
+    monkeypatch.setattr(tf, "require_yaml", _boom)
+    out = TableListFormatter().render(NESTED, width="min")
+    assert "['a', 'b']" in out
+
+
+def test_yaml_cells_unknown_objects_stringified():
+    class Obj:
+        def __str__(self):
+            return "obj!"
+
+    out = TableShowFormatter().render({"x": [Obj()]}, width="min")
+    assert "- obj!" in out

@@ -197,12 +197,12 @@ def _project_list_columns(payload, columns):
 def _dump_structured_payload(payload, fmt):
     """Serialize an original payload as json or yaml."""
     if fmt == "json":
-        return json.dumps(payload, indent=2, default=str) + "\n"
+        return json.dumps(payload, indent=2, default=str)
 
     if fmt == "yaml":
         return require_yaml().safe_dump(
             payload, sort_keys=False, default_flow_style=False
-        )
+        ).strip("\n")
 
     raise ValueError(f"Unsupported format {fmt!r}")
 
@@ -376,6 +376,7 @@ class TableView(ClakView):
         "sort_columns": None,
         "sort_mode": "asc",
         "add_index": None,
+        "yaml_cells": True,
     }
 
 

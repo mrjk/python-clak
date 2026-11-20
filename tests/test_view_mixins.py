@@ -796,12 +796,12 @@ def test_root_meta_view_defaults_reach_child_with_same_mixin():
         (
             ShowViewMixin,
             {"width", "columns", "add_index", "format", "sort_columns"}
-            | {"sort_mode", "wrap"},
+            | {"sort_mode", "wrap", "yaml_cells"},
         ),
         (
             ListViewMixin,
             {"width", "columns", "add_index", "format", "sort_columns"}
-            | {"sort_mode", "wrap", "expand_keys"},
+            | {"sort_mode", "wrap", "expand_keys", "yaml_cells"},
         ),
         (PprintViewMixin, {"line_length"}),
     ],
@@ -812,3 +812,33 @@ def test_view_option_registry_per_mixin(mixin, expected):
     for name in expected:
         assert isinstance(getattr(mixin, name), Argument)
         assert getattr(mixin, f"meta__config__view_{name}") is not None
+
+
+NESTED_USERS = [{"name": "ada", "tags": ["x", "y"]}]
+
+
+def test_list_view_mixin_yaml_cells_default_and_cli_opt_out(capsys):
+    class App(ListViewMixin, Parser):
+        def cli_run(self, **_):
+            return NESTED_USERS
+
+    App(parse=False, add_help=False).dispatch([])
+    assert "- x" in capsys.readouterr().out
+
+    App(parse=False, add_help=False).dispatch(["--no-yaml-cells"])
+    assert "['x', 'y']" in capsys.readouterr().out
+
+
+def test_list_view_mixin_meta_yaml_cells_off_and_cli_override(capsys):
+    class App(ListViewMixin, Parser):
+        class Meta:
+            view_yaml_cells = False
+
+        def cli_run(self, **_):
+            return NESTED_USERS
+
+    App(parse=False, add_help=False).dispatch([])
+    assert "['x', 'y']" in capsys.readouterr().out
+
+    App(parse=False, add_help=False).dispatch(["--yaml-cells"])
+    assert "- x" in capsys.readouterr().out
