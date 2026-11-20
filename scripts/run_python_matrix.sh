@@ -9,7 +9,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 VENVS_DIR="${VENVS_DIR:-.venvs}"
-DEFAULT_MATRIX="3.10 3.11 3.12 3.13 3.14"
+# 3.14 is not officially supported yet; run it on demand:
+#   PYTHON_VERSION=3.14 bash ./scripts/run_python_matrix.sh
+DEFAULT_MATRIX="3.10 3.11 3.12 3.13"
 
 if [[ -n "${PYTHON_VERSION:-}" ]]; then
   VERSIONS=("$PYTHON_VERSION")

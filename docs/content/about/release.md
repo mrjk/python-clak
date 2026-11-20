@@ -27,7 +27,7 @@ Pushing a `v*` tag runs `.github/workflows/publish_pypi.yml`: test gate, then
 - For CI publish: GitHub environment `pypi` + secret `PYPI_TOKEN`
 - For local/manual publish: a PyPI API token (`UV_PUBLISH_TOKEN`)
 
-Supported runtime range for users: **Python 3.10–3.14** (see [Development setup](setup.md)).
+Supported runtime range for users: **Python 3.10–3.13**; 3.14 should work but is not officially supported yet (see [Development setup](setup.md)).
 
 ## Bump and tag
 

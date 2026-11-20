@@ -6,10 +6,11 @@ How to run Clak locally and across supported Python versions.
 
 | | Version |
 | --- | --- |
-| **Supported** | **3.10, 3.11, 3.12, 3.13, 3.14** |
+| **Supported** | **3.10, 3.11, 3.12, 3.13** |
+| Not yet supported | 3.14: should work (install is not blocked), but untested in CI |
 | Declared in packaging | `requires-python = ">=3.10,<4.0"` (`pyproject.toml`) |
 | Daily / release base | **3.12** (`mise.toml`) |
-| CI | GitHub Actions matrix over 3.10–3.14 |
+| CI | GitHub Actions matrix over 3.10–3.13 |
 | Docs build (CI) | 3.10 |
 
 Tested continuously via [`.github/workflows/test_project.yml`](https://github.com/mrjk/python-clak/blob/develop/.github/workflows/test_project.yml) and locally with `task test_matrix`.
@@ -92,10 +93,11 @@ task setup
 
 ## Local Python matrix
 
-To exercise 3.10–3.14 without touching daily `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it runs `uv sync` with `UV_PROJECT_ENVIRONMENT=.venvs/pyX.Y` and runs pytest with `VIRTUAL_ENV` + `PATH`.
+To exercise 3.10–3.13 without touching daily `.venv`, use isolated envs under `.venvs/pyX.Y`. Other Pythons are installed **on demand** when you run the matrix (via `mise install python@$ver`). The script does **not** `source activate`; it runs `uv sync` with `UV_PROJECT_ENVIRONMENT=.venvs/pyX.Y` and runs pytest with `VIRTUAL_ENV` + `PATH`.
 
 ```bash
-task test_matrix                       # all of 3.10–3.14
+task test_matrix                       # all of 3.10–3.13
+PYTHON_VERSION=3.14 bash ./scripts/run_python_matrix.sh  # 3.14, on demand
 task test_matrix_one PYTHON_VERSION=3.11
 ```
 
@@ -111,7 +113,7 @@ On **3.14**, installing some lockfile deps (e.g. `rpds-py` via PyO3) needs:
 export PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 ```
 
-The matrix script and CI already set this. Remove it once upstream PyO3 advertises 3.14 support.
+The matrix script already sets this. Remove it once upstream PyO3 advertises 3.14 support.
 
 Implementation: [`scripts/run_python_matrix.sh`](https://github.com/mrjk/python-clak/blob/develop/scripts/run_python_matrix.sh).  
 If a previous failed run left empty dirs, remove them: `rm -rf .venvs/py3.10` (etc.).
