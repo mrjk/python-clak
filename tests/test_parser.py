@@ -492,7 +492,7 @@ def test_os_error_exit_uses_errno_or_one(monkeypatch):
     """OSError subclasses exit with errno, falling back to 1 when unset."""
 
     parser = ParserNode()
-    monkeypatch.setattr("clak.core.parser.logger.critical", lambda *a, **k: None)
+    monkeypatch.setattr("clak.core._exception.logger.critical", lambda *a, **k: None)
 
     with pytest.raises(SystemExit) as exc:
         parser.clean_terminate(FileNotFoundError(2, "missing"))
@@ -530,8 +530,8 @@ def test_uncaught_error_reports_bug(monkeypatch):
     def _critical(msg, *args, **_kwargs):
         messages.append(msg % args if args else str(msg))
 
-    monkeypatch.setattr("clak.core.parser.logger.critical", _critical)
-    monkeypatch.setattr("clak.core.parser.logger.error", lambda *a, **k: None)
+    monkeypatch.setattr("clak.core._dispatch.logger.critical", _critical)
+    monkeypatch.setattr("clak.core._dispatch.logger.error", lambda *a, **k: None)
 
     parser = ParserNode()
     parser.cli_run = run_cmd

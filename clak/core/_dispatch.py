@@ -16,8 +16,7 @@ from clak.runtime.runtime import detect_runtime
 from clak.runtime.settings import ClakSettings, apply_debug_logging
 from clak.views import ClakView
 
-# Same logger as parser.py so tests can patch clak.core.parser.logger
-logger = logging.getLogger("clak.core.parser")
+logger = logging.getLogger(__name__)
 
 # Trace switch contract shared with LoggingOptMixin (``--trace``): dispatch
 # reads the parsed dest, or sniffs the raw flag when parsing failed.

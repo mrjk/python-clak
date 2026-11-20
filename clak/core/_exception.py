@@ -6,8 +6,7 @@ import sys
 
 from clak import exception
 
-# Same logger as parser.py so tests can patch clak.core.parser.logger
-logger = logging.getLogger("clak.core.parser")
+logger = logging.getLogger(__name__)
 
 
 def _exit_broken_pipe(rc=1):
