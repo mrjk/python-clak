@@ -1308,7 +1308,7 @@ wheels = [
 
 [[package]]
 name = "mrjk-clak"
-version = "0.6.1"
+version = "0.7.0a1"
 source = { editable = "." }
 default-groups = ["dev", "docs"]
 dependencies = [
