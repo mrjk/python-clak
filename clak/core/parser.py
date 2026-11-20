@@ -24,7 +24,6 @@ from clak.core.argp import SubParsersAction
 from clak.core.context import ClakContext
 from clak.core.descriptors import (
     Argument,
-    FormatEnv,
     MetaSetting,
     SubParser,
     first_doc_line,
@@ -32,7 +31,6 @@ from clak.core.descriptors import (
 )
 from clak.core.help_render import HELP_SUBCOMMANDS_ALL, HelpLayout, HelpRenderer
 from clak.core.nodes import NOT_SET, Node
-from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.settings import apply_debug_logging
 from clak.views import ClakView
 
@@ -42,6 +40,13 @@ logger = logging.getLogger(__name__)
 Command = SubParser
 
 PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
+
+# Mixin plugin convention: a mixin contributes behavior by defining
+# ``cli_hook__<name>(self, instance, ctx, **_)`` methods. They are collected
+# at build time and run for every node of the command path, before
+# ``cli_group`` / ``cli_run``. Read configuration from ``instance`` (the node
+# being walked) so a subcommand's ``Meta`` wins.
+CLI_HOOK_PREFIX = "cli_hook__"
 
 
 class ParserNode(
@@ -251,7 +256,7 @@ class ParserNode(
 
     def create_parser(self):
         "Create a new parser"
-        usage, desc, epilog = self.help_texts(FormatEnv({"self": self}).get())
+        usage, desc, epilog = self.help_texts({"self": self})
         # parse_intermixed / allow_abbrev are set by _install_help.
         parser = ClakArgumentParser(
             prog=self.proc_name,
@@ -522,10 +527,6 @@ class ParserNode(
     def show_usage(self):
         """Display the usage message for this parser."""
         self.parser.print_usage()
-
-    def show_epilog(self):
-        """Display the epilog message for this parser."""
-        self.parser.print_epilog()
 
     # Execution helpers
     # ========================

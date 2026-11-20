@@ -1,21 +1,10 @@
-"""
-Register a Python executable for use with the argcomplete module.
+"""Shell completion (argcomplete) as a subcommand or a ``--completion`` flag.
 
-To perform the registration, source the output of this script in your bash shell
-(quote the output to avoid interpolation).
+- ``CompCmdRender``: ready-made ``completion`` subcommand
+  (``--shell``, ``--executable``, ...).
+- ``CompRenderOptMixin``: ``--completion`` flag printing bash shellcode.
 
-Example:
-
-    $ eval "$(register-python-argcomplete my-favorite-script.py)"
-
-For Tcsh
-
-    $ eval `register-python-argcomplete --shell tcsh my-favorite-script.py`
-
-For Fish
-
-    $ register-python-argcomplete --shell fish my-favourite-script.py \
-        > ~/.config/fish/my-favourite-script.py.fish
+Register the output in your shell, e.g. ``eval "$(my-app completion)"``.
 """
 
 import argparse
@@ -159,18 +148,18 @@ class CompRenderOptMixin(CompRenderMixin):
             my-app --completion
         """
 
-        args = ctx.args
-        kwargs = {
-            "executable": [_resolve_prog(ctx)],
-            "shell": "bash",
-            "use_defaults": True,
-            "complete_arguments": [],
-            "external_argcomplete_script": None,
-        }
-        if args.completion_cmd is True:
-            self.print_completion_stdout(SimpleNamespace(**kwargs))
-        else:
-            super().cli_run(ctx, **kwargs)
+        if ctx.args.completion_cmd is not True:
+            return super().cli_run(ctx=ctx, **kwargs)
+        self.print_completion_stdout(
+            SimpleNamespace(
+                executable=[_resolve_prog(ctx)],
+                shell="bash",
+                use_defaults=True,
+                complete_arguments=[],
+                external_argcomplete_script=None,
+            )
+        )
+        return None
 
 
 # Command configuration

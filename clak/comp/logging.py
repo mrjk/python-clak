@@ -481,16 +481,3 @@ class LoggingOptMixin:
                 "log_suffix": suffix,
             }
         )
-
-    def test_logger(self, instance: object | None = None) -> None:
-        """Test the logger by sending test messages at different log levels.
-
-        Args:
-            instance: The instance to test logging for. If None, uses self.
-        """
-        instance = instance if instance else self
-        instance.logger.debug("Test logger with DEBUG")
-        instance.logger.info("Test logger with INFO")
-        instance.logger.warning("Test logger with WARNING")
-        instance.logger.error("Test logger with ERROR")
-        instance.logger.critical("Test logger with CRITICAL")

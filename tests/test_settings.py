@@ -3,7 +3,7 @@
 import pytest
 
 from clak import LoggingOptMixin, Parser
-from clak.core.plugins import CLI_HOOK_PREFIX
+from clak.core.parser import CLI_HOOK_PREFIX
 from clak.runtime.settings import (
     ClakSettings,
     apply_debug_logging,

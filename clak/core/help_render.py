@@ -112,19 +112,22 @@ class HelpLine:
 
 @dataclass
 class HelpDocument:
-    """Structured help; render to plain text or styled parts."""
+    """Structured help: lines of typed parts, rendered plain or styled."""
 
     lines: list[HelpLine] = field(default_factory=list)
-    usage_lines: list[HelpLine] = field(default_factory=list)
 
-    def to_plain(self, *, usage_only: bool = False) -> str:
-        """Render lines as a string; usage_only uses usage_lines."""
-        rows = self.usage_lines if usage_only else self.lines
-        chunks = []
-        for line in rows:
-            chunks.append("".join(text for _kind, text in line.parts))
-            chunks.append("\n")
-        return "".join(chunks)
+    def to_plain(self) -> str:
+        """Render lines as a string."""
+        return "".join(
+            "".join(text for _kind, text in line.parts) + "\n" for line in self.lines
+        )
+
+    def add(self, *parts: tuple[str, str]) -> None:
+        """Append one line made of ``(kind, text)`` parts (none: blank line)."""
+        line = HelpLine()
+        for kind, text in parts:
+            line.append(kind, text)
+        self.lines.append(line)
 
 
 class RecursiveHelpFormatter(RawDescriptionHelpFormatter):
@@ -143,25 +146,12 @@ class RecursiveHelpFormatter(RawDescriptionHelpFormatter):
         )
 
 
-def help_layout_for(node) -> HelpLayout:
-    """Layout stored on the node, or defaults."""
-    layout = getattr(node, "help_layout", None)
-    if layout is None:
-        return HelpLayout()
-    return layout
-
-
 class HelpRenderer:
     """Build and render --help from a ParserNode."""
 
     def __init__(self, node, colorizer: Optional[Callable] = None):
         self.node = node
         self.colorizer = colorizer
-
-    def format_usage(self) -> str:
-        """Plain usage text for argparse format_usage."""
-        doc = self.build()
-        return doc.to_plain(usage_only=True)
 
     def format_help(self) -> str:
         """Full help text, colorized when a colorizer is set."""
@@ -170,121 +160,92 @@ class HelpRenderer:
             return self.colorizer(doc)
         return doc.to_plain()
 
-    def build(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def build(  # pylint: disable=too-many-locals,too-many-branches
         self,
     ) -> HelpDocument:
         """Assemble the HelpDocument for this node."""
         node = self.node
         parser = node.parser
-        width = _help_width()
+        layout = node.help_layout
+
         args = list(getattr(node, "help_args", None) or [])
         if getattr(node, "add_help", True):
             args = [_help_flag_arg()] + args
-
-        layout = help_layout_for(node)
-        invocations = {}
         visible = [item for item in args if not item.is_hidden()]
-        for item in visible:
-            invocations[id(item)] = _format_invocation(item)
 
-        cmd_labels = _collect_command_labels(node, layout)
-        max_inv = 0
-        if invocations:
-            max_inv = max(len(text) for text in invocations.values())
-        if cmd_labels:
-            max_inv = max(max_inv, max(len(label) for label in cmd_labels))
+        def arg_rows(items):
+            return [(_format_invocation(item), _help_text_for(item)) for item in items]
+
+        positionals = [i for i in visible if i.is_positional() and i.group is None]
+        options = [i for i in visible if not i.is_positional() and i.group is None]
+        groups: dict[str, list] = {}
+        for item in visible:
+            if item.group is not None:
+                groups.setdefault(item.group, []).append(item)
+        command_sections = [
+            (title, _command_rows(members, layout))
+            for title, members in _command_sections(node, layout)
+        ]
+        sections = [
+            ("positional arguments:", arg_rows(positionals), "cmds"),
+            *((title, rows, "cmds") for title, rows in command_sections),
+            ("options:", arg_rows(options), "args"),
+            *(
+                (f"{title}:", arg_rows(items), "args")
+                for title, items in groups.items()
+            ),
+        ]
+
+        labels = [label for _title, rows, _kind in sections for label, _help in rows]
         if node.children:
-            max_inv = max(max_inv, len("{" + ",".join(node.children) + "}"))
-        indent = 2
-        help_position = min(max_inv + indent + 2, MAX_HELP_POSITION)
-        action_width = help_position - indent - 2
-        if action_width < 1:
-            action_width = max(max_inv, 1)
-        help_position = action_width + indent + 2
-        widths = _HelpWidths(
-            action_width=action_width,
-            help_position=help_position,
-            help_width=max(width - help_position, 11),
-        )
+            labels.append("{" + ",".join(node.children) + "}")
+        widths = _help_widths(max((len(label) for label in labels), default=0))
 
         doc = HelpDocument()
-        usage_text = parser.format_usage().rstrip("\n")
-        for raw in usage_text.splitlines() or [""]:
-            usage_line = HelpLine()
+        for raw in parser.format_usage().rstrip("\n").splitlines() or [""]:
             if raw.startswith("usage:"):
-                usage_line.append("group", "usage:")
-                usage_line.append("plain", raw[len("usage:") :])
+                doc.add(("group", "usage:"), ("plain", raw[len("usage:") :]))
             else:
-                usage_line.append("plain", raw)
-            doc.usage_lines.append(usage_line)
-            doc.lines.append(usage_line)
+                doc.add(("plain", raw))
         description = strip_rst_literals(parser.description).rstrip("\n")
         if description:
-            desc_lines = description.splitlines() or [""]
+            desc_lines = description.splitlines()
             if desc_lines[0] != "":
-                doc.lines.append(HelpLine())
+                doc.add()
             for raw in desc_lines:
-                line = HelpLine()
-                line.append("markup", raw)
-                doc.lines.append(line)
-            doc.lines.append(HelpLine())
-        else:
-            doc.lines.append(HelpLine())
+                doc.add(("markup", raw))
+        doc.add()
 
-        positionals = [
-            item for item in visible if item.is_positional() and item.group is None
-        ]
-        ungrouped_opts = [
-            item
-            for item in visible
-            if (not item.is_positional()) and item.group is None
-        ]
-        extra_groups: list[str] = []
-        grouped: dict[str, list] = {}
-        for item in visible:
-            if item.group is None:
+        for title, rows, kind in sections:
+            if not rows:
                 continue
-            if item.group not in grouped:
-                extra_groups.append(item.group)
-                grouped[item.group] = []
-            grouped[item.group].append(item)
-
-        def add_section(title: str, items: list, kind: str) -> None:
-            if not items:
-                return
-            heading = HelpLine()
-            heading.append("group", title)
-            doc.lines.append(heading)
-            for item in items:
-                _append_entry_lines(
-                    doc,
-                    invocations[id(item)],
-                    _help_text_for(item),
-                    widths,
-                    name_kind=kind,
-                )
-            doc.lines.append(HelpLine())
-
-        add_section("positional arguments:", positionals, "cmds")
-        _append_subcommand_sections(doc, node, layout, widths)
-        add_section("options:", ungrouped_opts, "args")
-        for title in extra_groups:
-            add_section(f"{title}:", grouped[title], "args")
+            doc.add(("group", title))
+            for label, help_msg in rows:
+                _append_entry_lines(doc, label, help_msg, widths, name_kind=kind)
+            doc.add()
 
         epilog = strip_rst_literals(parser.epilog).rstrip("\n")
         if epilog:
-            for raw in epilog.splitlines() or [""]:
-                line = HelpLine()
-                line.append("markup", raw)
-                doc.lines.append(line)
-            doc.lines.append(HelpLine())
+            for raw in epilog.splitlines():
+                doc.add(("markup", raw))
 
-        # argparse format_help ends with a trailing newline after last content;
-        # we already add newline per line. Drop a surplus empty tail if epilog
-        # already provided the blank. Keep one trailing newline via to_plain.
+        # One newline per line is added by to_plain: drop trailing blanks.
         while doc.lines and not doc.lines[-1].parts:
             doc.lines.pop()
         return doc
+
+
+def _help_widths(max_label: int) -> _HelpWidths:
+    indent = 2
+    action_width = min(max_label + indent + 2, MAX_HELP_POSITION) - indent - 2
+    if action_width < 1:
+        action_width = max(max_label, 1)
+    help_position = action_width + indent + 2
+    return _HelpWidths(
+        action_width=action_width,
+        help_position=help_position,
+        help_width=max(_help_width() - help_position, 11),
+    )
 
 
 def _help_width() -> int:
@@ -392,26 +353,6 @@ def _nested_cmd_label(prefix: str, dest: str, hide_parent: bool, level: int) -> 
     return f"{prefix}{dest}"
 
 
-def _collect_command_labels(node, layout: HelpLayout) -> list[str]:
-    labels = []
-    list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
-    hide_parent = layout.hide_parent
-
-    def walk(current, prefix: str, level: int) -> None:
-        for dest, child in current.children.items():
-            if getattr(child, "command_help_suppress", False):
-                continue
-            labels.append(_nested_cmd_label(prefix, dest, hide_parent, level))
-            if list_nested:
-                walk(child, f"{prefix}{dest} ", level + 1)
-
-    for dest in node.children:
-        labels.append(dest)
-        if list_nested:
-            walk(node.children[dest], f"{dest} ", 1)
-    return labels
-
-
 def _grouped_subcommand_sections(node, layout: HelpLayout):
     named_groups = layout.command_groups or ()
     named_titles = dict(named_groups)
@@ -442,49 +383,33 @@ def _grouped_subcommand_sections(node, layout: HelpLayout):
         yield "subcommands:", leftover
 
 
-def _append_subcommand_sections(doc, node, layout, widths: _HelpWidths):
+def _command_sections(node, layout: HelpLayout):
+    """``(title, [(dest, child), ...])`` subcommand sections of *node*."""
     if not node.children:
-        return
+        return []
+    if not any(getattr(c, "command_group", None) for c in node.children.values()):
+        return [("subcommands:", list(node.children.items()))]
+    return list(_grouped_subcommand_sections(node, layout))
+
+
+def _command_rows(members, layout: HelpLayout) -> list[tuple[str, str]]:
+    """``(label, help)`` rows for *members*, plus nested ones when listing all."""
+    rows = []
     list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
-    hide_parent = layout.hide_parent
-    grouped = any(
-        getattr(child, "command_group", None) for child in node.children.values()
-    )
 
-    def add_choice(dest, child, level=0, prefix=""):
-        help_msg = strip_rst_literals(getattr(child, "command_help", None) or "")
+    def add(dest, child, level, prefix):
         label = (
-            dest if level == 0 else _nested_cmd_label(prefix, dest, hide_parent, level)
+            dest
+            if level == 0
+            else _nested_cmd_label(prefix, dest, layout.hide_parent, level)
         )
-        _append_entry_lines(
-            doc,
-            label,
-            help_msg,
-            widths,
-            name_kind="cmds",
+        rows.append(
+            (label, strip_rst_literals(getattr(child, "command_help", None) or ""))
         )
-        if list_nested and child.children:
+        if list_nested:
             for nested_dest, nested in child.children.items():
-                add_choice(
-                    nested_dest,
-                    nested,
-                    level=level + 1,
-                    prefix=f"{prefix}{dest} " if prefix or level else f"{dest} ",
-                )
+                add(nested_dest, nested, level + 1, f"{prefix}{dest} ")
 
-    if not grouped:
-        heading = HelpLine()
-        heading.append("group", "subcommands:")
-        doc.lines.append(heading)
-        for dest, child in node.children.items():
-            add_choice(dest, child)
-        doc.lines.append(HelpLine())
-        return
-
-    for title, members in _grouped_subcommand_sections(node, layout):
-        heading = HelpLine()
-        heading.append("group", title)
-        doc.lines.append(heading)
-        for dest, child in members:
-            add_choice(dest, child)
-        doc.lines.append(HelpLine())
+    for dest, child in members:
+        add(dest, child, 0, "")
+    return rows

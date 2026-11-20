@@ -1,134 +1,49 @@
-"""
-Core node classes and utilities for the Clak framework.
+"""Node tree and ``Meta`` configuration lookup (base of ParserNode).
 
-This module provides the foundational classes and types used throughout Clak for
-building command-line interfaces. It includes special null-type markers for handling
-unset values and configuration inheritance.
-
-Key components:
-- NullType: Base class for special null-type markers
-- NotSet: Marker for unset configuration values 
-- UnSetArg: Marker for unset command arguments
-- Node: Base class for building hierarchical command structures
-- Fn: Function wrapper for command handlers
+A setting ``<name>`` is declared with ``meta__config__<name>`` and read, in
+order, from ``self._<name>``, ``self.Meta.<name>`` then ``self.meta__<name>``.
 """
 
 import copy
-import logging
+from typing import Any
 
-# from pprint import pprint
-from types import SimpleNamespace
-from typing import Any, List, Tuple, Union
+from clak.exception import ConfigurationError, MissingMetaError
 
-logger = logging.getLogger(__name__)
-
-# pylint: disable=too-few-public-methods
-
-__all__ = [
-    "NOT_SET",
-    "UNSET_ARG",
-    "ConfigurationError",
-    "Fn",
-    "MissingMetaError",
-    "Node",
-    "NotSet",
-    "NullType",
-    "UnSetArg",
-]
+__all__ = ["NOT_SET", "Node"]
 
 
-class NullType:
-    """
-    A special type that behaves as a replacement for None.
-    We have to put a new default value to know if a variable has been set by
-    the user explicitly. This is useful for the ``CommandLine`` loader, when
-    CLI parsers force you to set a default value, and thus, break the discovery
-    chain.
+class _NotSet:
+    """Falsy marker for "no value", distinct from ``None``."""
 
-    This is intentionally a simple class with minimal methods as it serves
-    as a base for null-type markers.
-    """
-
-    def repr(self):
-        "Return string representation"
-        return "<NONE_TYPE>"
-
-    def __str__(self):
-        return self.repr()
+    __slots__ = ()
 
     def __repr__(self):
-        return self.repr()
+        return "<NOT_SET>"
+
+    __str__ = __repr__
 
     def __bool__(self):
         return False
 
 
-class NotSet(NullType):
-    """Represent an unset arg.
-
-    Simple marker class intentionally containing minimal functionality.
-    """
-
-    def repr(self):
-        return "<NOT_SET>"
-
-
-class UnSetArg(NullType):
-    """Represent an unset arg.
-
-    Simple marker class intentionally containing minimal functionality.
-    """
-
-    def repr(self):
-        return "<UNSET_ARG>"
-
-
-NOT_SET = NotSet()
-UNSET_ARG = UnSetArg()
-
-
-class Fn(SimpleNamespace):
-    """A simple namespace that keeps in memory its init arguments.
-
-    This class is intentionally minimal as it serves as a function wrapper.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.args = args
-        self.kwargs = kwargs
-
-
-class ConfigurationError(Exception):
-    """Raised when a configuration setting cannot be found."""
-
-
-class MissingMetaError(ConfigurationError):
-    """Raised when a meta setting is not declared before being used."""
+NOT_SET = _NotSet()
+_REQUIRED = object()  # "no default given": raise instead of returning one
 
 
 class Node:
-    "New version and simpler version of node"
+    "A named node in a parent/children tree with Meta settings lookup"
 
     name: str = None
     parent: "Node" = None
 
-    class Meta:
-        """Class to store class-level configuration overrides.
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Class-level configuration overrides (empty container)."""
 
-        This is intentionally an empty class used as a configuration container.
-        """
-
-    def __init__(self, name=UNSET_ARG, parent=None):
-
-        # Initialize name
-        self.name = (
-            name if name is not UNSET_ARG else f"{self.__class__.__name__}"
-        )  # ({hex(id(self))})"
+    def __init__(self, name=None, parent=None):
+        self.name = self.__class__.__name__ if name is None else name
         if not isinstance(self.name, str):
             raise TypeError(f"Node name must be a str, got {type(self.name).__name__}")
 
-        # Initialize parent
         self.parent = parent
         if not isinstance(self.parent, (Node, type(None))):
             raise TypeError(
@@ -136,8 +51,7 @@ class Node:
             )
 
     def get_hierarchy(self):
-        "Return the hierarchy of the node"
-
+        "Return the nodes from the root down to self"
         hierarchy = []
         current = self
         while current is not None:
@@ -146,66 +60,34 @@ class Node:
         hierarchy.reverse()
         return hierarchy
 
-    def get_name(self, attr="name", default=UNSET_ARG):
-        "Return the name of the parser"
-        if default is not UNSET_ARG:
-            return getattr(self, attr, default)
-        return getattr(self, attr)
-
     def get_fname(self, attr="name"):
-        "Return the full name of the parser"
-        parents = self.get_hierarchy()
-
-        if parents:
-            fname = [x.get_name(attr=attr, default=None) or "" for x in parents]
-            return ".".join(fname) or ""
-        return ""
+        "Return the dotted full name of the node (from ``attr`` of each node)"
+        return ".".join(getattr(x, attr, None) or "" for x in self.get_hierarchy())
 
     def query_cfg_parents(
-        self,
-        name: str,
-        default: Any = UNSET_ARG,
-        include_self: bool = True,
-        report: bool = False,
-    ) -> Union[Any, Tuple[Any, Union[str, List[str]]]]:
-        """Query configuration from this node up to the root.
+        self, name: str, default: Any = _REQUIRED, include_self: bool = True
+    ) -> Any:
+        """Query a setting from this node (or its parent) up to the root.
 
         The setting must be declared (``meta__config__<name>``) on at least
         one node of the lookup chain; values are then read from every node,
         closest first, so a plain subcommand's ``Meta`` overrides a setting
         declared by a mixin on an ancestor.
 
-        Args:
-            name: Configuration setting name to query
-            default: Default value if setting is not found
-            include_self: Whether to include this node in the search
-            report: Whether to return detailed report of the search
-
-        Returns:
-            If report=False:
-                The configuration value found in the hierarchy or default
-            If report=True:
-                Tuple of (value, report_str) where report_str contains search details
-
         Raises:
             MissingMetaError: The setting is not declared in the lookup chain
             ConfigurationError: No value found and no default provided
         """
-
-        def _done(value, details):
-            return (value, details) if report else value
-
         chain = self.get_hierarchy()
-        if include_self is False:
+        if not include_self:
             chain = chain[:-1]
-        chain.reverse()  # Start from self/immediate parent
+        chain.reverse()
 
+        not_found = f"Setting '{name}' has not been declared in hierarchy of '{self!r}'"
         if not chain:
-            if default is not UNSET_ARG:
-                return _done(default, "No parents, return default value")
-            raise ConfigurationError(
-                f"Setting '{name}' has not been declared in hierarchy of '{self!r}'"
-            )
+            if default is not _REQUIRED:
+                return default
+            raise ConfigurationError(not_found)
 
         declare_attr = f"meta__config__{name}"
         if all(getattr(node, declare_attr, None) is None for node in chain):
@@ -214,95 +96,34 @@ class Node:
                 f"this option has not been declared in any parents of {self!r}"
             )
 
-        _report = []
         for node in chain:
-            _report.append(f"Check '{name}' in parent {node}")
-            out, details = node.query_cfg_inst(name, default=NOT_SET, report=True)
-            _report.append(details)
+            out = node.query_cfg_inst(name, default=NOT_SET)
             if out is not NOT_SET:
-                _report.append(f"Found '{name}' in parent {node}= {out}")
-                return _done(out, _report)
+                return out
 
-        _report.append(f"NotFound '{name}' in parent: {chain[-1]}")
-        if default is UNSET_ARG:
-            raise ConfigurationError(
-                f"Setting '{name}' has not been declared in hierarchy of '{self!r}'"
-            )
-        return _done(default, _report)
+        if default is _REQUIRED:
+            raise ConfigurationError(not_found)
+        return default
 
-    def query_cfg_inst(  # pylint: disable=too-many-positional-arguments,too-many-arguments
-        self,
-        name,
-        override=None,
-        default=UNSET_ARG,
-        report=False,
-        raise_on_undeclared=False,
-    ):
-        "Query configuration from instance"
+    def query_cfg_inst(self, name, default=_REQUIRED):
+        """Query a setting on this node only (dict/list values are copied).
 
-        # if not hasattr(self, f"meta__config__{name}"):
-        if raise_on_undeclared and getattr(self, f"meta__config__{name}", None) is None:
-            msg = (
-                f"Missing 'meta__config__{name}', "
-                f"this option has not been declared {self!r}"
-            )
-            raise MissingMetaError(msg)
+        Lookup: ``self._<name>``, ``self.Meta.<name>``, ``self.meta__<name>``,
+        then *default*. Raises ``IndexError`` when nothing matches.
+        """
+        out = getattr(self, f"_{name}", NOT_SET)
+        if out is NOT_SET:
+            out = getattr(getattr(self, "Meta", None), name, NOT_SET)
+        if out is NOT_SET:
+            out = getattr(self, f"meta__{name}", NOT_SET)
+        if out is NOT_SET:
+            if default is _REQUIRED:
+                raise IndexError(
+                    f"Setting '{name}' has not been declared before being used"
+                    f" in '{self!r}'"
+                )
+            return default
 
-        def _query():
-            "Helper to process query"
-
-            query_from = []
-
-            # Fetch from dict override, if provided
-            if isinstance(override, dict):
-                val = override.get(name, NOT_SET)
-                if val is not NOT_SET:
-                    query_from.append(f"dict_override:{name}")
-                    return val, query_from
-
-            # Fetch from self._NAME
-            # Good for initial setup, if write mode is required
-            val = getattr(self, f"_{name}", NOT_SET)
-            if val is not NOT_SET:
-                query_from.append(f"self_attr:_{name}")
-                return val, query_from
-
-            # Python class params
-            # Good for class overrides
-            cls = self
-            if hasattr(cls, "Meta"):
-                val = getattr(cls.Meta, name, NOT_SET)
-                if val is not NOT_SET:
-                    query_from.append(f"self_meta:Meta.{name}")
-                    # print ("SELF CLASS Meta retrieval for: {cls}" , name, val)
-                    return val, query_from
-
-            # Fetch from self.meta__NAME
-            # Python class inherited params (good for defaults)
-            val = getattr(self, f"meta__{name}", NOT_SET)
-            if val is not NOT_SET:
-                query_from.append(f"self_attr:meta__{name}")
-                return val, query_from
-
-            # Return default if set
-            if default is not UNSET_ARG:
-                query_from.append("default_arg")
-                return default, query_from
-
-            # Raise error if not found
-            msg = (
-                f"Setting '{name}' has not been declared before being used"
-                f" in '{repr(self)}', tried to query: {query_from}"
-            )
-            raise IndexError(msg)
-
-        # Return output
-        out, _report = _query()
-
-        # Ensure we always deliver copies
         if isinstance(out, (dict, list)):
             out = copy.copy(out)
-
-        if report:
-            return out, _report
         return out

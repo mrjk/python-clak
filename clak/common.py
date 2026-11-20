@@ -128,8 +128,7 @@ class ObjectNamespace:
     # see also: https://dev.to/taqkarim/extending-simplenamespace-for-nested-dictionaries-58e8
 
     def __init__(self, **kwargs):
-        self.__dict__ = {}
-        self.__dict__.update(kwargs)  # or self.__dict__ = kwargs
+        self.__dict__.update(kwargs)
 
     def __repr__(self):
         keys = sorted(k for k in self.__dict__ if not k.startswith("_"))

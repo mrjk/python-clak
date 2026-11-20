@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import difflib
 
+from clak.core.argp import errors
 from clak.core.argp.actions import SubParsersAction
 from clak.core.argp.capabilities import ArgparseCapabilities
-from clak.core.argp.errors import ErrorRenderer
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -24,7 +24,6 @@ class ArgumentParser(argparse.ArgumentParser):
         clak_instance=None,
         parse_intermixed=True,
         capabilities=None,
-        error_renderer=None,
         **kwargs,
     ):
         self.capabilities = capabilities or ArgparseCapabilities.detect()
@@ -37,7 +36,6 @@ class ArgumentParser(argparse.ArgumentParser):
         self.parse_intermixed = parse_intermixed
         self._intermixed_reentrant = False
         self.clak_help_renderer = None
-        self.error_renderer = error_renderer or ErrorRenderer()
 
     def format_help(self):
         renderer = self.clak_help_renderer
@@ -57,7 +55,7 @@ class ArgumentParser(argparse.ArgumentParser):
             self._check_command(action, value)
             return
         if action.choices is not None and value not in action.choices:
-            msg = self.error_renderer.invalid_choice_message(value, action.choices)
+            msg = errors.invalid_choice_message(value, action.choices)
             raise argparse.ArgumentError(action, msg)
 
     def _check_command(self, action, value):
@@ -69,12 +67,11 @@ class ArgumentParser(argparse.ArgumentParser):
         if action.resolve(value) is not None:
             return
         names = action.command_names()
-        renderer = self.error_renderer
         if action.allow_abbrev:
             matches = action.prefix_matches(value) if value else []
             if len(matches) > 1:
                 raise argparse.ArgumentError(
-                    None, renderer.ambiguous_command_message(value, matches)
+                    None, errors.ambiguous_command_message(value, matches)
                 )
         suggestions = [name for name in names if value and name.startswith(value)]
         for name in difflib.get_close_matches(value, names, n=3, cutoff=0.75):
@@ -82,7 +79,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 suggestions.append(name)
         raise argparse.ArgumentError(
             None,
-            renderer.unknown_command_message(value, names, suggestions[:3]),
+            errors.unknown_command_message(value, names, suggestions[:3]),
         )
 
     def _supports_intermixed(self):
@@ -124,7 +121,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):
         parsed, argv = self.parse_known_args(args, namespace)
         if argv:
-            msg = self.error_renderer.unrecognized_arguments_message(argv)
+            msg = errors.unrecognized_arguments_message(argv)
             if self.exit_on_error:
                 self.error(msg)
             err = argparse.ArgumentError(None, msg)

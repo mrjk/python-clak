@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pytest
 
 from clak import Arg, Argument, Command, Opt, Parser, ParserNode, SubParser
-from clak.core.descriptors import FormatEnv, first_doc_line, prepare_docstring
+from clak.core.descriptors import first_doc_line, prepare_docstring
 from clak.exception import ClakError, ClakParseError, ClakUserError
 
 pytestmark = pytest.mark.tags("unit-tests")
@@ -611,12 +611,16 @@ def test_prepare_docstring():
     assert "With 123" in result
 
 
-def test_format_env():
-    """Test FormatEnv class."""
-    env = FormatEnv({"test": "value"})
-    vars = env.get()
-    assert vars["test"] == "value"
-    assert "type" in vars  # Check default values
+def test_prepare_docstring_self_doc_is_cleaned():
+    """``{self.__doc__}`` is dedented the same way on every Python version."""
+
+    class Obj:
+        """First
+
+        Indented second line"""
+
+    result = prepare_docstring("{self.__doc__}", variables={"self": Obj()})
+    assert result == "First\n\nIndented second line"
 
 
 def _nested_parse_error_app():

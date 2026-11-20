@@ -10,8 +10,6 @@ from typing import Any, Dict, List, Optional, Union
 from clak import exception
 from clak.core.argp import format_argument_error
 from clak.core.context import ClakContext, CliArgs
-from clak.core.plugins import CLI_HOOK_PREFIX
-from clak.runtime.facts import detect_facts
 from clak.runtime.runtime import detect_runtime
 from clak.runtime.settings import ClakSettings, apply_debug_logging
 from clak.views import ClakView
@@ -227,7 +225,6 @@ class Dispatcher:
             cli_commands=cli_command_hier,
             args=CliArgs(**args),
             runtime=detect_runtime(narrow_width=narrow_width),
-            facts=detect_facts(),
             settings=settings,
         )
         self.ctx = ctx
@@ -238,15 +235,7 @@ class Dispatcher:
 
             logger.info("Processing node %d:%s.%s", idx, walk_node, fn_group_name)
 
-            node_hooks = getattr(walk_node, "_cli_hooks", None)
-            if node_hooks is None:
-                node_hooks = {
-                    method: getattr(walk_node, method)
-                    for method in dir(walk_node)
-                    if method.startswith(CLI_HOOK_PREFIX)
-                    and callable(getattr(walk_node, method, None))
-                }
-            hook_list.update(node_hooks)
+            hook_list.update(walk_node._cli_hooks)  # pylint: disable=protected-access
 
             ctx.cli_parent = hierarchy[-2] if len(hierarchy) > 1 else None
             ctx.cli_parents = hierarchy[:idx]

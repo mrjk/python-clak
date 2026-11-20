@@ -8,7 +8,7 @@ import argparse
 
 from clak.core.argp.actions import SubParsersAction
 from clak.core.argp.capabilities import ArgparseCapabilities
-from clak.core.argp.errors import ErrorRenderer, format_argument_error
+from clak.core.argp.errors import format_argument_error
 from clak.core.argp.parser import ArgumentParser
 
 ONE_OR_MORE = argparse.ONE_OR_MORE
@@ -23,7 +23,6 @@ __all__ = [
     "ArgumentError",
     "ArgumentParser",
     "ArgparseCapabilities",
-    "ErrorRenderer",
     "ONE_OR_MORE",
     "OPTIONAL",
     "PARSER",
