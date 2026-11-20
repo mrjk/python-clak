@@ -371,21 +371,9 @@ class ParserNode(
         """
         if arguments is None:
             arguments = getattr(self, "meta__arguments_dict", None)
-        if arguments is None:
-            arguments = {}
-        if not isinstance(arguments, dict):
-            raise TypeError(f"Got {type(arguments)} instead of dict")
-        arguments = dict(arguments)
-
-        skip = self._skip_argument_names()
-
-        # Add arguments from class attributes including inherited ones
-        for cls in self.__class__.__mro__:
-            for name, value in vars(cls).items():
-                if isinstance(value, Argument) and name not in arguments:
-                    if name in skip:
-                        continue
-                    arguments[name] = value
+        arguments = self._collect_descriptors(
+            arguments, Argument, skip=self._skip_argument_names()
+        )
 
         # Add __cli_self__ argument
         arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
@@ -408,16 +396,37 @@ class ParserNode(
         if self.query_cfg_parents("propagate_options", default=True):
             self._attach_inherited_parent_flags(arguments, local_flags)
 
+    def _collect_descriptors(self, explicit, kind, skip=()) -> dict:
+        """``{name: descriptor}``: *explicit* dict, then class attrs of *kind*.
+
+        Walks the MRO so a subclass attribute wins over an inherited one;
+        class attributes named in *skip* are ignored.
+        """
+        if explicit is None:
+            explicit = {}
+        if not isinstance(explicit, dict):
+            raise TypeError(f"Got {type(explicit)} instead of dict")
+        found = dict(explicit)
+        for cls in type(self).__mro__:
+            for name, value in vars(cls).items():
+                if isinstance(value, kind) and name not in found and name not in skip:
+                    found[name] = value
+        return found
+
+    def _iter_ancestor_flags(self):
+        """``(dest, Argument)`` flags defined locally on ancestors, closest first."""
+        node = self.parent
+        while node:
+            yield from node.local_flag_arguments.items()
+            node = node.parent
+
     def _ancestor_flag_index(self) -> tuple[set[str], set[str]]:
         """Dests and option strings from ancestors' locally defined flags."""
         dests: set[str] = set()
         strings: set[str] = set()
-        node = self.parent
-        while node:
-            for dest, arg in node.local_flag_arguments.items():
-                dests.add(dest)
-                strings.update(arg.flag_strings(dest))
-            node = node.parent
+        for dest, arg in self._iter_ancestor_flags():
+            dests.add(dest)
+            strings.update(arg.flag_strings(dest))
         return dests, strings
 
     def _attach_inherited_parent_flags(
@@ -438,24 +447,19 @@ class ParserNode(
             "argument_group": None,
         }
 
-        node = self.parent
-        while node:
-            for dest, arg in node.local_flag_arguments.items():
-                if dest in seen_dests:
-                    continue
-                if not arg.propagates():
-                    continue
-                strings = arg.flag_strings(dest)
-                if not strings or (seen_strings & set(strings)):
-                    continue
-                self.add_argument(
-                    dest,
-                    arg,
-                    attach_overrides=arg.suppress_attach_overrides(extra=group_extra),
-                )
-                seen_dests.add(dest)
-                seen_strings.update(strings)
-            node = node.parent
+        for dest, arg in self._iter_ancestor_flags():
+            if dest in seen_dests or not arg.propagates():
+                continue
+            strings = arg.flag_strings(dest)
+            if not strings or (seen_strings & set(strings)):
+                continue
+            self.add_argument(
+                dest,
+                arg,
+                attach_overrides=arg.suppress_attach_overrides(extra=group_extra),
+            )
+            seen_dests.add(dest)
+            seen_strings.update(strings)
 
     def add_argument(
         self,
@@ -495,17 +499,7 @@ class ParserNode(
 
         if subcommands is None:
             subcommands = getattr(self, "meta__subcommands_dict", None)
-        if subcommands is None:
-            subcommands = {}
-        if not isinstance(subcommands, dict):
-            raise TypeError(f"Got {type(subcommands)} instead of dict")
-        subcommands = dict(subcommands)
-
-        # Collect Command instances from class attributes (child wins)
-        for cls in self.__class__.__mro__:
-            for attr_name, attr_value in cls.__dict__.items():
-                if isinstance(attr_value, Command) and attr_name not in subcommands:
-                    subcommands[attr_name] = attr_value
+        subcommands = self._collect_descriptors(subcommands, Command)
 
         for key, arg in subcommands.items():
             self.add_subcommand(key, arg)

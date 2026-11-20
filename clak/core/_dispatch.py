@@ -112,16 +112,7 @@ class Dispatcher:
             try:
                 data = self.cli_execute(args=args, settings=settings)
 
-                ctx = self.ctx
-                view_settings = ctx.view_settings if ctx is not None else {}
-                if ctx is not None:
-                    runtime = getattr(ctx, "runtime", None)
-                    if runtime is not None:
-                        view_settings.setdefault("term_width", runtime.term_width)
-                        view_settings.setdefault("stdout_tty", runtime.stdout_tty)
-                    ctx_settings = getattr(ctx, "settings", None)
-                    if ctx_settings is not None:
-                        view_settings.setdefault("clak_colors", ctx_settings.colors)
+                view_settings = self.ctx.view_settings
                 if isinstance(data, ClakView):
                     render_kwargs = ClakView.merge_settings(
                         getattr(data, "settings", None), view_settings

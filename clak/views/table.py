@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 
 from clak.views.base import (
@@ -14,12 +13,12 @@ from clak.views.base import (
     WRAP_MODES,
     ClakView,
 )
+from clak.views.serialize import dump
 from clak.views.table_formatter import (
     TableListFormatter,
     TableShowFormatter,
     default_sort_columns,
     format_structured,
-    require_yaml,
     resolve_column_keys,
     sort_table_rows,
 )
@@ -194,19 +193,6 @@ def _project_list_columns(payload, columns):
     return payload
 
 
-def _dump_structured_payload(payload, fmt):
-    """Serialize an original payload as json or yaml."""
-    if fmt == "json":
-        return json.dumps(payload, indent=2, default=str)
-
-    if fmt == "yaml":
-        return require_yaml().safe_dump(
-            payload, sort_keys=False, default_flow_style=False
-        ).strip("\n")
-
-    raise ValueError(f"Unsupported format {fmt!r}")
-
-
 def format_show_payload(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     payload,
     fmt,
@@ -238,7 +224,7 @@ def format_show_payload(  # pylint: disable=too-many-arguments,too-many-position
     if columns is not None:
         payload = _project_item_columns(payload, columns)
     payload = _sort_show_payload(payload, sort_columns, sort_mode)
-    return _dump_structured_payload(payload, fmt)
+    return dump(payload, fmt)
 
 
 def _sort_show_payload(payload, sort_columns=None, sort_mode="asc"):
@@ -279,7 +265,7 @@ def format_list_payload(
 
     projected = _project_list_columns(payload, columns)
     projected = _sort_list_payload(projected, sort_columns, sort_mode)
-    return _dump_structured_payload(projected, fmt)
+    return dump(projected, fmt)
 
 
 def _sorted_mapping_order(items, sort_columns, sort_mode):
@@ -304,11 +290,9 @@ def _sorted_mapping_order(items, sort_columns, sort_mode):
 
 def _sort_mapping_payload(payload, sort_columns, sort_mode):
     """Sort a dict-of-row-mappings; preserve key association."""
-    if not payload:
-        return payload
     keys = list(payload.keys())
     values = list(payload.values())
-    if not isinstance(values[0], Mapping):
+    if not values or not isinstance(values[0], Mapping):
         return payload
     order = _sorted_mapping_order(values, sort_columns, sort_mode)
     if order is None:
@@ -322,7 +306,9 @@ def _sort_sequence_payload(payload, sort_columns, sort_mode):
         return payload
     first = payload[0]
     if isinstance(first, Mapping):
-        return _sort_sequence_of_mappings(list(payload), sort_columns, sort_mode)
+        items = list(payload)
+        order = _sorted_mapping_order(items, sort_columns, sort_mode)
+        return items if order is None else [items[i] for i in order]
     if isinstance(first, Sequence) and not isinstance(first, (str, bytes)):
         headers = list(range(len(first)))
         if sort_columns is None:
@@ -354,17 +340,7 @@ def _remap_sort_cols_after_index(sort_columns):
     return remapped
 
 
-def _sort_sequence_of_mappings(items, sort_columns=None, sort_mode="asc"):
-    """Sort a list of mapping rows; return original dicts in sorted order."""
-    if not items:
-        return items
-    order = _sorted_mapping_order(items, sort_columns, sort_mode)
-    if order is None:
-        return items
-    return [items[i] for i in order]
-
-
-class TableView(ClakView):
+class TableView(ClakView):  # pylint: disable=abstract-method
     "Table view base: shared settings for Show and List"
 
     settings_default = {
@@ -388,28 +364,19 @@ class ShowView(TableView):
         "add_index": True,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         fmt = settings.pop("format", None) or "view"
-        if fmt != "view":
-            rendered = format_show_payload(
-                payload,
-                fmt,
-                columns=settings.get("columns"),
-                sort_columns=settings.get("sort_columns"),
-                sort_mode=settings.get("sort_mode") or "asc",
-                add_index=(
-                    settings["add_index"]
-                    if isinstance(settings.get("add_index"), bool)
-                    else True
-                ),
-            )
-            return self._output(rendered, stdout=stdout)
-
-        rendered = TableShowFormatter().render(payload, **settings)
-        return self._output(rendered, stdout=stdout)
+        if fmt == "view":
+            return TableShowFormatter().render(payload, **settings)
+        add_index = settings.get("add_index")
+        return format_show_payload(
+            payload,
+            fmt,
+            columns=settings.get("columns"),
+            sort_columns=settings.get("sort_columns"),
+            sort_mode=settings.get("sort_mode") or "asc",
+            add_index=add_index if isinstance(add_index, bool) else True,
+        )
 
 
 class ListView(TableView):
@@ -421,20 +388,14 @@ class ListView(TableView):
         "add_index": None,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         fmt = settings.pop("format", None) or "view"
         if fmt in {"yaml", "json"}:
-            rendered = format_list_payload(
+            return format_list_payload(
                 payload,
                 fmt,
                 columns=settings.get("columns"),
                 sort_columns=settings.get("sort_columns"),
                 sort_mode=settings.get("sort_mode") or "asc",
             )
-            return self._output(rendered, stdout=stdout)
-
-        rendered = TableListFormatter().render(payload, format=fmt, **settings)
-        return self._output(rendered, stdout=stdout)
+        return TableListFormatter().render(payload, format=fmt, **settings)

@@ -261,28 +261,27 @@ FORMAT_SCOPE = ViewOption(
     arg_kwargs={"choices": sorted(FORMAT_SCOPES)},
 )
 
-# Every view option dest, across all mixins (used to filter Arguments).
-_ALL_VIEW_OPTION_NAMES = frozenset(
-    opt.name
-    for opt in (
-        WIDTH,
-        COLUMNS,
-        ADD_INDEX,
-        TABLE_FORMAT,
-        SORT_COLUMNS,
-        SORT_MODE,
-        WRAP,
-        YAML_CELLS,
-        EXPAND_KEYS,
-        LINE_LENGTH,
-        TEXT_FORMAT,
-        DATA_FORMAT,
-        COMPACT,
-        COLOR,
-        ANCHORS,
-        FORMAT_SCOPE,
-    )
+# Every declared view option (``*_FORMAT`` share the ``format`` dest).
+VIEW_OPTIONS = (
+    WIDTH,
+    COLUMNS,
+    ADD_INDEX,
+    TABLE_FORMAT,
+    SORT_COLUMNS,
+    SORT_MODE,
+    WRAP,
+    YAML_CELLS,
+    EXPAND_KEYS,
+    LINE_LENGTH,
+    TEXT_FORMAT,
+    DATA_FORMAT,
+    COMPACT,
+    COLOR,
+    ANCHORS,
+    FORMAT_SCOPE,
 )
+# Every view option dest, across all mixins (used to filter Arguments).
+_ALL_VIEW_OPTION_NAMES = frozenset(opt.name for opt in VIEW_OPTIONS)
 
 _SYNTAX_THEME_SETTING = MetaSetting(
     help=(
@@ -411,11 +410,6 @@ class _ViewMixinBase:
     def cli_hook__views(self, instance, ctx, **_):
         "Collect view CLI options into ctx.plugins['view_settings']."
         settings = self.collect_view_settings(ctx.args, node=instance)
-        runtime = getattr(ctx, "runtime", None)
-        if runtime is not None:
-            runtime.get_size()
-            settings["term_width"] = runtime.term_width
-            settings["stdout_tty"] = runtime.stdout_tty
         ctx.plugins["view_settings"] = settings
         logger.debug("View settings for %s: %s", instance, settings)
 

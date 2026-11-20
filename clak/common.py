@@ -5,6 +5,7 @@ around handling docstring indentation and formatting.
 """
 
 import inspect
+import os
 
 
 def replace_tabs(text, value=None):
@@ -105,6 +106,12 @@ def to_boolean(value):
         return default_values[value]
     except KeyError:
         raise ValueError(f"Invalid boolean value: {value}") from None
+
+
+def env_bool(name, default=None, env=None):
+    """Boolean value of environment variable *name*, or *default* when unset."""
+    raw = (os.environ if env is None else env).get(name)
+    return default if raw is None else to_boolean(raw)
 
 
 def resolve_bool_option(cli_value=None, env_value=None, auto=False):

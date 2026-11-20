@@ -10,6 +10,7 @@ import logging
 import os
 import shutil
 import sys
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 from clak.runtime.settings import colors_enabled, stream_isatty
@@ -213,68 +214,34 @@ def terminal_size() -> Tuple[int, int]:
     return width, height
 
 
+@dataclass(slots=True, repr=False)
 class RuntimeInfo:  # pylint: disable=too-many-instance-attributes
     """Eager CLI/session snapshot attached as ``ctx.runtime``."""
 
-    __slots__ = (
-        "stdin_tty",
-        "stdout_tty",
-        "stderr_tty",
-        "interactive",
-        "ctty",
-        "from_shell",
-        "parent_ppid",
-        "parent_exe",
-        "parent_cmd",
-        "encoding",
-        "color_level",
-        "color_support",
-        "unicode_support",
-        "hyperlinks_support",
-        "pager",
-        "term_width",
-        "term_height",
-        "narrow_width",
-        "is_narrow",
-    )
+    stdin_tty: bool
+    stdout_tty: bool
+    stderr_tty: bool
+    ctty: Optional[str]
+    from_shell: bool
+    parent_ppid: int
+    parent_exe: Optional[str]
+    parent_cmd: Optional[str]
+    encoding: str
+    color_level: str
+    unicode_support: bool
+    hyperlinks_support: bool
+    pager: Optional[str]
+    narrow_width: int
+    interactive: bool = field(init=False)
+    color_support: bool = field(init=False)
+    term_width: int = field(init=False, default=DEFAULT_TERM_WIDTH)
+    term_height: int = field(init=False, default=DEFAULT_TERM_HEIGHT)
+    is_narrow: bool = field(init=False, default=True)
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        self,
-        *,
-        stdin_tty: bool,
-        stdout_tty: bool,
-        stderr_tty: bool,
-        ctty: Optional[str],
-        from_shell: bool,
-        parent_ppid: int,
-        parent_exe: Optional[str],
-        parent_cmd: Optional[str],
-        encoding: str,
-        color_level: str,
-        unicode_support: bool,
-        hyperlinks_support: bool,
-        pager: Optional[str],
-        narrow_width: int,
-    ):
-        self.stdin_tty = stdin_tty
-        self.stdout_tty = stdout_tty
-        self.stderr_tty = stderr_tty
-        self.interactive = bool(stdin_tty and stdout_tty)
-        self.ctty = ctty
-        self.from_shell = from_shell
-        self.parent_ppid = parent_ppid
-        self.parent_exe = parent_exe
-        self.parent_cmd = parent_cmd
-        self.encoding = encoding
-        self.color_level = color_level
-        self.color_support = color_level != COLOR_NONE
-        self.unicode_support = unicode_support
-        self.hyperlinks_support = hyperlinks_support
-        self.pager = pager
-        self.narrow_width = int(narrow_width)
-        self.term_width = DEFAULT_TERM_WIDTH
-        self.term_height = DEFAULT_TERM_HEIGHT
-        self.is_narrow = True
+    def __post_init__(self):
+        self.interactive = bool(self.stdin_tty and self.stdout_tty)
+        self.color_support = self.color_level != COLOR_NONE
+        self.narrow_width = int(self.narrow_width)
         self.get_size()
 
     def get_size(self) -> Tuple[int, int]:

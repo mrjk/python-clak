@@ -142,3 +142,17 @@ def use_settings(monkeypatch, **changes):
     monkeypatch.setattr(
         ClakSettings, "_current", ClakSettings.current().replace(**changes)
     )
+
+
+def block_imports(monkeypatch, *prefixes):
+    """Make ``import <prefix>...`` raise ImportError (simulate a missing extra)."""
+    import builtins  # pylint: disable=import-outside-toplevel
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name.split(".", 1)[0] in prefixes:
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)

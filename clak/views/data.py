@@ -4,23 +4,15 @@
 
 from __future__ import annotations
 
-import json
-
 from clak._optional import available, require
 from clak.common import resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.rich_style import make_rich_console, syntax_kwargs
 from clak.runtime.settings import colors_enabled, resolve_color_backend
 from clak.views.base import ClakView
-from clak.views.table_formatter import require_yaml
+from clak.views.serialize import dump_json, dump_yaml, require_yaml
 
 DATA_FORMATS = frozenset({"json", "yaml"})
-
-
-def require_rich_for_data():
-    """Import rich syntax helpers or raise ClakUserError."""
-    purpose = "Colored data output"
-    return require("rich.console", purpose), require("rich.syntax", purpose)
 
 
 def resolve_data_format(fmt=None) -> str:
@@ -39,39 +31,12 @@ def resolve_data_format(fmt=None) -> str:
     return fmt
 
 
-def _yaml_dumper(yaml, *, anchors: bool):
-    """Return a SafeDumper, optionally disabling anchors/aliases."""
-    if anchors:
-        return yaml.SafeDumper
-
-    class _NoAliasDumper(yaml.SafeDumper):
-        def ignore_aliases(self, _data):  # pylint: disable=unused-argument
-            """Always expand aliases instead of emitting anchors."""
-            return True
-
-    return _NoAliasDumper
-
-
 def format_data_payload(payload, *, fmt=None, compact=False, anchors=True):
-    """Serialize *payload* as JSON or YAML text (no color)."""
+    """Serialize *payload* as JSON or YAML text (no color), newline-terminated."""
     resolved = resolve_data_format(fmt)
-
     if resolved == "json":
-        indent = None if compact else 2
-        text = json.dumps(payload, indent=indent, default=str)
-        if not text.endswith("\n"):
-            text += "\n"
-        return text, resolved
-
-    yaml = require_yaml()
-    dumper = _yaml_dumper(yaml, anchors=bool(anchors))
-    text = yaml.dump(
-        payload,
-        Dumper=dumper,
-        sort_keys=False,
-        default_flow_style=False,
-    )
-    return text, resolved
+        return dump_json(payload, compact=compact) + "\n", resolved
+    return dump_yaml(payload, anchors=bool(anchors)) + "\n", resolved
 
 
 def colorize_data_text(
@@ -104,13 +69,13 @@ def colorize_data_text(
     if not want_color:
         return text
 
-    if color is True:
-        rich_console, rich_syntax = require_rich_for_data()
-    else:
-        try:
-            rich_console, rich_syntax = require_rich_for_data()
-        except ClakUserError:
-            return text
+    try:
+        rich_console = require("rich.console", "Colored data output")
+        rich_syntax = require("rich.syntax", "Colored data output")
+    except ClakUserError:
+        if color is True:
+            raise
+        return text
 
     console = make_rich_console(rich_console)
     with console.capture() as capture:
@@ -136,35 +101,22 @@ class DataView(ClakView):
         "theme": None,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
+    instance_settings = ("theme",)
 
-        payload, settings = self._render(*args, **kwargs)
-        compact = bool(settings.pop("compact", False))
-        anchors = settings.pop("anchors", True)
-        if anchors is None:
-            anchors = True
-        else:
-            anchors = bool(anchors)
-        fmt_setting = settings.pop("format", None)
-        color = settings.pop("color", None)
-        stdout_tty = settings.get("stdout_tty")
-        theme = self.settings.get("theme") or settings.pop("theme", None)
-
+    def to_text(self, payload, settings):
+        anchors = settings.get("anchors")
         text, fmt = format_data_payload(
             payload,
-            fmt=fmt_setting,
-            compact=compact,
-            anchors=anchors,
+            fmt=settings.get("format"),
+            compact=bool(settings.get("compact")),
+            anchors=True if anchors is None else bool(anchors),
         )
         # No leading/trailing blank lines: the output adds its own final newline
-        text = text.strip("\n")
-        rendered = colorize_data_text(
-            text,
+        return colorize_data_text(
+            text.strip("\n"),
             fmt,
-            color=color,
-            stdout_tty=stdout_tty,
-            theme=theme,
-            clak_colors=settings.pop("clak_colors", None),
+            color=settings.get("color"),
+            stdout_tty=settings.get("stdout_tty"),
+            theme=settings.get("theme"),
+            clak_colors=settings.get("clak_colors"),
         )
-        return self._output(rendered, stdout=stdout)

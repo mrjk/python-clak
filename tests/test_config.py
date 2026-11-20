@@ -6,7 +6,7 @@ import os
 import pytest
 
 from clak import Parser
-from clak.comp import config as config_mod
+from clak._optional import available
 from clak.comp.config import (
     WorkDirMixin,
     XDGCacheDirMixin,
@@ -19,6 +19,7 @@ from clak.comp.config import (
     xdg_dir,
 )
 from clak.exception import ClakUserError
+from tests.common import block_imports
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -157,7 +158,7 @@ def test_load_config_file_unknown_suffix(tmp_path):
 
 
 def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
-    monkeypatch.setattr(config_mod, "_yaml", None)
+    block_imports(monkeypatch, "yaml")
     path = tmp_path / "app.yaml"
     path.write_text("debug: true\n", encoding="utf-8")
     with pytest.raises(ClakUserError, match="PyYAML") as exc:
@@ -165,7 +166,7 @@ def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
     assert "mrjk.clak[config]" in (exc.value.advice or "")
 
 
-@pytest.mark.skipif(config_mod._yaml_module() is None, reason="PyYAML not installed")
+@pytest.mark.skipif(not available("yaml"), reason="PyYAML not installed")
 def test_load_config_file_yaml(tmp_path):
     path = tmp_path / "app.yaml"
     path.write_text("debug: true\nname: demo\n", encoding="utf-8")

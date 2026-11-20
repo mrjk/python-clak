@@ -12,44 +12,36 @@ Classes:
         Renders collections of dictionaries or sequences as tables.
 """
 
-import csv
-import io
-import json
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
-from clak._optional import require
+from clak._optional import optional
 from clak.common import replace_tabs
 from clak.runtime.settings import ClakSettings
-from clak.views.base import DEFAULT_WIDTH_MODE, strip_ansi
+from clak.views.base import DEFAULT_WIDTH_MODE, OUTPUT_FORMATS, strip_ansi
+from clak.views.serialize import dump, dump_csv, dump_yaml
 
 SORT_MODES = frozenset({"asc", "desc"})
 
 
-def require_yaml():
-    """Import PyYAML or raise ClakUserError with the config extra hint."""
-    return require("yaml", "YAML output")
+def _new_table():
+    """A PrettyTable, or a ColorTable when Clak colors are enabled.
 
+    Chosen at render time so ``ClakSettings.set_current()`` is honored.
+    ColorTable uses colorama, which patches stdout/stderr and appends a reset
+    code to each line: never use it when colors are off (regression tests).
+    """
+    # pylint: disable=import-outside-toplevel
+    if ClakSettings.current().colors:
+        try:
+            from prettytable.colortable import ColorTable, Themes
 
-# pylint: disable=invalid-name
-table_kwargs = {}
-if not ClakSettings.current().colors:
+            return ColorTable(theme=Themes.GLARE_REDUCTION)
+        except ImportError:
+            pass
     from prettytable import PrettyTable
 
-    table_cls = PrettyTable
-else:
-    try:
-        # Colortable use colorama to colorize text, but the latest patches
-        # the stderr/out python commands, and thus add a reset shell code
-        # after each line, and thus break regression tests on CLI output.
-        from prettytable.colortable import ColorTable, Themes
-
-        table_cls = ColorTable
-        table_kwargs = {"theme": Themes.GLARE_REDUCTION}
-    except ImportError:
-        from prettytable import PrettyTable
-
-        table_cls = PrettyTable
+    return PrettyTable()
 
 
 ################## Parent class
@@ -162,34 +154,14 @@ def default_sort_columns(headers):
 
 
 def format_structured(rows, headers, fmt):
-    """Render tabular rows as yaml, json, or csv."""
-    # Late import: OUTPUT_FORMATS lives in clak.views.base (avoids circular import)
-    from clak.views.base import (  # pylint: disable=import-outside-toplevel
-        OUTPUT_FORMATS,
-    )
-
+    """Render tabular rows as yaml, json, or csv (newline-terminated)."""
     if fmt not in OUTPUT_FORMATS - {"view"}:
         raise ValueError(
             f"Unsupported format {fmt!r}, choose one of: {sorted(OUTPUT_FORMATS)}"
         )
-
-    if fmt == "json":
-        records = [dict(zip(headers, row)) for row in rows]
-        return json.dumps(records, indent=2, default=str) + "\n"
-
-    if fmt == "yaml":
-        yaml = require_yaml()
-        records = [dict(zip(headers, row)) for row in rows]
-        return yaml.safe_dump(records, sort_keys=False, default_flow_style=False)
-
     if fmt == "csv":
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(headers)
-        writer.writerows(rows)
-        return buf.getvalue()
-
-    raise ValueError(f"Unsupported format {fmt!r}")
+        return dump_csv(rows, headers)
+    return dump([dict(zip(headers, row)) for row in rows], fmt) + "\n"
 
 
 def _apply_prettytable_width(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -449,11 +421,7 @@ class _TableFormatter(ABC):
         if fmt != "view":
             return format_structured(data_table, headers, fmt)
 
-        # Prepare table
-        # table = ColorTable(theme=Themes.GLARE_REDUCTION)
-        # table = ColorTable(theme=Themes.PASTEL)
-        # table = PrettyTable()
-        table = table_cls(**table_kwargs)
+        table = _new_table()
         table.field_names = headers
         table.align = "l"
         for line in data_table:
@@ -502,14 +470,12 @@ class _TableFormatter(ABC):
 
 def yaml_cell(value):
     "Complex values (mapping, list) as block yaml text, so a table cell stays readable."
-    if isinstance(value, (Mapping, list, tuple)) and value:
-        try:
-            yaml = require_yaml()
-            return yaml.safe_dump(_plain(value), sort_keys=False, default_flow_style=False,
-                                  allow_unicode=True).rstrip("\n")
-        except Exception:  # not dumpable: keep the raw value
-            return value
-    return value
+    if not (isinstance(value, (Mapping, list, tuple)) and value):
+        return value
+    yaml = optional("yaml")
+    if yaml is None:
+        return value
+    return dump_yaml(_plain(value), yaml=yaml, allow_unicode=True)
 
 
 def _plain(value):
@@ -540,7 +506,13 @@ class TableShowFormatter(_TableFormatter):
     }
 
     def process_table(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        self, data, columns=None, add_index=True, remove_tabs=True, yaml_cells=False, **_
+        self,
+        data,
+        columns=None,
+        add_index=True,
+        remove_tabs=True,
+        yaml_cells=False,
+        **_,
     ):
         "Restructure data to fit to item view"
 

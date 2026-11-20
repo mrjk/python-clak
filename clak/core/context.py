@@ -72,8 +72,20 @@ class ClakContext(ObjectNamespace):
 
     @property
     def view_settings(self) -> dict:
-        """Copy of view mixin settings (also in ``ctx.plugins['view_settings']``)."""
-        return dict(self.plugins.get("view_settings") or {})
+        """View render settings: terminal facts, then view mixin settings.
+
+        Mixin settings live in ``ctx.plugins['view_settings']``; ``term_width``
+        / ``stdout_tty`` come from ``ctx.runtime`` and ``clak_colors`` from
+        ``ctx.settings`` unless a mixin set them.
+        """
+        out = {}
+        if self.runtime is not None:
+            out["term_width"] = self.runtime.term_width
+            out["stdout_tty"] = self.runtime.stdout_tty
+        if self.settings is not None:
+            out["clak_colors"] = self.settings.colors
+        out.update(self.plugins.get("view_settings") or {})
+        return out
 
     @property
     def ui_settings(self) -> dict:
