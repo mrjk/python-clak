@@ -61,8 +61,13 @@ def _error(app, argv):
 # ========================
 
 
-def test_commands_not_abbreviated_by_default():
-    msg = _error(_app(), ["sub", "bu"])
+def test_commands_abbreviated_by_default():
+    args = _app().parse_args(["s", "bu"])
+    assert _cmd_path(args) == ["sub", "buzz"]
+
+
+def test_commands_abbrev_can_be_disabled():
+    msg = _error(_app(abbrev_commands=False), ["sub", "bu"])
     assert "unknown command 'bu'" in msg
     assert "did you mean 'buzz'" in msg
     assert "__cli_cmd__" not in msg
@@ -99,7 +104,7 @@ def test_unknown_command_lists_choices():
 
 
 def test_typo_suggests_close_match():
-    msg = _error(_app(), ["sub", "buz"])
+    msg = _error(_app(), ["sub", "bzz"])
     assert "did you mean 'buzz'?" in msg
 
 
@@ -111,7 +116,7 @@ def test_child_can_disable_inherited_abbrev():
 
 
 def test_child_can_enable_abbrev_locally():
-    app = _app(sub_meta={"abbrev_commands": True})
+    app = _app(abbrev_commands=False, sub_meta={"abbrev_commands": True})
     assert _cmd_path(app.parse_args(["sub", "bu"])) == ["sub", "buzz"]
     assert "unknown command 's'" in _error(app, ["s", "buzz"])
 

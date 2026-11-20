@@ -124,7 +124,7 @@ class ParserNode(
     meta__config__abbrev_commands = MetaSetting(
         help=(
             "Accept a unique prefix of a subcommand name, e.g. 'bu' for "
-            "'buzz' (default False). Inherited; ambiguous prefixes error."
+            "'buzz' (default True). Inherited; ambiguous prefixes error."
         ),
     )
     meta__config__abbrev_options = MetaSetting(
@@ -336,7 +336,7 @@ class ParserNode(
                 parser_class=ClakArgumentParser,
                 action=SubParsersAction,
                 allow_abbrev=bool(
-                    self.query_cfg_parents("abbrev_commands", default=False)
+                    self.query_cfg_parents("abbrev_commands", default=True)
                 ),
             )
         return self._subparsers

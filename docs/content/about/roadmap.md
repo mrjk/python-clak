@@ -45,7 +45,7 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
   (default on; set `False` for argparse leftover errors)
   ([intermixed](https://docs.python.org/3/library/argparse.html#intermixed-arguments);
   leaf parsers only; command path stays ordered)
-- [x] Unique-prefix subcommands via `Meta.abbrev_commands` (default off;
+- [x] Unique-prefix subcommands via `Meta.abbrev_commands` (default on;
   ambiguous prefixes error) and long flags via `Meta.abbrev_options`
   (default on, argparse `allow_abbrev`). Unknown commands say
   `unknown command` with a "did you mean" hint

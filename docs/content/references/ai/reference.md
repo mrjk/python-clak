@@ -118,7 +118,7 @@ class App(Parser):
         help_hide_parent = True            # False: show "tool netmap" paths
         command_groups = (("base", "subcommands (base):"),)
         parse_intermixed = False           # opt out: argparse leftover errors
-        abbrev_commands = True             # 'app sub bu' -> 'app sub buzz'
+        abbrev_commands = False            # require full command names
         abbrev_options = False             # require full long flag names
         propagate_options = False          # disable ancestor flag copy
         propagate_options_group = "parent options"  # leaf --help section title
@@ -374,7 +374,7 @@ No-op on parsers with subcommands or nargs remainder (falls back to
 standard parse). Command path stays ordered. Do not mix a flag and a
 positional in one exclusive_group with this on.
 
-Meta.abbrev_commands = False (default). True accepts a unique prefix of a
+Meta.abbrev_commands = True (default) accepts a unique prefix of a
 subcommand name at that level and below (inherited; a child may set False).
 An exact name always wins (sub beats subx). Ambiguous prefixes error with
 'ambiguous command'. Aliases of one command count once. The resolved full

@@ -182,9 +182,9 @@ when using intermixed parse.
 
 ### Shortened commands and flags {#abbreviations}
 
-Users can type a unique prefix instead of the full name. This is **off by
-default** for subcommands and **on by default** for long flags (argparse
-`allow_abbrev`).
+Users can type a unique prefix instead of the full name. This is **on by
+default** for both subcommands (`Meta.abbrev_commands`) and long flags
+(`Meta.abbrev_options`, argparse `allow_abbrev`).
 
 ```python
 from clak import Command, Opt, Parser
@@ -205,9 +205,6 @@ class Sub(Parser):
     fizzle = Command(Fizz)
 
 class App(Parser):
-    class Meta:
-        abbrev_commands = True
-
     sub = Command(Sub)
 ```
 
@@ -225,8 +222,8 @@ Rules:
 - The full command name is what reaches `ctx`, hooks and `__cli_cmd__N`, so
   code never sees the prefix.
 - Aliases of one command count once, so they never make a prefix ambiguous.
-- Both settings are inherited. A child may set `abbrev_commands = False`
-  (or `True`) for its own subcommands.
+- Both settings are inherited. `Meta.abbrev_commands = False` requires full
+  command names; a child may set it back to `True` for its own subcommands.
 - `Meta.abbrev_options = False` requires full long flag names
   (`--verb` then errors as an unrecognized argument).
 
@@ -235,11 +232,11 @@ Rules:
     should use full names; keep abbreviations for interactive use.
 
 Unknown commands get a clear error whatever the setting, with a hint when a
-command is close. With `abbrev_commands` left off:
+command is close:
 
 ```text
-$ app sub buz
-Could not parse command line: unknown command 'buz' (choose from 'buzz', 'fizz', 'fizzle'); did you mean 'buzz'?
+$ app sub bzz
+Could not parse command line: unknown command 'bzz' (choose from 'buzz', 'fizz', 'fizzle'); did you mean 'buzz'?
 ```
 
 ### Ancestor flags on descendants {#propagate-options}
