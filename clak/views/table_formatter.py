@@ -18,10 +18,22 @@ from collections.abc import Mapping, Sequence
 from clak._optional import optional
 from clak.common import replace_tabs
 from clak.runtime.settings import ClakSettings
-from clak.views.base import DEFAULT_WIDTH_MODE, OUTPUT_FORMATS, strip_ansi
+from clak.views.base import (
+    DEFAULT_WIDTH_MODE,
+    DEFAULT_WRAP_MODE,
+    OUTPUT_FORMATS,
+    resolve_view_width,
+    strip_ansi,
+)
+from clak.views.columns import (
+    default_sort_columns,
+    normalize_wrap,
+    normalize_wrap_min,
+    resolve_column_index,
+    resolve_column_keys,
+    sort_table_rows,
+)
 from clak.views.serialize import dump, dump_csv, dump_yaml
-
-SORT_MODES = frozenset({"asc", "desc"})
 
 
 def _new_table():
@@ -44,115 +56,6 @@ def _new_table():
     return PrettyTable()
 
 
-################## Parent class
-
-
-def normalize_sort_mode(mode, default="asc"):
-    """Return True when sort order is descending."""
-    if mode is None:
-        mode = default
-    if not isinstance(mode, str):
-        raise TypeError(f"sort_mode must be a string, got {type(mode).__name__}")
-    mode = mode.lower()
-    if mode not in SORT_MODES:
-        raise ValueError(f"sort_mode must be one of {sorted(SORT_MODES)}, got {mode!r}")
-    return mode == "desc"
-
-
-def resolve_column_index(col, headers):
-    """Resolve a column spec to a 0-based index in *headers*.
-
-    - str: header name
-    - int < 0: index from end (-1 = last column)
-    - int > 0: 1-based index (1 = first column)
-    - int == 0: rejected
-    """
-    if isinstance(col, str):
-        try:
-            return headers.index(col)
-        except ValueError as err:
-            choices = ", ".join(str(header) for header in headers)
-            raise KeyError(
-                f"Column {col!r} not found in headers, choices: {choices}"
-            ) from err
-
-    if isinstance(col, int):
-        if col == 0:
-            raise KeyError(
-                "Column index 0 is invalid; use 1 for first column or -1 for last"
-            )
-        if col < 0:
-            idx = len(headers) + col
-        else:
-            idx = col - 1
-        if idx < 0 or idx >= len(headers):
-            choices = ", ".join(str(header) for header in headers)
-            raise KeyError(f"Column index {col} out of range, choices: {choices}")
-        return idx
-
-    raise TypeError(f"Column must be a string or int, got {type(col).__name__}")
-
-
-def resolve_sort_column_index(col, headers):
-    """Alias for :func:`resolve_column_index` (sort uses the same rules)."""
-    return resolve_column_index(col, headers)
-
-
-def resolve_column_keys(columns, headers, *, strict_names=True):
-    """Resolve column specs (names / 1-based / negatives) to header keys.
-
-    When *strict_names* is False, string names are kept as-is even if missing
-    from *headers* (list views use placeholders for heterogeneous rows).
-    Integer specs are always resolved against *headers*.
-    """
-    if columns is None:
-        return list(headers)
-    resolved = []
-    for col in columns:
-        if isinstance(col, int):
-            resolved.append(headers[resolve_column_index(col, headers)])
-        elif isinstance(col, str):
-            if strict_names:
-                resolve_column_index(col, headers)
-            resolved.append(col)
-        else:
-            raise TypeError(f"Column must be a string or int, got {type(col).__name__}")
-    return resolved
-
-
-def _cell_sort_key(value):
-    """Sort key: numbers before strings; digit strings compare as ints."""
-    if isinstance(value, bool):
-        return (2, str(value))
-    if isinstance(value, (int, float)):
-        return (0, value)
-    text = "" if value is None else str(value)
-    if text.isdigit() or (text.startswith("-") and text[1:].isdigit()):
-        return (0, int(text))
-    return (1, text.lower())
-
-
-def sort_table_rows(rows, headers, sort_columns, sort_mode="asc"):
-    """Sort tabular rows by one or more header names or indexes."""
-    if not sort_columns or not rows:
-        return rows
-
-    reverse = normalize_sort_mode(sort_mode)
-    indexes = [resolve_sort_column_index(col, headers) for col in sort_columns]
-
-    def key_fn(row):
-        return [_cell_sort_key(row[idx] if idx < len(row) else "") for idx in indexes]
-
-    return sorted(rows, key=key_fn, reverse=reverse)
-
-
-def default_sort_columns(headers):
-    """Default: sort by the first displayed column, ascending."""
-    if not headers:
-        return None
-    return [1]
-
-
 def format_structured(rows, headers, fmt):
     """Render tabular rows as yaml, json, or csv (newline-terminated)."""
     if fmt not in OUTPUT_FORMATS - {"view"}:
@@ -173,16 +76,6 @@ def _apply_prettytable_width(  # pylint: disable=too-many-arguments,too-many-pos
     wrap_min=None,
 ):
     """Apply content/fit/terminal width modes to a PrettyTable instance."""
-    # Late import avoids circular dependency with clak.views.table
-    from clak.views.base import (  # pylint: disable=import-outside-toplevel
-        DEFAULT_WRAP_MODE,
-        resolve_view_width,
-    )
-    from clak.views.table import (  # pylint: disable=import-outside-toplevel
-        normalize_wrap,
-        normalize_wrap_min,
-    )
-
     mode, term_budget = resolve_view_width(
         width=width, term_width=term_width, stdout_tty=stdout_tty
     )

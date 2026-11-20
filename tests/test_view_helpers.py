@@ -9,7 +9,7 @@ from clak.views.base import (
     ClakView,
     resolve_view_width,
 )
-from clak.views.table import (
+from clak.views.columns import (
     normalize_wrap,
     normalize_wrap_min,
     parse_columns,
@@ -67,7 +67,7 @@ def test_normalize_wrap_and_wrap_min():
 
 
 def test_normalize_sort_columns_accepts_sequence():
-    from clak.views.table import normalize_sort_columns
+    from clak.views.columns import normalize_sort_columns
 
     assert normalize_sort_columns(["name", -1]) == ["name", -1]
     assert normalize_sort_columns("role,-1") == ["role", -1]
@@ -75,7 +75,7 @@ def test_normalize_sort_columns_accepts_sequence():
 
 
 def test_normalize_columns_accepts_sequence():
-    from clak.views.table import normalize_columns
+    from clak.views.columns import normalize_columns
 
     assert normalize_columns(["name", "role"]) == ["name", "role"]
     assert normalize_columns("name,role") == ["name", "role"]

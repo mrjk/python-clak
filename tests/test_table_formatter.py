@@ -7,13 +7,8 @@ from pprint import pprint
 import pytest
 
 from clak.views.base import DEFAULT_WIDTH_MODE
-from clak.views.table_formatter import (
-    TableListFormatter,
-    TableShowFormatter,
-    resolve_column_index,
-    resolve_column_keys,
-    resolve_sort_column_index,
-)
+from clak.views.columns import resolve_column_index, resolve_column_keys
+from clak.views.table_formatter import TableListFormatter, TableShowFormatter
 from tests.common import block_imports, use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
@@ -283,14 +278,14 @@ def test_render_stdout_still_returns_output(capsys):
     assert output in capsys.readouterr().out
 
 
-def test_resolve_sort_column_index_negative_and_one_based():
+def test_resolve_column_index_negative_and_one_based():
     headers = ["name", "role", "city"]
 
-    assert resolve_sort_column_index(-1, headers) == 2
-    assert resolve_sort_column_index(-3, headers) == 0
-    assert resolve_sort_column_index(1, headers) == 0
-    assert resolve_sort_column_index(2, headers) == 1
-    assert resolve_sort_column_index("role", headers) == 1
+    assert resolve_column_index(-1, headers) == 2
+    assert resolve_column_index(-3, headers) == 0
+    assert resolve_column_index(1, headers) == 0
+    assert resolve_column_index(2, headers) == 1
+    assert resolve_column_index("role", headers) == 1
 
 
 def test_resolve_column_index_rejects_zero():

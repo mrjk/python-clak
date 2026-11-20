@@ -76,17 +76,14 @@ def test_argument_flag_helpers():
     assert extra["option_group"] == "parent options"
 
 
-def test_parser_owns_dispatcher_and_terminator():
-    """ParserNode composes Dispatcher / Terminator instead of mixins."""
+def test_parser_owns_dispatcher():
+    """ParserNode composes a Dispatcher instead of mixins."""
     from clak.core._dispatch import Dispatcher
-    from clak.core._exception import Terminator
 
     parser = ParserNode()
     assert isinstance(parser.dispatcher, Dispatcher)
-    assert isinstance(parser.terminator, Terminator)
     assert parser.ctx is None
     assert parser.dispatcher.node is parser
-    assert parser.terminator.node is parser
 
 
 def test_arg_opt_public_import():

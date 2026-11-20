@@ -26,14 +26,12 @@ def test_parse_facts_timeout_defaults():
 
 
 def test_detect_facts_is_lazy_shell():
-    from clak.runtime.facts import _UNSET
-
     facts = detect_facts(timeout=-1)
     assert isinstance(facts, FactsInfo)
-    assert facts._hostname is _UNSET  # noqa: SLF001
-    assert facts._fqdn is _UNSET  # noqa: SLF001
-    assert facts._distro is _UNSET  # noqa: SLF001
-    assert facts._identity is _UNSET  # noqa: SLF001
+    assert "hostname" not in facts.__dict__
+    assert "_fqdn_domain" not in facts.__dict__
+    assert "distro" not in facts.__dict__
+    assert "identity" not in facts.__dict__
 
 
 def test_detect_facts_does_not_resolve_until_access(monkeypatch):
@@ -116,7 +114,7 @@ def test_parse_os_release(tmp_path):
     assert data["VERSION_ID"] == "24.0"
 
     facts = detect_facts(timeout=-1)
-    facts._distro = data  # noqa: SLF001
+    facts.__dict__["distro"] = data
     assert facts.distro_id == "manjaro"
     assert facts.distro_like == "arch"
     assert facts.distro_version == "24.0"

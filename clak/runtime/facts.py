@@ -12,6 +12,7 @@ import os
 import socket
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
+from functools import cached_property
 from typing import Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger("clak.facts")
@@ -96,254 +97,159 @@ def _user_name(uid: int) -> Optional[str]:
 
 
 def _groups_map(gids: List[int]) -> Dict[str, int]:
-    out: Dict[str, int] = {}
-    for gid in gids:
-        name = _group_name(gid)
-        if name:
-            out[name] = gid
-    return out
+    return {name: gid for gid in gids if (name := _group_name(gid))}
 
 
-class IdentityInfo:  # pylint: disable=too-many-instance-attributes
-    """Real or effective process identity (numeric eager-on-bundle, names lazy)."""
-
-    __slots__ = (
-        "uid",
-        "gid",
-        "group_ids",
-        "_user_name",
-        "_group_name",
-        "_groups",
-        "_names_loaded",
-        "_facts",
-        "_label",
-    )
+class IdentityInfo:
+    """Real or effective process identity (ids eager, NSS names lazy)."""
 
     def __init__(  # pylint: disable=too-many-arguments
-        self,
-        facts: "FactsInfo",
-        *,
-        uid: int,
-        gid: int,
-        group_ids: List[int],
-        label: str,
+        self, facts: "FactsInfo", *, uid, gid, group_ids, label
     ):
         self._facts = facts
         self._label = label
         self.uid = uid
         self.gid = gid
         self.group_ids = list(group_ids)
-        self._user_name = _UNSET
-        self._group_name = _UNSET
-        self._groups = _UNSET
-        self._names_loaded = False
 
-    def _ensure_names(self) -> None:
-        if self._names_loaded:
-            return
-        self._names_loaded = True
-
-        def resolve():
-            return (
+    @cached_property
+    def _names(self):
+        return self._facts.run_blocking(
+            f"NSS identity resolve ({self._label})",
+            lambda: (
                 _user_name(self.uid),
                 _group_name(self.gid),
                 _groups_map(self.group_ids),
-            )
-
-        result = self._facts.run_blocking(
-            f"NSS identity resolve ({self._label})",
-            resolve,
+            ),
             fallback=(None, None, {}),
         )
-        self._user_name, self._group_name, self._groups = result
 
     @property
     def user_name(self) -> Optional[str]:
         """Resolved user name for ``uid``, or None."""
-        self._ensure_names()
-        return None if self._user_name is _UNSET else self._user_name  # type: ignore
+        return self._names[0]
 
     @property
     def group_name(self) -> Optional[str]:
         """Resolved primary group name for ``gid``, or None."""
-        self._ensure_names()
-        return None if self._group_name is _UNSET else self._group_name  # type: ignore
+        return self._names[1]
 
     @property
     def groups(self) -> Dict[str, int]:
         """Map of supplemental group name to gid."""
-        self._ensure_names()
-        if self._groups is _UNSET:
-            return {}
-        return dict(self._groups)  # type: ignore
+        return dict(self._names[2])
 
     def clear_names(self) -> None:
         """Drop cached NSS name lookups."""
-        self._user_name = _UNSET
-        self._group_name = _UNSET
-        self._groups = _UNSET
-        self._names_loaded = False
+        self.__dict__.pop("_names", None)
+
+
+def _identity_shortcut(attr: str, doc: str) -> property:
+    return property(lambda self: getattr(self.identity, attr), doc=doc)
 
 
 class FactsInfo:
     """Lazy OS/process facts attached as ``ctx.facts``."""
 
-    __slots__ = (
-        "_timeout",
-        "_hostname",
-        "_fqdn",
-        "_domain",
-        "_distro",
-        "_identity",
-        "_running",
-    )
+    _CACHED = ("hostname", "_fqdn_domain", "distro", "identity", "running")
 
     def __init__(self, timeout: Optional[float] = _UNSET):
         if timeout is _UNSET:
-            self._timeout = parse_facts_timeout()
-        elif timeout is not None and timeout < 0:
-            self._timeout = None
-        else:
-            self._timeout = timeout
-        self._hostname = _UNSET
-        self._fqdn = _UNSET
-        self._domain = _UNSET
-        self._distro = _UNSET
-        self._identity = _UNSET
-        self._running = _UNSET
+            timeout = parse_facts_timeout()
+        self._timeout = None if timeout is not None and timeout < 0 else timeout
 
     def clear_cache(self) -> None:
         """Drop all cached fact values."""
-        self._hostname = _UNSET
-        self._fqdn = _UNSET
-        self._domain = _UNSET
-        self._distro = _UNSET
-        if self._identity is not _UNSET:
-            self._identity.clear_names()  # type: ignore
-        if self._running is not _UNSET:
-            self._running.clear_names()  # type: ignore
-        self._identity = _UNSET
-        self._running = _UNSET
+        for name in self._CACHED:
+            value = self.__dict__.pop(name, None)
+            if isinstance(value, IdentityInfo):
+                value.clear_names()
 
-    def run_blocking(
-        self,
-        what: str,
-        fn: Callable[[], T],
-        fallback: T,
-    ) -> T:
+    def run_blocking(self, what: str, fn: Callable[[], T], fallback: T) -> T:
         """Run *fn* with timeout; return *fallback* on skip, timeout, or error."""
         timeout = self._timeout
         logger.info("%s starting", what)
         if timeout == 0:
             logger.warning("%s skipped (CLAK_FACTS_TIMEOUT=0)", what)
             return fallback
-
-        if timeout is None:
-            try:
+        try:
+            if timeout is None:
                 result = fn()
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                logger.debug("%s failed: %s", what, err)
-                return fallback
-            logger.debug("%s finished: %r", what, result)
-            return result
-
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(fn)
-            try:
-                result = future.result(timeout=timeout)
-            except FuturesTimeout:
-                logger.warning("%s timed out after %ss", what, timeout)
-                return fallback
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                logger.debug("%s failed: %s", what, err)
-                return fallback
+            else:
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    result = pool.submit(fn).result(timeout=timeout)
+        except FuturesTimeout:
+            logger.warning("%s timed out after %ss", what, timeout)
+            return fallback
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            logger.debug("%s failed: %s", what, err)
+            return fallback
         logger.debug("%s finished: %r", what, result)
         return result
 
-    @property
+    @cached_property
     def hostname(self) -> str:
         """Short hostname from ``socket.gethostname``."""
-        if self._hostname is _UNSET:
-            try:
-                self._hostname = socket.gethostname()
-            except OSError:
-                self._hostname = ""
-        return self._hostname  # type: ignore
+        try:
+            return socket.gethostname()
+        except OSError:
+            return ""
 
-    def _ensure_fqdn(self) -> None:
-        if self._fqdn is not _UNSET:
-            return
+    @cached_property
+    def _fqdn_domain(self) -> tuple:
         host = self.hostname
-        fqdn = self.run_blocking(
-            f"DNS / FQDN resolution for hostname={host!r}",
-            socket.getfqdn,
-            fallback=host,
+        fqdn = (
+            self.run_blocking(
+                f"DNS / FQDN resolution for hostname={host!r}",
+                socket.getfqdn,
+                fallback=host,
+            )
+            or host
         )
-        self._fqdn = fqdn or host
-        self._domain = _domain_from_fqdn(self._fqdn, host)
+        return fqdn, _domain_from_fqdn(fqdn, host)
 
     @property
     def fqdn(self) -> str:
         """Fully qualified domain name (lazy DNS)."""
-        self._ensure_fqdn()
-        return self._fqdn  # type: ignore
+        return self._fqdn_domain[0]
 
     @property
     def domain(self) -> Optional[str]:
         """Domain portion of ``fqdn``, or None."""
-        self._ensure_fqdn()
-        return self._domain  # type: ignore
+        return self._fqdn_domain[1]
 
-    def _ensure_distro(self) -> Dict[str, str]:
-        if self._distro is _UNSET:
-            self._distro = parse_os_release()
-        return self._distro  # type: ignore
-
-    @property
+    @cached_property
     def distro(self) -> Dict[str, str]:
-        """Copy of parsed ``/etc/os-release`` fields."""
-        return dict(self._ensure_distro())
+        """Parsed ``/etc/os-release`` fields."""
+        return parse_os_release()
 
     @property
     def distro_id(self) -> Optional[str]:
         """``ID`` from os-release."""
-        return self._ensure_distro().get("ID")
+        return self.distro.get("ID")
 
     @property
     def distro_name(self) -> Optional[str]:
         """Pretty or short distro name from os-release."""
-        data = self._ensure_distro()
-        return data.get("PRETTY_NAME") or data.get("NAME")
+        return self.distro.get("PRETTY_NAME") or self.distro.get("NAME")
 
     @property
     def distro_version(self) -> Optional[str]:
         """Version id or version string from os-release."""
-        data = self._ensure_distro()
-        return data.get("VERSION_ID") or data.get("VERSION")
+        return self.distro.get("VERSION_ID") or self.distro.get("VERSION")
 
     @property
     def distro_like(self) -> Optional[str]:
         """``ID_LIKE`` from os-release."""
-        return self._ensure_distro().get("ID_LIKE")
+        return self.distro.get("ID_LIKE")
 
     def _build_identity(self, *, effective: bool) -> IdentityInfo:
+        label = "effective" if effective else "real"
         if not hasattr(os, "getuid"):
-            return IdentityInfo(
-                self,
-                uid=-1,
-                gid=-1,
-                group_ids=[],
-                label="effective" if effective else "real",
-            )
-        if effective:
-            uid = os.geteuid()
-            gid = os.getegid()
-            label = "effective"
-        else:
-            uid = os.getuid()
-            gid = os.getgid()
-            label = "real"
-        gids = []
+            return IdentityInfo(self, uid=-1, gid=-1, group_ids=[], label=label)
+        uid, gid = (
+            (os.geteuid(), os.getegid()) if effective else (os.getuid(), os.getgid())
+        )
         try:
             gids = list(os.getgroups())
         except OSError:
@@ -352,50 +258,22 @@ class FactsInfo:
             gids = [gid] + gids
         return IdentityInfo(self, uid=uid, gid=gid, group_ids=gids, label=label)
 
-    def _ensure_identity(self) -> IdentityInfo:
-        if self._identity is _UNSET:
-            self._identity = self._build_identity(effective=False)
-        return self._identity  # type: ignore
+    @cached_property
+    def identity(self) -> IdentityInfo:
+        """Real (uid/gid) identity bundle."""
+        return self._build_identity(effective=False)
 
-    def _ensure_running(self) -> IdentityInfo:
-        if self._running is _UNSET:
-            self._running = self._build_identity(effective=True)
-        return self._running  # type: ignore
-
-    @property
-    def uid(self) -> int:
-        """Real user id."""
-        return self._ensure_identity().uid
-
-    @property
-    def gid(self) -> int:
-        """Real group id."""
-        return self._ensure_identity().gid
-
-    @property
-    def group_ids(self) -> List[int]:
-        """Real supplemental group ids."""
-        return list(self._ensure_identity().group_ids)
-
-    @property
-    def user_name(self) -> Optional[str]:
-        """Real user name (lazy NSS)."""
-        return self._ensure_identity().user_name
-
-    @property
-    def group_name(self) -> Optional[str]:
-        """Real primary group name (lazy NSS)."""
-        return self._ensure_identity().group_name
-
-    @property
-    def groups(self) -> Dict[str, int]:
-        """Real supplemental groups map (lazy NSS)."""
-        return self._ensure_identity().groups
-
-    @property
+    @cached_property
     def running(self) -> IdentityInfo:
         """Effective (euid/egid) identity bundle."""
-        return self._ensure_running()
+        return self._build_identity(effective=True)
+
+    uid = _identity_shortcut("uid", "Real user id.")
+    gid = _identity_shortcut("gid", "Real group id.")
+    group_ids = _identity_shortcut("group_ids", "Real supplemental group ids.")
+    user_name = _identity_shortcut("user_name", "Real user name (lazy NSS).")
+    group_name = _identity_shortcut("group_name", "Real primary group name.")
+    groups = _identity_shortcut("groups", "Real supplemental groups map.")
 
     def __repr__(self) -> str:
         return f"FactsInfo(timeout={self._timeout!r})"

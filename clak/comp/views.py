@@ -62,7 +62,7 @@ from clak.views import (
     ShowView,
 )
 from clak.views.base import normalize_width_mode, parse_line_length
-from clak.views.table import (
+from clak.views.columns import (
     normalize_columns,
     normalize_sort_columns,
     normalize_wrap,

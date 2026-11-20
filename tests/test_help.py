@@ -7,12 +7,12 @@ import sys
 import pytest
 
 from clak import Argument, Command, Parser, RecursiveHelpFormatter, RichHelpMixin
-from clak.comp.help import RichRecursiveHelpFormatter
 from clak.core.help_render import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
+from clak.core.help_render import RichRecursiveHelpFormatter
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
 from clak.views.base import strip_ansi
-from tests.view_fixtures import _has_background_csi
 from tests.common import use_settings
+from tests.view_fixtures import _has_background_csi
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -301,8 +301,12 @@ def test_help_colorizer_styles_cmds_and_groups():
     pytest.importorskip("rich")
     from rich.text import Text
 
-    from clak.comp.help import _PART_STYLES, help_document_colorizer
-    from clak.core.help_render import HelpDocument, HelpLine
+    from clak.core.help_render import (
+        _PART_STYLES,
+        HelpDocument,
+        HelpLine,
+        help_document_colorizer,
+    )
 
     doc = HelpDocument()
     usage = HelpLine()

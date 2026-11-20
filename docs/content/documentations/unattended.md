@@ -6,7 +6,7 @@ works at a terminal and in automation.
 
 ```python
 from clak import Parser, RuntimeOptMixin
-from clak.comp.runtime import ui_session
+from clak.comp.ui import ui_session
 
 
 class App(RuntimeOptMixin, Parser):
@@ -114,7 +114,7 @@ them with `set_ui_settings()`, consumers just call `ui_session(ctx)`.
 
 ```python
 from clak import Parser
-from clak.comp.runtime import set_ui_settings, ui_session
+from clak.comp.ui import set_ui_settings, ui_session
 from clak.core.descriptors import Argument
 
 

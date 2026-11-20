@@ -10,6 +10,37 @@
   `--format view`; yaml/json/csv output is untouched. Opt out with
   `--no-yaml-cells`, `Meta.view_yaml_cells = False`, or `yaml_cells=False`.
 
+### Changed (breaking)
+
+Internal cleanup; most of this is semi-public surface.
+
+| Before | After |
+| --- | --- |
+| `ParserNode.show_epilog()` | removed (it called a method argparse does not have) |
+| `query_cfg_*(report=, override=, raise_on_undeclared=)`, `Node.get_name`, `Fn`, `NullType`/`NotSet`/`UnSetArg`/`UNSET_ARG` | removed; one `NOT_SET` marker |
+| `clak.core.nodes.ConfigurationError` / `MissingMetaError` | `clak.exception` |
+| `FormatEnv`, `SubParser.meta__help_flags/usage/description/epilog` | removed (`prepare_docstring` wraps `self` itself) |
+| `ErrorRenderer`, `ArgumentParser(error_renderer=)`, unused `ArgparseCapabilities` flags | module functions in `clak.core.argp.errors`; flags removed |
+| `Terminator` | `clak.core._exception.clean_terminate()` |
+| `PluginStore`, `DataStore` | plain `dict` (`ctx.plugins`, `ctx.data`) |
+| `clak.core.plugins`, `clak.core` re-exports of internals, most of `clak.runtime` re-exports | `CLI_HOOK_PREFIX` in `clak.core.parser`; import from submodules |
+| `LoggingOptMixin.test_logger()` | removed |
+| `ctx.facts` built on every dispatch | built on first access; `clak.runtime.facts` is smaller (same API) |
+| `clak.comp.help.RichRecursiveHelpFormatter`, `help_document_colorizer` | `clak.core.help_render` |
+| `ui_policy`, `ui_session`, `set_ui_settings` in `clak.comp.runtime` | `clak.comp.ui` (still exported from `clak.comp`) |
+| column/sort helpers in `clak.views.table` / `table_formatter`; `require_yaml` | `clak.views.columns`; `clak.views.serialize` |
+| `ClakView._render()` / `_output()`, per-view `render()` | implement `to_text(payload, settings)`; `render()` is shared |
+| `require_rich`, `require_docutils`, `require_rich_for_data`, `_yaml`/`coloredlogs` module sentinels | `clak._optional.require()` / `optional()` |
+
+### Fixed
+
+- `ObjectNamespace` stored a stray `__dict__` key, which leaked into
+  `cli_run`/`cli_group` kwargs and `len()`.
+- `CompositeView(width="fit")` never shrank equalized tables to the terminal
+  (it compared against a mode name that no longer exists).
+- The prettytable/ColorTable choice is made at render time, so
+  `ClakSettings.set_current()` is honored.
+
 ## 0.7.0a1
 
 Alpha of the 0.7 architecture cleanup. Several **breaking changes**; see

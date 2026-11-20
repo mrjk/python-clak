@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 from clak import exception
 from clak.core._dispatch import Dispatcher
-from clak.core._exception import Terminator
+from clak.core._exception import clean_terminate
 from clak.core.argp import ArgumentParser as ClakArgumentParser
 from clak.core.argp import SubParsersAction
 from clak.core.context import ClakContext
@@ -29,10 +29,15 @@ from clak.core.descriptors import (
     first_doc_line,
     prepare_docstring,
 )
-from clak.core.help_render import HELP_SUBCOMMANDS_ALL, HelpLayout, HelpRenderer
+from clak.core.help_render import (
+    HELP_SUBCOMMANDS_ALL,
+    HelpLayout,
+    HelpRenderer,
+    RichRecursiveHelpFormatter,
+    help_document_colorizer,
+)
 from clak.core.nodes import NOT_SET, Node
 from clak.runtime.settings import apply_debug_logging
-from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +82,7 @@ class ParserNode(
     meta__subcommands_dict: dict[str, SubParser] = {}
     meta__arguments_dict: dict[str, Argument] = {}
 
-    meta__cli_view: ClakView = None
+    meta__cli_view = None  # ClakView instance or subclass (see Meta.cli_view)
 
     # Meta settings
     meta__config__name = MetaSetting(
@@ -195,7 +200,6 @@ class ParserNode(
         super().__init__(parent=parent)
 
         self.dispatcher = Dispatcher(self)
-        self.terminator = Terminator(self)
         self.help_args = []
         self.command_group = None
         self.command_help = None
@@ -277,10 +281,6 @@ class ParserNode(
         Unset walks parents, then ``RichRecursiveHelpFormatter``.
         Opt out with ``Meta.help_formatter = RecursiveHelpFormatter``.
         """
-        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
-            RichRecursiveHelpFormatter,
-        )
-
         return self.query_cfg_parents(
             "help_formatter",
             default=RichRecursiveHelpFormatter,
@@ -288,11 +288,6 @@ class ParserNode(
 
     def _install_help(self):
         """Attach HelpRenderer and version-stable parse flags to the wrapper."""
-        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
-            RichRecursiveHelpFormatter,
-            help_document_colorizer,
-        )
-
         self.help_layout = HelpLayout(
             subcommands=self.query_cfg_parents(
                 "help_subcommands",
@@ -538,8 +533,8 @@ class ParserNode(
         return self.dispatcher.cli_execute(*args, **kwargs)
 
     def clean_terminate(self, *args, **kwargs):
-        """Handle a dispatch error; see ``Terminator.clean_terminate``."""
-        return self.terminator.clean_terminate(*args, **kwargs)
+        """Handle a dispatch error; see ``clak.core._exception.clean_terminate``."""
+        return clean_terminate(self, *args, **kwargs)
 
     @property
     def ctx(self):

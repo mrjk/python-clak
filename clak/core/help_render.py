@@ -1,16 +1,27 @@
-"""Clak-owned --help layout (not an argparse HelpFormatter).
+"""Clak-owned --help layout and coloring (not an argparse HelpFormatter).
 
 Walks ParserNode / HelpArg records. Does not regex argparse output.
+``RichRecursiveHelpFormatter`` (Parser default) marks colored help: color
+follows ``NO_COLOR``, ``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and
+whether Rich is importable; otherwise the plain layout is printed.
 """
 
 from __future__ import annotations
 
+import sys
 import textwrap
 from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, RawDescriptionHelpFormatter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from clak._optional import optional
+from clak.runtime.rich_style import make_rich_console, render_markup_text
 from clak.runtime.runtime import terminal_size
+from clak.runtime.settings import (
+    color_backend_uses_rich,
+    colors_enabled,
+    stream_isatty,
+)
 
 HELP_SUBCOMMANDS_TOP = "top"
 HELP_SUBCOMMANDS_ALL = "all"
@@ -144,6 +155,10 @@ class RecursiveHelpFormatter(RawDescriptionHelpFormatter):
         super().__init__(
             *args, max_help_position=self.config__max_help_position, **kwargs
         )
+
+
+class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
+    """Marker: same layout as ``RecursiveHelpFormatter``, with Rich color."""
 
 
 class HelpRenderer:
@@ -413,3 +428,67 @@ def _command_rows(members, layout: HelpLayout) -> list[tuple[str, str]]:
     for dest, child in members:
         add(dest, child, 0, "")
     return rows
+
+
+_HELP_STYLES = {
+    "argparse.groups": "bold magenta",
+    "argparse.args": "cyan",
+    "argparse.cmds": "dark_cyan",
+    "argparse.default": "dim",
+}
+
+_PART_STYLES = {
+    "group": "argparse.groups",
+    "args": "argparse.args",
+    "cmds": "argparse.cmds",
+    "default": "argparse.default",
+}
+
+
+def help_uses_rich() -> bool:
+    """Whether ``--help`` should emit ANSI."""
+    if not colors_enabled() or not stream_isatty(sys.stdout):
+        return False
+    return color_backend_uses_rich()
+
+
+def help_document_colorizer(document: HelpDocument) -> str:
+    """Style a HelpDocument. No regex on argparse text."""
+    if not help_uses_rich():
+        return document.to_plain()
+    # Imported lazily: rich is slow to import and only needed for color.
+    rich_console = optional("rich.console")
+    rich_text = optional("rich.text")
+    if rich_console is None or rich_text is None:
+        return document.to_plain()
+    Text = rich_text.Text  # pylint: disable=invalid-name
+    styled = Text()
+    max_len = 80
+    for line in document.lines:
+        line_text = "".join(text for _kind, text in line.parts)
+        max_len = max(max_len, len(line_text))
+        for kind, chunk in line.parts:
+            if kind == "markup":
+                rendered = render_markup_text(chunk)
+                if rendered != chunk and hasattr(Text, "from_ansi"):
+                    styled.append_text(Text.from_ansi(rendered))
+                elif rendered != chunk:
+                    styled.append(rendered)
+                else:
+                    try:
+                        styled.append_text(Text.from_markup(chunk))
+                    except Exception:  # pylint: disable=broad-exception-caught
+                        styled.append(chunk)
+            else:
+                style = _PART_STYLES.get(kind)
+                if style:
+                    styled.append(chunk, style=style)
+                else:
+                    styled.append(chunk)
+        styled.append("\n")
+    console = make_rich_console(
+        rich_console, width=max(max_len, 80), theme=_HELP_STYLES
+    )
+    with console.capture() as capture:
+        console.print(styled, end="", overflow="ignore", crop=False, highlight=False)
+    return capture.get()

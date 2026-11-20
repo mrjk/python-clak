@@ -1,4 +1,4 @@
-"""Exception handler chain for ParserNode (clean_terminate)."""
+"""Exception handler chain run by dispatch (``clean_terminate``)."""
 
 import logging
 import os
@@ -26,119 +26,81 @@ def _exit_broken_pipe(rc=1):
     sys.exit(rc)
 
 
-class Terminator:  # pylint: disable=too-few-public-methods
-    """Paasify-style terminate chain used by ``Dispatcher.dispatch()``."""
+def _exit_code(err, default=1):
+    rc = getattr(err, "rc", default)
+    return rc if isinstance(rc, int) else default
 
-    def __init__(self, node):
-        self.node = node
 
-    @staticmethod
-    def _exception_exit_code(err, default=1):
-        rc = getattr(err, "rc", default)
-        return rc if isinstance(rc, int) else default
+def _log_advice(err):
+    advice = getattr(err, "advice", None)
+    if isinstance(advice, str):
+        logger.warning(advice)
 
-    @staticmethod
-    def _exception_advice(err):
-        advice = getattr(err, "advice", None)
-        if isinstance(advice, str):
-            logger.warning(advice)
 
-    def _terminate_app_exception(self, err):
-        """Default handler for app exceptions (Paasify-style: rc + message)."""
-        self._exception_advice(err)
+def _iter_exception_entries(entries):
+    """``(exception type, handler or None)`` from ``cls`` / ``(cls, handler)``."""
+    for entry in entries or []:
+        if isinstance(entry, (tuple, list)) and entry:
+            yield entry[0], (entry[1] if len(entry) > 1 else None)
+        else:
+            yield entry, None
+
+
+def _run_exception_handler(node, handler, err):
+    """Exit through *handler* (int result = rc), or Paasify-style default."""
+    if handler is None:
+        _log_advice(err)
         print(err, file=sys.stderr)
-        rc = self._exception_exit_code(err)
-        logger.critical(
-            "Program exited with: error %s: %s",
-            rc,
-            err.__class__.__name__,
-        )
+        rc = _exit_code(err)
+        logger.critical("Program exited with: error %s: %s", rc, type(err).__name__)
         sys.exit(rc)
+    result = handler(node, err)
+    sys.exit(result if isinstance(result, int) else _exit_code(err))
 
-    @staticmethod
-    def _iter_exception_entries(entries):
-        for entry in entries or []:
-            if isinstance(entry, (tuple, list)) and entry:
-                exc_type = entry[0]
-                handler = entry[1] if len(entry) > 1 else None
-                yield exc_type, handler
-            else:
-                yield entry, None
 
-    def _run_exception_handler(self, handler, err):
-        if handler is None:
-            self._terminate_app_exception(err)
-            return
-        result = handler(self.node, err)
-        if isinstance(result, int):
-            sys.exit(result)
-        sys.exit(self._exception_exit_code(err))
+def clean_terminate(node, err, known_exceptions=None):
+    """Exit the program for a dispatch error, or return if nothing matches.
 
-    def clean_terminate(self, err, known_exceptions=None):
-        """Handle program termination based on exception type.
+    Processing order (Paasify-style chain):
 
-        Processing order (Paasify-style chain):
+    1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
+    2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, ...)
+    3. Clak parse errors (usage first), user errors, other Clak errors
+    4. Broken pipe (``| head`` / ``| tail``) - quiet exit
+    5. Common OS errors
 
-        1. ``Meta.known_exceptions`` on the root parser (class or ``(class, handler)``)
-        2. ``Meta.exception_handlers`` (third-party libs: YAML, shell, ...)
-        3. Built-in Clak exceptions
-        4. Broken pipe (``| head`` / ``| tail``) - quiet exit
-        5. Common OS errors
-
-        If nothing matches, return and let ``dispatch()`` report an unexpected bug.
-
-        Args:
-            err (Exception): The exception that triggered termination
-            known_exceptions (list): List of exception types to handle specially
-        """
-
-        node = self.node
-
-        # 1. App-known exceptions (e.g. PaasifyError hierarchy)
-        for exc_type, handler in self._iter_exception_entries(known_exceptions):
+    If nothing matches, ``dispatch()`` reports an unexpected bug.
+    """
+    extra_handlers = node.query_cfg_parents("exception_handlers", default=[])
+    for entries in (known_exceptions, extra_handlers):
+        for exc_type, handler in _iter_exception_entries(entries):
             if isinstance(err, exc_type):
-                self._run_exception_handler(handler, err)
+                _run_exception_handler(node, handler, err)
 
-        # 2. Registered third-party / library handlers
-        extra_handlers = node.query_cfg_parents("exception_handlers", default=[])
-        for exc_type, handler in self._iter_exception_entries(extra_handlers):
-            if isinstance(err, exc_type):
-                self._run_exception_handler(handler, err)
+    if isinstance(err, exception.ClakParseError):
+        # Show usage first (leaf parser when known)
+        if err.parser is not None:
+            err.parser.print_usage()
+        else:
+            node.show_usage()
+        print(f"{err}", file=sys.stderr)
+        sys.exit(err.rc)
 
-        # 3. Clak parse errors - show usage first (leaf parser when known)
-        if isinstance(err, exception.ClakParseError):
-            if err.parser is not None:
-                err.parser.print_usage()
-            else:
-                node.show_usage()
-            print(f"{err}", file=sys.stderr)
-            sys.exit(err.rc)
-
-        # 4. User-facing Clak errors
-        if isinstance(err, exception.ClakUserError):
-            self._exception_advice(err)
-            print(f"{err}", file=sys.stderr)
-            sys.exit(err.rc)
-
-        # 5. Other Clak errors (app / bug)
-        if isinstance(err, exception.ClakError):
-            err_name = err.__class__.__name__
-            self._exception_advice(err)
-            err_message = err.message or err.__doc__
-            print(f"{err}", file=sys.stderr)
+    if isinstance(err, exception.ClakError):
+        _log_advice(err)
+        print(f"{err}", file=sys.stderr)
+        if not isinstance(err, exception.ClakUserError):
             logger.critical(
                 "Program exited with bug %s(%s): %s",
-                err_name,
+                type(err).__name__,
                 err.rc,
-                err_message,
+                err.message or err.__doc__,
             )
-            sys.exit(err.rc)
+        sys.exit(err.rc)
 
-        # 6. Broken pipe from | head / | tail - quiet exit (no bug log)
-        if isinstance(err, BrokenPipeError):
-            _exit_broken_pipe()
+    if isinstance(err, BrokenPipeError):
+        _exit_broken_pipe()
 
-        # 7. OS errors (BrokenPipeError already handled above)
-        if isinstance(err, OSError):
-            logger.critical("Program exited with OS error: %s", err)
-            sys.exit(err.errno if err.errno is not None else 1)
+    if isinstance(err, OSError):
+        logger.critical("Program exited with OS error: %s", err)
+        sys.exit(err.errno if err.errno is not None else 1)

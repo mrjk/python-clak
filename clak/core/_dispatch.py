@@ -12,7 +12,6 @@ from clak.core.argp import format_argument_error
 from clak.core.context import ClakContext, CliArgs
 from clak.runtime.runtime import detect_runtime
 from clak.runtime.settings import ClakSettings, apply_debug_logging
-from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
@@ -112,22 +111,11 @@ class Dispatcher:
             try:
                 data = self.cli_execute(args=args, settings=settings)
 
-                view_settings = self.ctx.view_settings
-                if isinstance(data, ClakView):
-                    render_kwargs = ClakView.merge_settings(
-                        getattr(data, "settings", None), view_settings
-                    )
-                    data.render(**render_kwargs)
-                else:
-                    viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
-                    if isinstance(viewer, type) and issubclass(viewer, ClakView):
-                        viewer = viewer()
-                    if viewer is not None:
-                        if not isinstance(viewer, ClakView):
-                            raise TypeError(
-                                "Meta.cli_view must be a ClakView instance or subclass"
-                            )
-                        viewer.render(data, **view_settings)
+                # Imported here: core does not depend on views at import time.
+                # pylint: disable-next=import-outside-toplevel
+                from clak.views.base import render_result
+
+                render_result(data, cli_leaf, self.ctx.view_settings)
 
                 return data
 

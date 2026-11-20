@@ -68,3 +68,18 @@ def test_ui_package_is_portable():
                 }, (path, node.module)
             elif isinstance(node, ast.Import):
                 assert not any(a.name.startswith("clak") for a in node.names), path
+
+
+def test_core_does_not_import_views_or_comp_at_module_level():
+    """clak.core stays the bottom layer: views/comp only via lazy imports."""
+    import ast
+    from pathlib import Path
+
+    core_dir = Path(clak.__file__).parent / "core"
+    for path in core_dir.rglob("*.py"):
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                assert not node.module.startswith(("clak.views", "clak.comp")), (
+                    path,
+                    node.module,
+                )

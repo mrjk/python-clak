@@ -90,6 +90,26 @@ class ClakView:
         return merged
 
 
+def render_result(data, leaf, view_settings: dict) -> None:
+    """Print a ``cli_run`` result with the view that applies.
+
+    A returned :class:`ClakView` renders itself (CLI view settings win over
+    its own); otherwise *leaf*'s ``Meta.cli_view`` (instance or subclass), if
+    any, renders *data*.
+    """
+    if isinstance(data, ClakView):
+        data.render(**ClakView.merge_settings(data.settings, view_settings))
+        return
+    viewer = leaf.query_cfg_parents("cli_view", default=None)
+    if isinstance(viewer, type) and issubclass(viewer, ClakView):
+        viewer = viewer()
+    if viewer is None:
+        return
+    if not isinstance(viewer, ClakView):
+        raise TypeError("Meta.cli_view must be a ClakView instance or subclass")
+    viewer.render(data, **view_settings)
+
+
 def normalize_width_mode(mode: Optional[str] = None) -> str:
     """Return a canonical table width mode (``content`` / ``fit`` / ``terminal``).
 
