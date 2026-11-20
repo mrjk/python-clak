@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.7.0 (unreleased)
+## 0.7.0a1
 
-Architecture cleanup release. Several **breaking changes**; see
+Alpha of the 0.7 architecture cleanup. Several **breaking changes**; see
 "Upgrading" below.
 
 ### Upgrading
