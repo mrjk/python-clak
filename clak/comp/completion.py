@@ -23,8 +23,6 @@ import logging
 import sys
 from types import SimpleNamespace
 
-import argcomplete
-
 from clak.core.descriptors import Argument
 from clak.core.parser import Parser
 
@@ -60,6 +58,8 @@ class CompRenderMixin:  # pylint: disable=too-few-public-methods
                 complete_arguments: Optional arguments to pass to complete command
                 external_argcomplete_script: Optional external completion script
         """
+
+        import argcomplete  # pylint: disable=import-outside-toplevel
 
         sys.stdout.write(
             argcomplete.shellcode(

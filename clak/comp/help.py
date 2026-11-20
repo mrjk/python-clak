@@ -19,9 +19,6 @@ from clak.runtime.settings import (
     stream_isatty,
 )
 
-rich_console = optional("rich.console")
-# pylint: disable-next=invalid-name
-Text = getattr(optional("rich.text"), "Text", None)
 
 _HELP_STYLES = {
     "argparse.groups": "bold magenta",
@@ -51,9 +48,15 @@ def help_uses_rich() -> bool:
 
 def help_document_colorizer(document: HelpDocument) -> str:
     """Style a HelpDocument. No regex on argparse text."""
-    if not help_uses_rich() or rich_console is None or Text is None:
+    if not help_uses_rich():
         return document.to_plain()
-    styled = Text()  # pylint: disable=not-callable
+    # Imported lazily: rich is slow to import and only needed for color.
+    rich_console = optional("rich.console")
+    rich_text = optional("rich.text")
+    if rich_console is None or rich_text is None:
+        return document.to_plain()
+    Text = rich_text.Text  # pylint: disable=invalid-name
+    styled = Text()
     max_len = 80
     for line in document.lines:
         line_text = "".join(text for _kind, text in line.parts)

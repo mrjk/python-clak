@@ -165,7 +165,7 @@ def test_load_config_file_yaml_missing_pyyaml(tmp_path, monkeypatch):
     assert "mrjk.clak[config]" in (exc.value.advice or "")
 
 
-@pytest.mark.skipif(config_mod._yaml is None, reason="PyYAML not installed")
+@pytest.mark.skipif(config_mod._yaml_module() is None, reason="PyYAML not installed")
 def test_load_config_file_yaml(tmp_path):
     path = tmp_path / "app.yaml"
     path.write_text("debug: true\nname: demo\n", encoding="utf-8")

@@ -26,8 +26,6 @@ Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.views``, ``clak.comp``.
 """
 
-from importlib.metadata import PackageNotFoundError, version
-
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import (
     WorkDirMixin,
@@ -54,13 +52,24 @@ from clak.core.descriptors import Arg, Argument, Opt, SubParser
 from clak.core.help_render import RecursiveHelpFormatter
 from clak.core.parser import Command, Parser, ParserNode
 
-try:
-    __version__ = version("mrjk.clak")
-except PackageNotFoundError:
-    __version__ = "0.0.0"
+
+def __getattr__(name):
+    """Resolve ``__version__`` lazily (importlib.metadata is slow to import)."""
+    if name != "__version__":
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    # pylint: disable-next=import-outside-toplevel
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        value = version("mrjk.clak")
+    except PackageNotFoundError:
+        value = "0.0.0"
+    globals()["__version__"] = value
+    return value
+
 
 __all__ = [
-    "__version__",
+    "__version__",  # pylint: disable=undefined-all-variable  (lazy, see __getattr__)
     "Arg",
     "Argument",
     "Command",

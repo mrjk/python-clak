@@ -86,12 +86,22 @@ from clak.runtime.settings import (
 
 DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 
-# pylint: disable=invalid-name
-coloredlogs = optional("coloredlogs") if ClakSettings.current().colors else None
+# coloredlogs is imported on first logger setup (see _coloredlogs()).
+# Tests may set ``coloredlogs = None`` to simulate it missing.
+_COLOREDLOGS_UNRESOLVED = object()
+coloredlogs = _COLOREDLOGS_UNRESOLVED  # pylint: disable=invalid-name
 
 
-if coloredlogs:
-    apply_coloredlogs_defaults(coloredlogs)
+def _coloredlogs():
+    """coloredlogs module with Clak styles applied, or None."""
+    global coloredlogs  # pylint: disable=global-statement
+    if coloredlogs is _COLOREDLOGS_UNRESOLVED:
+        module = optional("coloredlogs") if ClakSettings.current().colors else None
+        if module is not None:
+            apply_coloredlogs_defaults(module)
+        coloredlogs = module
+    return coloredlogs
+
 
 register_clak_log_levels()
 
@@ -137,7 +147,7 @@ def get_app_logger(
     # Settings
     fclass = "logging.Formatter"
     formatter_kwargs = {}
-    if colors and coloredlogs:
+    if colors and _coloredlogs():
         # Require coloredlogs
         fclass = "coloredlogs.ColoredFormatter"
         if level_styles is not None:

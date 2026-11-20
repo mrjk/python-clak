@@ -29,8 +29,18 @@ from clak.exception import ClakUserError
 
 logger = logging.getLogger(__name__)
 
-# Optional YAML support (extra: mrjk.clak[config])
-_yaml = optional("yaml")
+# Optional YAML support (extra: mrjk.clak[config]), imported on first use.
+# Tests may set ``_yaml = None`` to simulate a missing PyYAML.
+_YAML_UNRESOLVED = object()
+_yaml = _YAML_UNRESOLVED  # pylint: disable=invalid-name
+
+
+def _yaml_module():
+    """PyYAML module, or None when not installed (resolved lazily)."""
+    if _yaml is _YAML_UNRESOLVED:
+        return optional("yaml")
+    return _yaml
+
 
 _DEFAULT_XDG = {
     "XDG_CONFIG_HOME": "~/.config",
@@ -108,20 +118,21 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
                 advice=str(err),
             ) from err
     elif suffix in _YAML_SUFFIXES:
-        if _yaml is None:
+        yaml = _yaml_module()
+        if yaml is None:
             raise ClakUserError(
                 f"YAML config requires PyYAML ({conf_path})",
                 advice=f"Install with: {install_hint('yaml')}",
             )
         try:
             with conf_path.open(encoding="utf-8") as handle:
-                data = _yaml.safe_load(handle)
+                data = yaml.safe_load(handle)
         except OSError as err:
             raise ClakUserError(
                 f"Could not read config file: {conf_path}",
                 advice=str(err),
             ) from err
-        except _yaml.YAMLError as err:
+        except yaml.YAMLError as err:
             raise ClakUserError(
                 f"Invalid YAML in config file: {conf_path}",
                 advice=str(err),
