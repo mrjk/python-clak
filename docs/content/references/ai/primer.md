@@ -31,9 +31,8 @@ Optional helpers (not required; Argument still accepts both):
 - Opt — option flags only (- / --)
 Mixing names (Arg("--x"), Opt("NAME")) raises ValueError.
 
-Aliases still work but prefer canonical names:
-- ArgumentParser = Parser
-- SubParser / SubCommand / Cmd = Command
+Use canonical names: Parser, Command (class: SubParser).
+Removed aliases: ArgumentParser, SubCommand, Cmd.
 
 ## Install
 

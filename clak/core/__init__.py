@@ -2,7 +2,7 @@
 
 from clak.core._dispatch import Dispatcher
 from clak.core._exception import Terminator
-from clak.core.argparse_ import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
+from clak.core.argp import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
 from clak.core.context import ClakContext, CliArgs, DataStore, PluginStore
 from clak.core.descriptors import Arg, Argument, MetaSetting, Opt, SubParser
 from clak.core.parser import Command, Parser, ParserNode

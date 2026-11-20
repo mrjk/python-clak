@@ -101,7 +101,7 @@ class MyCommand(Parser):
 
 ### Nested commands
 
-`Command` binds a child `Parser` (aliases: `SubParser`, `SubCommand`, `Cmd`):
+`Command` binds a child `Parser` (`SubParser` is its class):
 
 ```python
 class MainApp(Parser):

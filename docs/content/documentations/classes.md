@@ -24,8 +24,8 @@ from clak import Parser, Command, Argument, Arg, Opt
 | `ClakContext` | runtime object | Passed as `ctx` to hooks, `cli_group` and `cli_run`. |
 | `ClakView` | output | Base of the views that render `cli_run` return values. See [Views](views.md). |
 
-Legacy aliases are still exported: `ArgumentParser` (= `Parser`), `SubParser`,
-`SubCommand` and `Cmd` (= `Command`). Prefer the canonical names.
+`SubParser` is the class behind `Command`; the old `ArgumentParser`,
+`SubCommand` and `Cmd` aliases were removed.
 
 ``` mermaid
 classDiagram

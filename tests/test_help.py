@@ -8,7 +8,7 @@ import pytest
 
 from clak import Argument, Command, Parser, RecursiveHelpFormatter, RichHelpMixin
 from clak.comp.help import RichRecursiveHelpFormatter
-from clak.core.argparse_ import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
+from clak.core.help_render import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
 from clak.views.base import strip_ansi
 from tests.view_fixtures import _has_background_csi

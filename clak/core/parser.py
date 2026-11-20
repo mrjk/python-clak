@@ -1,7 +1,7 @@
 """Clak parser: ParserNode build, dispatch, and execute.
 
 Descriptors (Argument, Arg, Opt, SubParser, MetaSetting, docstring helpers)
-live in ``clak.core.descriptors`` and are re-exported here for compatibility.
+live in ``clak.core.descriptors``.
 
 Canonical public names: ``Parser``, ``Argument``, ``Command`` (alias of SubParser).
 Optional helpers: ``Arg`` (positionals), ``Opt`` (flags).
@@ -12,35 +12,25 @@ Dispatch and exception handling live in ``clak.core._dispatch`` and
 ``clak.core._exception``; this module keeps the build/inherit facade.
 """
 
+import argparse
 import logging
 from typing import Any, Optional
 
 from clak import exception
 from clak.core._dispatch import Dispatcher
-from clak.core._exception import (  # noqa: F401  # pylint: disable=unused-import
-    Terminator,
-    _exit_broken_pipe,
-)
+from clak.core._exception import Terminator
+from clak.core.argp import ArgumentParser as ClakArgumentParser
 from clak.core.argp import SubParsersAction
-from clak.core.argparse_ import (
-    HELP_SUBCOMMANDS_ALL,
-    ArgumentParserPlus,
-    HelpLayout,
-    argparse,
-)
 from clak.core.context import ClakContext
-from clak.core.descriptors import (  # pylint: disable=unused-import
-    Arg,
-    ArgParseItem,
+from clak.core.descriptors import (
     Argument,
     FormatEnv,
     MetaSetting,
-    Opt,
     SubParser,
     first_doc_line,
     prepare_docstring,
 )
-from clak.core.help_render import HelpRenderer
+from clak.core.help_render import HELP_SUBCOMMANDS_ALL, HelpLayout, HelpRenderer
 from clak.core.nodes import NOT_SET, Node
 from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.settings import apply_debug_logging
@@ -48,13 +38,15 @@ from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
-# Backwards-compatible aliases (preferred public name is Command via clak.__init__)
+# Public name for subcommand descriptors (SubParser is the class).
 Command = SubParser
 
 PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
 
 
-class ParserNode(Node):  # pylint: disable=too-many-instance-attributes,too-many-public-methods
+class ParserNode(
+    Node
+):  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """An extensible argument parser that can be inherited to create custom CLIs.
 
     This class provides a framework for building complex command-line interfaces with:
@@ -224,7 +216,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes,too-many
         else:
             self.parser = parser
             self.proc_name = self.parent.proc_name
-            # add_parser() builds ArgumentParserPlus without clak_instance.
+            # add_parser() builds ClakArgumentParser without clak_instance.
             if hasattr(self.parser, "clak_instance"):
                 self.parser.clak_instance = self
 
@@ -261,7 +253,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes,too-many
         "Create a new parser"
         usage, desc, epilog = self.help_texts(FormatEnv({"self": self}).get())
         # parse_intermixed / allow_abbrev are set by _install_help.
-        parser = ArgumentParserPlus(
+        parser = ClakArgumentParser(
             prog=self.proc_name,
             usage=usage,
             description=desc,
@@ -341,7 +333,7 @@ class ParserNode(Node):  # pylint: disable=too-many-instance-attributes,too-many
             self._subparsers = self.parser.add_subparsers(
                 dest=f"__cli_cmd__{level}",
                 help="Available commands",
-                parser_class=ArgumentParserPlus,
+                parser_class=ClakArgumentParser,
                 action=SubParsersAction,
                 allow_abbrev=bool(
                     self.query_cfg_parents("abbrev_commands", default=False)

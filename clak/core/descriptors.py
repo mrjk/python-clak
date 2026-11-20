@@ -5,16 +5,14 @@ Public imports remain available from ``clak``, ``clak.parser``, and
 ``clak.core.descriptors``.
 """
 
+import argparse
 import copy
 import inspect
 import logging
+from argparse import SUPPRESS
 from typing import Any, Dict, Optional, Tuple
 
 from clak.common import CleandocProxy, deindent_docstring
-from clak.core.argparse_ import (
-    SUPPRESS,
-    argparse,
-)
 from clak.core.help_render import HelpArg
 from clak.core.nodes import Fn
 

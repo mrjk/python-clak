@@ -11,8 +11,8 @@ Cliff: [Comparison](comparison.md).
   - `argparse.ArgumentParser()` → `class MyApp(Parser):`
   - `.add_argument(...)` → `dest = Argument(...)`
   - `.add_subparsers(...)` → `subcmd = Command(...)`
-- Aliases (supported, not preferred in new code): `SubParser` / `SubCommand` /
-  `Cmd` for `Command`; `ArgumentParser` for `Parser`.
+- `SubParser` is the class behind `Command` (the `ArgumentParser`,
+  `SubCommand` and `Cmd` aliases were removed).
 - Optional helpers: `Opt` for flags (`-` / `--`) and `Arg` for positionals.
   `Argument` still accepts both; `Arg` / `Opt` are never required. Mixing
   names (`Arg("--flag")`, `Opt("NAME")`) raises `ValueError`. See

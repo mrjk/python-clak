@@ -14,7 +14,7 @@ Canonical public API (import from ``clak``):
 - Parser: root/command class (auto-dispatches on init unless parse=False)
 - Argument: positional or optional argument descriptor
 - Arg / Opt: optional sugar for positionals vs flags (Argument still accepts both)
-- Command: nested subcommand descriptor (alias of SubParser)
+- Command: nested subcommand descriptor (``SubParser`` is the class name)
 
 Optional mixins (also from ``clak``): LoggingOptMixin, RuntimeOptMixin, RichHelpMixin,
 Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin, completion,
@@ -23,7 +23,7 @@ WorkDirMixin.
 
 Secondary entry points: ``clak.exception``, ``clak.views`` (view classes),
 ``clak.comp`` (mixins). Internal layout: ``clak.core``, ``clak.runtime``,
-``clak.views``, ``clak.comp``. Deep module paths remain import-compatible.
+``clak.views``, ``clak.comp``.
 """
 
 from importlib.metadata import PackageNotFoundError, version
@@ -49,19 +49,10 @@ from clak.comp.views import (
     RstViewMixin,
     ShowViewMixin,
 )
-from clak.core.argparse_ import (
-    ONE_OR_MORE,
-    OPTIONAL,
-    SUPPRESS,
-    ZERO_OR_MORE,
-    RecursiveHelpFormatter,
-)
-from clak.core.parser import Arg, Argument, Command, Opt, Parser, ParserNode, SubParser
-
-# Legacy / short aliases (prefer Command)
-ArgumentParser = Parser
-SubCommand = SubParser
-Cmd = SubParser
+from clak.core.argp import ONE_OR_MORE, OPTIONAL, SUPPRESS, ZERO_OR_MORE
+from clak.core.descriptors import Arg, Argument, Opt, SubParser
+from clak.core.help_render import RecursiveHelpFormatter
+from clak.core.parser import Command, Parser, ParserNode
 
 try:
     __version__ = version("mrjk.clak")
@@ -72,8 +63,6 @@ __all__ = [
     "__version__",
     "Arg",
     "Argument",
-    "ArgumentParser",
-    "Cmd",
     "Command",
     "CompCmdRender",
     "CompRenderCmdMixin",
@@ -96,7 +85,6 @@ __all__ = [
     "RuntimeOptMixin",
     "SUPPRESS",
     "ShowViewMixin",
-    "SubCommand",
     "SubParser",
     "WorkDirMixin",
     "XDGCacheDirMixin",

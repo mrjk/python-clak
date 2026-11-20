@@ -89,16 +89,13 @@ Not implemented yet. Prefer tracking here instead of half-finished guide section
 - Decorator-first APIs in the style of Click/Typer as the primary surface
   (see [Architecture](../references/architecture/list.md) for design choices)
 
-## Aliases (supported, not preferred)
+## Removed aliases
 
-Prefer the canonical names in new code and docs:
-
-| Prefer | Alias (still exported) |
-| --- | --- |
-| `Parser` | `ArgumentParser` |
-| `Command` | `SubParser`, `SubCommand`, `Cmd` |
-
-These aliases are not deprecated; documentation simply leads with the canonical names.
+The legacy aliases `ArgumentParser` (use `Parser`), `SubCommand` and `Cmd`
+(use `Command`) were removed, along with the `clak.<module>` re-export shims
+(`clak.parser`, `clak.nodes`, `clak.settings`, ...). Import from `clak` or
+the real modules under `clak.core`, `clak.runtime`, `clak.views`.
+`SubParser` remains the class behind `Command`.
 
 `Arg` and `Opt` are optional helpers, not aliases: they subclass `Argument` and
 reject mixed positional / flag names.

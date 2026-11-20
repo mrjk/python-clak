@@ -1,5 +1,6 @@
 """Parse, dispatch, and execute for ParserNode."""
 
+import argparse
 import logging
 import shlex
 import sys
@@ -8,7 +9,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from clak import exception
 from clak.core.argp import format_argument_error
-from clak.core.argparse_ import argparse
 from clak.core.context import ClakContext, CliArgs
 from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.facts import detect_facts

@@ -132,7 +132,3 @@ class ArgumentParser(argparse.ArgumentParser):
             err.clak_parser = getattr(leaf, "parser", None) or self
             raise err
         return parsed
-
-
-# Compatibility name used by ParserNode and older imports.
-ArgumentParserPlus = ArgumentParser

@@ -23,7 +23,7 @@ PUBLIC SURFACE
 from clak import (
     Parser, Argument, Command,          # core
     Arg, Opt,                           # optional: positionals vs flags
-    ArgumentParser, SubParser, SubCommand, Cmd,  # aliases
+    SubParser,                          # class behind Command
     LoggingOptMixin, RichHelpMixin,
     ShowViewMixin, ListViewMixin, PprintViewMixin, DataViewMixin,
     RawViewMixin, MarkdownViewMixin, RstViewMixin, CompositeViewMixin,
