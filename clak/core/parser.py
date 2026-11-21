@@ -241,6 +241,8 @@ class ParserNode(
             if hasattr(self.parser, "clak_instance"):
                 self.parser.clak_instance = self
 
+        self._install_help_flag()
+
         # Init _subparsers
         self._subparsers = None
         self.local_flag_arguments: dict[str, Argument] = {}
@@ -280,7 +282,7 @@ class ParserNode(
             description=desc,
             epilog=epilog,
             formatter_class=self.get_help_formatter_class(),
-            add_help=self.add_help,
+            add_help=False,  # help flags are owned by _install_help_flags
             exit_on_error=False,
             clak_instance=self,
         )
@@ -328,6 +330,32 @@ class ParserNode(
                     help=argparse.SUPPRESS,
                 )
 
+    def _install_help_flag(self) -> None:
+        """Register ``-h/--help``; runs first so it leads usage and options."""
+        if self.add_help and hasattr(self.parser, "add_argument"):
+            self.parser.add_argument(
+                "-h",
+                "--help",
+                action="help",
+                default=argparse.SUPPRESS,
+                help="show this help message and exit",
+            )
+
+    def _install_help_flags(self) -> None:
+        """Register ``--help-all`` and ``--help-<topic>`` (needs the layout)."""
+        if not self.add_help or not hasattr(self.parser, "add_argument"):
+            return
+        flag = self.help_layout.help_all_flag
+        if flag:
+            self.parser.add_argument(
+                flag,
+                action=HelpAllAction,
+                dest="help_all",
+                default=argparse.SUPPRESS,
+                help=argparse.SUPPRESS,
+            )
+            self._install_help_topics(flag)
+
     def _install_help(self):
         """Attach HelpRenderer and version-stable parse flags to the wrapper."""
         self.help_layout = HelpLayout(
@@ -350,16 +378,7 @@ class ParserNode(
         if isinstance(fmt, type) and issubclass(fmt, RichRecursiveHelpFormatter):
             renderer.colorizer = help_document_colorizer
         self.help_renderer = renderer
-        flag = self.help_layout.help_all_flag
-        if flag and hasattr(self.parser, "add_argument"):
-            self.parser.add_argument(
-                flag,
-                action=HelpAllAction,
-                dest="help_all",
-                default=argparse.SUPPRESS,
-                help=argparse.SUPPRESS,
-            )
-            self._install_help_topics(flag)
+        self._install_help_flags()
         if hasattr(self.parser, "clak_help_renderer"):
             self.parser.clak_help_renderer = renderer
         if hasattr(self.parser, "parse_intermixed"):

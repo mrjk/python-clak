@@ -423,7 +423,7 @@ class SubParser(ArgParseItem):
         parser_kwargs.update(
             {
                 "formatter_class": config.get_help_formatter_class(),
-                "add_help": parser_help_enabled,  # Add support for --help
+                "add_help": False,  # help flags are installed by the child ParserNode
                 "exit_on_error": False,
                 "help": parser_help,
             }
@@ -437,7 +437,9 @@ class SubParser(ArgParseItem):
         )
 
         # Create an instance of the command class with the subparser
-        child = self.cls(parent=config, parser=subparser, key=key)
+        child = self.cls(
+            parent=config, parser=subparser, key=key, add_help=parser_help_enabled
+        )
         child.command_group = command_group
         child.command_help = parser_help
 
@@ -445,7 +447,6 @@ class SubParser(ArgParseItem):
         child_usage, child_desc, child_epilog = child.help_texts(
             {"key": key, "self": child}, first_line=True
         )
-        subparser.add_help = False
         subparser.usage = child_usage
         subparser.description = child_desc
         subparser.epilog = child_epilog

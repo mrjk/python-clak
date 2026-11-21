@@ -201,13 +201,14 @@ class HelpRenderer:
         flag = layout.help_all_flag
         if full or not hidden_items:
             hidden_items = []
-        if getattr(node, "add_help", True):
-            args = [_help_flag_arg()] + args
+        help_arg = _help_flag_arg(parser)
+        if help_arg is not None:
+            args = [help_arg] + args
         if topic is not None:  # one group only: --help-<topic>
             hidden_items = []
             args = [item for item in args if item.group == topic]
         elif flag and full and _has_collapsible(args, layout):
-            args.insert(1 if getattr(node, "add_help", True) else 0, _help_all_arg(flag))
+            args.insert(1 if help_arg is not None else 0, _help_all_arg(flag))
         visible = [
             item
             for item in args
@@ -396,15 +397,12 @@ def _short_usage(prog: str, visible, hidden_items) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _help_flag_arg() -> HelpArg:
-    return HelpArg(
-        dest="help",
-        option_strings=("-h", "--help"),
-        help="show this help message and exit",
-        default=SUPPRESS,
-        nargs=0,
-        suppress=False,
-    )
+def _help_flag_arg(parser) -> Optional[HelpArg]:
+    """Describe the registered ``-h/--help`` action, if the parser has one."""
+    for action in getattr(parser, "_actions", ()):
+        if action.dest == "help" and "-h" in action.option_strings:
+            return HelpArg.from_action(action)
+    return None
 
 
 def _format_args(item: HelpArg) -> str:
