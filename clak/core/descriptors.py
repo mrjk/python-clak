@@ -211,6 +211,8 @@ class Argument(ArgParseItem):
       (``add_mutually_exclusive_group``). Same key reuses one XOR set
       (``required=False``). May nest under a help section when a help-group
       kwarg is also set.
+    - ``help_level``: ``"main"`` (default) or ``"advanced"``. Advanced flags are
+      summarized in short ``--help`` and listed by ``--help-all``.
     - ``propagate``: Copy this flag onto descendant parsers (default True).
       Set False to keep it on this parser only.
     """
@@ -285,6 +287,7 @@ class Argument(ArgParseItem):
         help_group_title = _help_group_title_from_kwargs(key, kwargs)
         exclusive_key = kwargs.pop("exclusive_group", None)
         kwargs.pop("propagate", None)
+        advanced = kwargs.pop("help_level", "main") == "advanced"
 
         # Create argument
         logger.debug(
@@ -298,7 +301,8 @@ class Argument(ArgParseItem):
         action = target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
         help_args = getattr(config, "help_args", None)
         if help_args is not None:
-            help_args.append(HelpArg.from_action(action, group=help_group_title))
+            help_args.append(HelpArg.from_action(action, group=help_group_title, advanced=advanced)
+            )
         return action
 
 

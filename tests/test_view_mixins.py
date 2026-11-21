@@ -232,7 +232,7 @@ def test_list_view_mixin_output_options_group_in_help():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
     assert "Output options:" in help_text
     assert "--catalog" in help_text
@@ -250,7 +250,7 @@ def test_list_view_mixin_view_column_names_in_help():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
     assert "Available: Var, Value, Order" in help_text
     # --columns, --sort-columns, and --wrap get the Available: suffix

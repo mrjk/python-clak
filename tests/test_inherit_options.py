@@ -76,7 +76,7 @@ def test_closer_ancestor_copied_not_root():
             return None
 
     app = App(parse=False, add_help=True)
-    help_text = app.children["db"].children["migrate"].parser.format_help()
+    help_text = app.children["db"].children["migrate"].help_renderer.format_help(full=True)
     assert "parent options:" in help_text
     assert "db verbose" in help_text
     assert "root verbose" not in help_text

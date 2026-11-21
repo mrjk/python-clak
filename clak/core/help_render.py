@@ -44,6 +44,8 @@ class HelpLayout:
     subcommands: str = HELP_SUBCOMMANDS_ALL
     hide_parent: bool = True
     command_groups: tuple = ()
+    collapsed_groups: tuple = ()  # option groups summarized in short --help
+    help_all_flag: Optional[str] = None  # flag printing the full help
 
     def __post_init__(self):
         if self.subcommands not in HELP_SUBCOMMANDS_CHOICES:
@@ -81,9 +83,10 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
     choices: Any = None
     group: Optional[str] = None
     suppress: bool = False
+    advanced: bool = False  # collapsed in short --help (help_level="advanced")
 
     @classmethod
-    def from_action(cls, action, group=None) -> "HelpArg":
+    def from_action(cls, action, group=None, advanced=False) -> "HelpArg":
         """Build a HelpArg from an argparse Action."""
         help_msg = action.help
         suppress = help_msg == SUPPRESS
@@ -98,6 +101,7 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
             choices=getattr(action, "choices", None),
             group=group,
             suppress=suppress,
+            advanced=advanced,
         )
 
     def is_positional(self) -> bool:
@@ -168,15 +172,18 @@ class HelpRenderer:
         self.node = node
         self.colorizer = colorizer
 
-    def format_help(self) -> str:
-        """Full help text, colorized when a colorizer is set."""
-        doc = self.build()
+    def format_help(self, full: bool = False, topic: Optional[str] = None) -> str:
+        """Help text, colorized when a colorizer is set.
+
+        Short by default (collapsed groups summarized); ``full`` lists all.
+        """
+        doc = self.build(full=full, topic=topic)
         if self.colorizer is not None:
             return self.colorizer(doc)
         return doc.to_plain()
 
-    def build(  # pylint: disable=too-many-locals,too-many-branches
-        self,
+    def build(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        self, full: bool = True, topic: Optional[str] = None
     ) -> HelpDocument:
         """Assemble the HelpDocument for this node."""
         node = self.node
@@ -184,9 +191,28 @@ class HelpRenderer:
         layout = node.help_layout
 
         args = list(getattr(node, "help_args", None) or [])
+        collapsed_titles = set(layout.collapsed_groups)
+        hidden_items = [
+            item
+            for item in args
+            if not item.is_hidden()
+            and (item.advanced or item.group in collapsed_titles)
+        ]
+        flag = layout.help_all_flag
+        if full or not hidden_items:
+            hidden_items = []
         if getattr(node, "add_help", True):
             args = [_help_flag_arg()] + args
-        visible = [item for item in args if not item.is_hidden()]
+        if topic is not None:  # one group only: --help-<topic>
+            hidden_items = []
+            args = [item for item in args if item.group == topic]
+        elif flag and (hidden_items or (full and _has_collapsible(args, layout))):
+            args.insert(1 if getattr(node, "add_help", True) else 0, _help_all_arg(flag))
+        visible = [
+            item
+            for item in args
+            if not item.is_hidden() and not any(item is h for h in hidden_items)
+        ]
 
         def arg_rows(items):
             return [(_format_invocation(item), _help_text_for(item)) for item in items]
@@ -201,6 +227,8 @@ class HelpRenderer:
             (title, _command_rows(members, layout))
             for title, members in _command_sections(node, layout)
         ]
+        if topic is not None:
+            command_sections = []
         sections = [
             ("positional arguments:", arg_rows(positionals), "cmds"),
             *((title, rows, "cmds") for title, rows in command_sections),
@@ -239,6 +267,21 @@ class HelpRenderer:
                 _append_entry_lines(doc, label, help_msg, widths, name_kind=kind)
             doc.add()
 
+        if hidden_items:
+            summaries: dict[str, list] = {}
+            for item in hidden_items:
+                summaries.setdefault(item.group or "advanced options", []).append(item)
+            for title, items in summaries.items():
+                doc.add(
+                    ("group", f"{title}:"),
+                    ("plain", " " + _summarize(items, _help_width() - len(title) - 3)),
+                )
+            doc.add()
+            topics = ", ".join(sorted({topic_flag(t) for t in summaries if t in collapsed_titles}))
+            more = f" (or {topics} for one section)" if topics else ""
+            doc.add(("plain", f"Use {flag} to list every option{more}."))
+            doc.add()
+
         epilog = strip_rst_literals(parser.epilog).rstrip("\n")
         if epilog:
             for raw in epilog.splitlines():
@@ -266,6 +309,48 @@ def _help_widths(max_label: int) -> _HelpWidths:
 def _help_width() -> int:
     width, _height = terminal_size()
     return max(width - 2, 40)
+
+
+def topic_flag(title: str) -> str:
+    """``--help-<slug>`` flag for an option group title."""
+    slug = title.lower().removesuffix(" options").strip()
+    slug = "".join(ch if ch.isalnum() else "-" for ch in slug).strip("-")
+    return f"--help-{slug}"
+
+
+def _has_collapsible(args, layout: HelpLayout) -> bool:
+    titles = set(layout.collapsed_groups)
+    return any(
+        not item.is_hidden() and (item.advanced or item.group in titles)
+        for item in args
+    )
+
+
+def _help_all_arg(flag: str) -> HelpArg:
+    return HelpArg(
+        dest="help_all",
+        option_strings=(flag,),
+        help="show all options, including output and parent options",
+        default=SUPPRESS,
+        nargs=0,
+    )
+
+
+def _summarize(items, width: int) -> str:
+    """``--a, --b, ... (N options)`` clipped to *width* characters."""
+    names = [
+        next((o for o in item.option_strings if o.startswith("--")), None)
+        or (item.option_strings[0] if item.option_strings else item.dest)
+        for item in items
+    ]
+    tail = f" ({len(names)} options)"
+    out = ""
+    for idx, name in enumerate(names):
+        sep = ", " if out else ""
+        if len(out) + len(sep) + len(name) + len(tail) + 5 > width and idx:
+            return out + ", ..." + tail
+        out += sep + name
+    return out + tail
 
 
 def _help_flag_arg() -> HelpArg:

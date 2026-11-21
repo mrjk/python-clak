@@ -21,6 +21,7 @@ from clak.core._dispatch import Dispatcher
 from clak.core._exception import clean_terminate
 from clak.core.argp import ArgumentParser as ClakArgumentParser
 from clak.core.argp import SubParsersAction
+from clak.core.argp.actions import HelpAllAction
 from clak.core.context import ClakContext
 from clak.core.descriptors import (
     Argument,
@@ -35,6 +36,7 @@ from clak.core.help_render import (
     HelpRenderer,
     RichRecursiveHelpFormatter,
     help_document_colorizer,
+    topic_flag,
 )
 from clak.core.nodes import NOT_SET, Node
 from clak.runtime.settings import apply_debug_logging
@@ -154,6 +156,16 @@ class ParserNode(
             "Help section title for propagated ancestor flags "
             "(default 'parent options'). Inherited; a child may override."
         ),
+    )
+    meta__config__help_collapsed_groups = MetaSetting(
+        help=(
+            "Option group titles summarized in short --help and listed by "
+            "--help-all (default: 'Output options' and the propagated group; "
+            "[] disables). Inherited."
+        ),
+    )
+    meta__config__help_all_flag = MetaSetting(
+        help="Flag printing the full help (default '--help-all'; None disables)",
     )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
@@ -286,6 +298,36 @@ class ParserNode(
             default=RichRecursiveHelpFormatter,
         )
 
+    def _resolve_collapsed_groups(self) -> tuple:
+        groups = self.query_cfg_parents("help_collapsed_groups", default=None)
+        if groups is None:
+            groups = (
+                "Output options",
+                self.query_cfg_parents(
+                    "propagate_options_group", default=PROPAGATE_OPTIONS_GROUP_DEFAULT
+                ),
+            )
+        return tuple(groups)
+
+    def _resolve_help_all_flag(self) -> Optional[str]:
+        flag = self.query_cfg_parents("help_all_flag", default="--help-all")
+        return flag if flag and self.add_help else None
+
+    def _install_help_topics(self, all_flag: str) -> None:
+        """Add ``--help-<topic>`` for each non-empty collapsed group."""
+        present = {a.group for a in self.help_args if not a.is_hidden()}
+        for title in self.help_layout.collapsed_groups:
+            flag = topic_flag(title)
+            if title in present and flag != all_flag:
+                self.parser.add_argument(
+                    flag,
+                    action=HelpAllAction,
+                    const=title,
+                    dest=f"help_{flag[7:].replace('-', '_')}",
+                    default=argparse.SUPPRESS,
+                    help=argparse.SUPPRESS,
+                )
+
     def _install_help(self):
         """Attach HelpRenderer and version-stable parse flags to the wrapper."""
         self.help_layout = HelpLayout(
@@ -300,12 +342,24 @@ class ParserNode(
             command_groups=tuple(
                 self.query_cfg_inst("command_groups", default=()) or ()
             ),
+            collapsed_groups=self._resolve_collapsed_groups(),
+            help_all_flag=self._resolve_help_all_flag(),
         )
         renderer = HelpRenderer(self)
         fmt = self.get_help_formatter_class()
         if isinstance(fmt, type) and issubclass(fmt, RichRecursiveHelpFormatter):
             renderer.colorizer = help_document_colorizer
         self.help_renderer = renderer
+        flag = self.help_layout.help_all_flag
+        if flag and hasattr(self.parser, "add_argument"):
+            self.parser.add_argument(
+                flag,
+                action=HelpAllAction,
+                dest="help_all",
+                default=argparse.SUPPRESS,
+                help=argparse.SUPPRESS,
+            )
+            self._install_help_topics(flag)
         if hasattr(self.parser, "clak_help_renderer"):
             self.parser.clak_help_renderer = renderer
         if hasattr(self.parser, "parse_intermixed"):

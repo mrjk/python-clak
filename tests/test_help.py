@@ -880,3 +880,50 @@ def test_rst_literals_stripped_on_forced_color(monkeypatch):
     stripped = strip_ansi(help_text)
     assert "``" not in stripped
     assert "cmd" in stripped
+
+
+class _CollapseApp(Parser):
+    """Demo help."""
+
+    class Meta:
+        help_collapsed_groups = ["Tuning options"]
+
+    name = Argument("--name", help="Domain option")
+    fast = Argument("--fast", action="store_true", option_group="Tuning options")
+    slow = Argument("--slow", action="store_true", option_group="Tuning options")
+    odd = Argument("--odd", action="store_true", help_level="advanced")
+
+    def cli_run(self, **_):
+        return None
+
+
+def _help(app, **kwargs):
+    """Help body without the usage block (it lists every option)."""
+    return app.help_renderer.format_help(**kwargs).split("Demo help.", 1)[1]
+
+
+def test_short_help_collapses_groups():
+    text = _help(_CollapseApp(parse=False))
+    assert "--name" in text
+    assert "Tuning options: --fast, --slow (2 options)" in text
+    assert "--help-all" in text and "--help-tuning" in text
+    assert "advanced options: --odd (1 options)" in text
+
+
+def test_help_all_and_topic():
+    app = _CollapseApp(parse=False)
+    full = _help(app, full=True)
+    assert "Tuning options:\n" in full and "--fast" in full and "--odd" in full
+    topic = _help(app, full=True, topic="Tuning options")
+    assert "--fast" in topic and "--name" not in topic
+
+
+def test_collapse_can_be_disabled():
+    class Plain(_CollapseApp):
+        """Demo help."""
+
+        class Meta:
+            help_collapsed_groups = []
+
+    text = _help(Plain(parse=False))
+    assert "Tuning options:\n" in text and "--fast" in text

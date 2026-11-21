@@ -57,3 +57,19 @@ class SubParsersAction(argparse._SubParsersAction):
         if resolved is not None and resolved != values[0]:
             values = [resolved] + list(values[1:])
         super().__call__(parser, namespace, values, option_string)
+
+
+class HelpAllAction(argparse.Action):
+    """Print the full help and exit; with ``const`` set, only that group."""
+
+    def __init__(self, option_strings, dest, **kwargs):
+        kwargs["nargs"] = 0
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        renderer = getattr(parser, "clak_help_renderer", None)
+        if renderer is not None:
+            print(renderer.format_help(full=True, topic=self.const), end="")
+        else:
+            parser.print_help()
+        parser.exit()
