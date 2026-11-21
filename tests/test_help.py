@@ -886,11 +886,11 @@ class _CollapseApp(Parser):
     """Demo help."""
 
     class Meta:
-        help_collapsed_groups = ["Tuning options"]
+        help_collapsed_groups = ["tuning options"]
 
     name = Argument("--name", help="Domain option")
-    fast = Argument("--fast", action="store_true", option_group="Tuning options")
-    slow = Argument("--slow", action="store_true", option_group="Tuning options")
+    fast = Argument("--fast", action="store_true", option_group="tuning options")
+    slow = Argument("--slow", action="store_true", option_group="tuning options")
     odd = Argument("--odd", action="store_true", help_level="advanced")
 
     def cli_run(self, **_):
@@ -905,16 +905,16 @@ def _help(app, **kwargs):
 def test_short_help_collapses_groups():
     text = _help(_CollapseApp(parse=False))
     assert "--name" in text
-    assert "--help-tuning" in text and "Tuning options (2): --fast, --slow" in text
+    assert "--help-tuning" in text and "tuning options (2): --fast, --slow" in text
     assert "--help-all" in text
-    assert "Advanced (1): --odd" in text
+    assert "advanced (1): --odd" in text
 
 
 def test_help_all_and_topic():
     app = _CollapseApp(parse=False)
     full = _help(app, full=True)
-    assert "Tuning options:\n" in full and "--fast" in full and "--odd" in full
-    topic = _help(app, full=True, topic="Tuning options")
+    assert "tuning options:\n" in full and "--fast" in full and "--odd" in full
+    topic = _help(app, full=True, topic="tuning options")
     assert "--fast" in topic and "--name" not in topic
 
 
@@ -926,4 +926,4 @@ def test_collapse_can_be_disabled():
             help_collapsed_groups = []
 
     text = _help(Plain(parse=False))
-    assert "Tuning options:\n" in text and "--fast" in text
+    assert "tuning options:\n" in text and "--fast" in text

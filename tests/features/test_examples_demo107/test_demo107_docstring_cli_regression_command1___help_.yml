@@ -6,5 +6,5 @@ output: "usage: demo107-test command1 [-h] [--source SOURCE] [--force] [PARENT O
   \nCommand 1, which do something with a source\n\noptions:\n  -h, --help        \
   \          show this help message and exit\n  --source SOURCE, -s SOURCE  Source\
   \ path (default: None)\n  --force, -f                 Force (default: False)\n\n\
-  more help:\n  --help-parent  Parent options (2): --debug, --config\n  --help-all\
+  more help:\n  --help-parent  parent options (2): --debug, --config\n  --help-all\
   \     Show every option, all sections\n\nAnother epilog for this child command.\n"

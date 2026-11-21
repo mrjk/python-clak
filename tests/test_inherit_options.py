@@ -246,7 +246,7 @@ def test_leaf_help_parent_options_group():
 
     class Grep(Parser):
         pattern = Arg("pattern")
-        fmt = Opt("--format", option_group="Output options", help="Format")
+        fmt = Opt("--format", option_group="output options", help="Format")
 
         def cli_run(self, **_):
             return None
@@ -255,7 +255,7 @@ def test_leaf_help_parent_options_group():
         verbose = Opt(
             "--verbose",
             action="store_true",
-            option_group="Output options",
+            option_group="output options",
             help="Verbose mode",
         )
         grep = Command(Grep, help="Search")
@@ -267,7 +267,7 @@ def test_leaf_help_parent_options_group():
     help_text = app.children["grep"].help_renderer.format_help(full=True)
     assert "parent options:" in help_text
     parent_idx = help_text.index("parent options:")
-    output_idx = help_text.index("Output options:")
+    output_idx = help_text.index("output options:")
     assert "--verbose" in help_text[parent_idx:]
     assert "--format" in help_text[output_idx:parent_idx]
     assert "--verbose" not in help_text[output_idx:parent_idx]

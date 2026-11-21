@@ -110,7 +110,7 @@ on a branch where a parent set `Meta.help_formatter = RecursiveHelpFormatter`.
 ### View mixins
 
 A view mixin picks the view that renders the return value of `cli_run`, and
-adds the matching output flags (in the `Output options` help section). Use one
+adds the matching output flags (in the `output options` help section). Use one
 per command.
 
 | Mixin | View | Flags | `Meta` defaults |

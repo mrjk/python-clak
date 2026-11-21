@@ -74,7 +74,7 @@ from clak.views.columns import (
 
 logger = logging.getLogger(__name__)
 
-_OUTPUT_OPTIONS_GROUP = "Output options"
+_OUTPUT_OPTIONS_GROUP = "output options"
 _BOOL_FLAG = {"action": argparse.BooleanOptionalAction}
 
 

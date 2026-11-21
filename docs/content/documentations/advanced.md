@@ -64,12 +64,12 @@ class App(Parser):
     format = Argument(
         "--format",
         choices=["view", "json"],
-        option_group="Output options",
+        option_group="output options",
         help="Output format",
     )
     columns = Argument(
         "--columns",
-        option_group="Output options",
+        option_group="output options",
         help="Columns to show",
     )
     json = Argument("--json", action="store_true", exclusive_group="fmt")
@@ -81,7 +81,7 @@ class App(Parser):
 
 `App(parse=False, add_help=True).parser.format_help()` shows `--catalog` under
 the default options section and `--format` / `--columns` under
-**Output options**. Passing both `--json` and `--yaml` is a parse error.
+**output options**. Passing both `--json` and `--yaml` is a parse error.
 
 Subcommand grouping is formatter metadata (not a second `add_subparsers`).
 `Meta.command_groups` is ordered `(key, title)` pairs on that Parser only.

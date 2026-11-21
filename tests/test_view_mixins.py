@@ -234,10 +234,10 @@ def test_list_view_mixin_output_options_group_in_help():
 
     help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
-    assert "Output options:" in help_text
+    assert "output options:" in help_text
     assert "--catalog" in help_text
-    # View flags sit under the Output options section
-    output_idx = help_text.index("Output options:")
+    # View flags sit under the output options section
+    output_idx = help_text.index("output options:")
     assert help_text.index("--columns", output_idx) > output_idx
     assert help_text.index("--sort-columns", output_idx) > output_idx
 

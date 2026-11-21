@@ -216,7 +216,7 @@ def test_option_group_kwarg_not_passed_to_argparse():
 
     class App(Parser):
         output_format = Argument(
-            "--format", option_group="Output options", help="Format"
+            "--format", option_group="output options", help="Format"
         )
 
         def cli_run(self, **_):
@@ -224,7 +224,7 @@ def test_option_group_kwarg_not_passed_to_argparse():
 
     # Would raise TypeError if option_group leaked into argparse.add_argument
     app = App(parse=False, add_help=True)
-    assert "Output options:" in app.help_renderer.format_help(full=True)
+    assert "output options:" in app.help_renderer.format_help(full=True)
     args = app.parse_args(["--format", "x"])
     assert args.output_format == "x"
 
@@ -270,13 +270,13 @@ def test_exclusive_group_nests_under_option_group():
         quiet = Argument(
             "--quiet",
             action="store_true",
-            option_group="Output options",
+            option_group="output options",
             exclusive_group="verbosity",
         )
         verbose = Argument(
             "--verbose",
             action="store_true",
-            option_group="Output options",
+            option_group="output options",
             exclusive_group="verbosity",
         )
 
@@ -285,10 +285,10 @@ def test_exclusive_group_nests_under_option_group():
 
     app = App(parse=False, add_help=True)
     groups = getattr(app.parser, "_clak_argument_groups", {})
-    assert list(groups) == ["Output options"]
+    assert list(groups) == ["output options"]
     help_text = app.help_renderer.format_help(full=True)
-    assert "Output options:" in help_text
-    output_idx = help_text.index("Output options:")
+    assert "output options:" in help_text
+    output_idx = help_text.index("output options:")
     assert help_text.index("--quiet", output_idx) > output_idx
     assert help_text.index("--verbose", output_idx) > output_idx
 

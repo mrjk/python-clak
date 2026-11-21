@@ -349,7 +349,7 @@ def _more_help_rows(hidden_items, collapsed_titles, all_flag) -> list:
         ]
         shown = ", ".join(names[:SUMMARY_NAMES])
         more = ", ..." if len(names) > SUMMARY_NAMES else ""
-        text = f"{title.capitalize()} ({len(names)}): {shown}{more}"
+        text = f"{title} ({len(names)}): {shown}{more}"
         flag = topic_flag(title) if title in collapsed_titles else None
         rows.append((flag or "", text))
     rows = [(flag, text) for flag, text in rows if flag] + [

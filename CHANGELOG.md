@@ -5,7 +5,7 @@
 ### Added
 
 - Short `--help`: option groups listed in `Meta.help_collapsed_groups` (default:
-  "Output options" and the propagated "parent options") are summarized on one
+  "output options" and the propagated "parent options") are summarized on one
   line. `--help-all` prints everything and `--help-<topic>` (e.g.
   `--help-output`) prints one group. `Argument(help_level="advanced")`
   collapses a single flag; `help_collapsed_groups = []` restores the old

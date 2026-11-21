@@ -160,7 +160,7 @@ class ParserNode(
     meta__config__help_collapsed_groups = MetaSetting(
         help=(
             "Option group titles summarized in short --help and listed by "
-            "--help-all (default: 'Output options' and the propagated group; "
+            "--help-all (default: 'output options' and the propagated group; "
             "[] disables). Inherited."
         ),
     )
@@ -302,7 +302,7 @@ class ParserNode(
         groups = self.query_cfg_parents("help_collapsed_groups", default=None)
         if groups is None:
             groups = (
-                "Output options",
+                "output options",
                 self.query_cfg_parents(
                     "propagate_options_group", default=PROPAGATE_OPTIONS_GROUP_DEFAULT
                 ),
