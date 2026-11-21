@@ -87,12 +87,22 @@ All mixins are importable from `clak` (and from `clak.comp`).
 | `XDGCacheDirMixin` | `--cache-dir` (default `$XDG_CACHE_HOME/<app>`) | `app_name` | `ctx.args.cache_dir` | [Config](config.md) |
 | `XDGLogDirMixin` | `--log-dir` (default `$XDG_CACHE_HOME/<app>/logs`) | `app_name` | `ctx.args.log_dir` | [Config](config.md) |
 | `WorkDirMixin` | `-W`/`--work-dir` | - | `ctx.work_dir`, `ctx.plugins["work_dir"]` (also changes the process cwd) | [Config](config.md) |
+| `ApiServerMixin` | - (use `ApiServeCmd` for `--host`, `--port`, `--auth-user`, `--auth-password`) | `api_host`, `api_port`, `api_driver`, `api_auth_user`, `api_auth_password` | - | - |
+| `ApiEndpointMixin` | - | `api_path` | - | - |
 | `RichHelpMixin` | - | sets `help_formatter` to the Rich formatter | - | [Help](help.md) |
 | `CompRenderOptMixin` | `--completion` (prints bash completion code) | - | - | [Completion](completion.md) |
 | `CompRenderCmdMixin` | `-s`/`--shell {bash,zsh,tcsh,fish,powershell}`, `--no-defaults`, `--complete-arguments ...` (hidden: `--executable`, `-e`/`--external-argcomplete-script`) | - | - | [Completion](completion.md) |
 
 `CompCmdRender` is a ready-made `CompRenderCmdMixin` + `Parser` command:
 attach it with `completion = Command(CompCmdRender)`.
+
+`ApiServerMixin` (root) and `ApiEndpointMixin` (commands to expose, opt-in)
+serve the CLI over HTTP: `app users add` becomes `POST /users/add`, the JSON
+body maps argument names to values and is validated by the command's own
+parser (422 on bad input, 400 on `ClakUserError`). Attach the ready-made
+`serve = Command(ApiServeCmd)`. Needs `pip install 'mrjk.clak[api]'`; backends
+are pluggable through `clak.comp.api.API_DRIVERS` (`fastapi` ships first).
+See `examples/script_api.py`.
 
 Rich help is already the `Parser` default; `RichHelpMixin` only re-enables it
 on a branch where a parent set `Meta.help_formatter = RecursiveHelpFormatter`.

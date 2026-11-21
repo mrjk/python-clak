@@ -10,6 +10,7 @@ This module provides core component mixins for extending parser functionality:
 - WorkDirMixin: Adds -W/--work-dir (changes the process working directory)
 - LoggingOptMixin: Adds structured logging configuration
 - RuntimeOptMixin: Adds --interactive/--no-input/--yes runtime flags
+- ApiServerMixin / ApiEndpointMixin / ApiServeCmd: Serve commands over HTTP (extra: api)
 - RichHelpMixin: Optional re-opt-in for Rich-colored --help after a parent opt-out
 - Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin: Auto CLI views + options
 
@@ -18,6 +19,7 @@ The completion mixins enable rich command-line completion; config and logging
 mixins provide XDG paths, config loading, and logging setup.
 """
 
+from clak.comp.api import ApiEndpointMixin, ApiServeCmd, ApiServerMixin
 from clak.comp.completion import CompCmdRender, CompRenderCmdMixin, CompRenderOptMixin
 from clak.comp.config import (
     WorkDirMixin,

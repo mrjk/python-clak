@@ -4,6 +4,9 @@
 
 ### Added
 
+- `ApiServerMixin`, `ApiEndpointMixin` and `ApiServeCmd` (POC): serve opted-in
+  commands over HTTP (`POST /path/to/cmd`, JSON body), optional basic auth,
+  pluggable drivers (FastAPI first, extra `api`).
 - Table views (`ShowView`, `ListView`, `CompositeView`) render list/dict
   cells as block YAML by default. If a value can't be dumped (or PyYAML is
   missing), the original value is shown unchanged. This only affects
