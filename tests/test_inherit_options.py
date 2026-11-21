@@ -264,7 +264,7 @@ def test_leaf_help_parent_options_group():
             return None
 
     app = App(parse=False, add_help=True)
-    help_text = app.children["grep"].parser.format_help()
+    help_text = app.children["grep"].help_renderer.format_help(full=True)
     assert "parent options:" in help_text
     parent_idx = help_text.index("parent options:")
     output_idx = help_text.index("Output options:")
@@ -296,7 +296,7 @@ def test_exit_action_propagates_by_default():
             return None
 
     app = App(parse=False, add_help=False)
-    help_text = app.children["leaf"].parser.format_help()
+    help_text = app.children["leaf"].help_renderer.format_help(full=True)
     assert "parent options:" in help_text
     assert "--about" in help_text[help_text.index("parent options:") :]
     with pytest.raises(SystemExit) as exc:

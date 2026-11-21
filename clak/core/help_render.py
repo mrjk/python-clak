@@ -206,7 +206,7 @@ class HelpRenderer:
         if topic is not None:  # one group only: --help-<topic>
             hidden_items = []
             args = [item for item in args if item.group == topic]
-        elif flag and (hidden_items or (full and _has_collapsible(args, layout))):
+        elif flag and full and _has_collapsible(args, layout):
             args.insert(1 if getattr(node, "add_help", True) else 0, _help_all_arg(flag))
         visible = [
             item
@@ -245,7 +245,10 @@ class HelpRenderer:
         widths = _help_widths(max((len(label) for label in labels), default=0))
 
         doc = HelpDocument()
-        for raw in parser.format_usage().rstrip("\n").splitlines() or [""]:
+        usage = parser.format_usage()
+        if hidden_items and parser.usage is None:
+            usage = _short_usage(parser.prog, visible, hidden_items)
+        for raw in usage.rstrip("\n").splitlines() or [""]:
             if raw.startswith("usage:"):
                 doc.add(("group", "usage:"), ("plain", raw[len("usage:") :]))
             else:
@@ -268,18 +271,11 @@ class HelpRenderer:
             doc.add()
 
         if hidden_items:
-            summaries: dict[str, list] = {}
-            for item in hidden_items:
-                summaries.setdefault(item.group or "advanced options", []).append(item)
-            for title, items in summaries.items():
-                doc.add(
-                    ("group", f"{title}:"),
-                    ("plain", " " + _summarize(items, _help_width() - len(title) - 3)),
-                )
-            doc.add()
-            topics = ", ".join(sorted({topic_flag(t) for t in summaries if t in collapsed_titles}))
-            more = f" (or {topics} for one section)" if topics else ""
-            doc.add(("plain", f"Use {flag} to list every option{more}."))
+            doc.add(("group", "more help:"))
+            rows = _more_help_rows(hidden_items, collapsed_titles, flag)
+            more_widths = _help_widths(max(len(label) for label, _ in rows))
+            for label, help_msg in rows:
+                _append_entry_lines(doc, label, help_msg, more_widths, name_kind="args")
             doc.add()
 
         epilog = strip_rst_literals(parser.epilog).rstrip("\n")
@@ -336,21 +332,68 @@ def _help_all_arg(flag: str) -> HelpArg:
     )
 
 
-def _summarize(items, width: int) -> str:
-    """``--a, --b, ... (N options)`` clipped to *width* characters."""
-    names = [
-        next((o for o in item.option_strings if o.startswith("--")), None)
-        or (item.option_strings[0] if item.option_strings else item.dest)
-        for item in items
+SUMMARY_NAMES = 4
+
+
+def _more_help_rows(hidden_items, collapsed_titles, all_flag) -> list:
+    """``(flag, text)`` rows: one per collapsed group, then ``--help-all``."""
+    groups: dict[str, list] = {}
+    for item in hidden_items:
+        groups.setdefault(item.group or "advanced", []).append(item)
+    rows = []
+    for title, items in groups.items():
+        names = [
+            next((o for o in i.option_strings if o.startswith("--")), None)
+            or (i.option_strings[0] if i.option_strings else i.dest)
+            for i in items
+        ]
+        shown = ", ".join(names[:SUMMARY_NAMES])
+        more = ", ..." if len(names) > SUMMARY_NAMES else ""
+        text = f"{title.capitalize()} ({len(names)}): {shown}{more}"
+        flag = topic_flag(title) if title in collapsed_titles else None
+        rows.append((flag or "", text))
+    rows = [(flag, text) for flag, text in rows if flag] + [
+        ("", text) for flag, text in rows if not flag
     ]
-    tail = f" ({len(names)} options)"
-    out = ""
-    for idx, name in enumerate(names):
-        sep = ", " if out else ""
-        if len(out) + len(sep) + len(name) + len(tail) + 5 > width and idx:
-            return out + ", ..." + tail
-        out += sep + name
-    return out + tail
+    rows.append((all_flag, "Show every option, all sections"))
+    return rows
+
+
+def _usage_token(item: HelpArg) -> str:
+    opts = list(item.option_strings)
+    if not opts:
+        return _format_args(item)
+    if len(opts) > 1 and any(o.startswith("--no-") for o in opts):
+        return "[" + " | ".join(opts) + "]"
+    if item.nargs == 0:
+        return f"[{opts[0]}]"
+    return f"[{opts[0]} {_format_args(item)}]"
+
+
+def _short_usage(prog: str, visible, hidden_items) -> str:
+    """Usage with domain options only, plus one placeholder per hidden group."""
+    flags = [i for i in visible if i.option_strings]
+    positionals = [i for i in visible if not i.option_strings]
+    groups = []
+    for item in hidden_items:
+        label = f"[{(item.group or 'advanced').upper()}]"
+        if label not in groups:
+            groups.append(label)
+    tokens = (
+        [_usage_token(i) for i in flags]
+        + groups
+        + [_usage_token(i) for i in positionals]
+    )
+    prefix = f"usage: {prog} "
+    lines = textwrap.wrap(
+        " ".join(tokens),
+        width=_help_width(),
+        initial_indent=prefix,
+        subsequent_indent=" " * len(prefix),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    return "\n".join(lines) + "\n"
 
 
 def _help_flag_arg() -> HelpArg:

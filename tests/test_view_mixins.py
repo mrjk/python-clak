@@ -215,7 +215,7 @@ def test_list_view_mixin_help_lists_view_flags():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
     assert "--columns" in help_text
     assert "--add-index" in help_text

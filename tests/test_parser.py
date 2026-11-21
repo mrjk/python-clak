@@ -224,7 +224,7 @@ def test_option_group_kwarg_not_passed_to_argparse():
 
     # Would raise TypeError if option_group leaked into argparse.add_argument
     app = App(parse=False, add_help=True)
-    assert "Output options:" in app.parser.format_help()
+    assert "Output options:" in app.help_renderer.format_help(full=True)
     args = app.parse_args(["--format", "x"])
     assert args.output_format == "x"
 
@@ -286,7 +286,7 @@ def test_exclusive_group_nests_under_option_group():
     app = App(parse=False, add_help=True)
     groups = getattr(app.parser, "_clak_argument_groups", {})
     assert list(groups) == ["Output options"]
-    help_text = app.parser.format_help()
+    help_text = app.help_renderer.format_help(full=True)
     assert "Output options:" in help_text
     output_idx = help_text.index("Output options:")
     assert help_text.index("--quiet", output_idx) > output_idx

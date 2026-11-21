@@ -88,7 +88,7 @@ def test_markdown_view_mixin_format_choices_are_text_only():
         def cli_run(self, **_):
             return MD_SAMPLE
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
     assert "--format" in help_text
     assert "raw" in help_text
     assert "yaml" not in help_text
@@ -101,7 +101,7 @@ def test_list_view_mixin_format_choices_remain_table():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
     assert "{view,yaml,json,csv}" in help_text or (
         "yaml" in help_text and "json" in help_text and "csv" in help_text
     )

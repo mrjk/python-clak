@@ -905,9 +905,9 @@ def _help(app, **kwargs):
 def test_short_help_collapses_groups():
     text = _help(_CollapseApp(parse=False))
     assert "--name" in text
-    assert "Tuning options: --fast, --slow (2 options)" in text
-    assert "--help-all" in text and "--help-tuning" in text
-    assert "advanced options: --odd (1 options)" in text
+    assert "--help-tuning" in text and "Tuning options (2): --fast, --slow" in text
+    assert "--help-all" in text
+    assert "Advanced (1): --odd" in text
 
 
 def test_help_all_and_topic():
