@@ -46,6 +46,7 @@ class HelpLayout:
     command_groups: tuple = ()
     collapsed_groups: tuple = ()  # option groups summarized in short --help
     help_all_flag: Optional[str] = None  # flag printing the full help
+    help_split: bool = False  # -h short, --help full; no topic flags
 
     def __post_init__(self):
         if self.subcommands not in HELP_SUBCOMMANDS_CHOICES:
@@ -201,14 +202,13 @@ class HelpRenderer:
         flag = layout.help_all_flag
         if full or not hidden_items:
             hidden_items = []
-        help_arg = _help_flag_arg(parser)
-        if help_arg is not None:
-            args = [help_arg] + args
+        help_args = _help_flag_args(parser)
+        args = help_args + args
         if topic is not None:  # one group only: --help-<topic>
             hidden_items = []
             args = [item for item in args if item.group == topic]
         elif flag and full and _has_collapsible(args, layout):
-            args.insert(1 if help_arg is not None else 0, _help_all_arg(flag))
+            args.insert(len(help_args), _help_all_arg(flag))
         visible = [
             item
             for item in args
@@ -273,7 +273,10 @@ class HelpRenderer:
 
         if hidden_items:
             doc.add(("group", "more help:"))
-            rows = _more_help_rows(hidden_items, collapsed_titles, flag)
+            split = layout.help_split
+            rows = _more_help_rows(
+                hidden_items, set() if split else collapsed_titles, None if split else flag
+            )
             more_widths = _help_widths(max(len(label) for label, _ in rows))
             for label, help_msg in rows:
                 _append_entry_lines(doc, label, help_msg, more_widths, name_kind="args")
@@ -356,7 +359,8 @@ def _more_help_rows(hidden_items, collapsed_titles, all_flag) -> list:
     rows = [(flag, text) for flag, text in rows if flag] + [
         ("", text) for flag, text in rows if not flag
     ]
-    rows.append((all_flag, "Show every option, all sections"))
+    if all_flag:
+        rows.append((all_flag, "Show every option, all sections"))
     return rows
 
 
@@ -397,12 +401,14 @@ def _short_usage(prog: str, visible, hidden_items) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _help_flag_arg(parser) -> Optional[HelpArg]:
-    """Describe the registered ``-h/--help`` action, if the parser has one."""
-    for action in getattr(parser, "_actions", ()):
-        if action.dest == "help" and "-h" in action.option_strings:
-            return HelpArg.from_action(action)
-    return None
+def _help_flag_args(parser) -> list:
+    """Describe the registered ``-h`` / ``--help`` actions (none if absent)."""
+    return [
+        HelpArg.from_action(a)
+        for a in getattr(parser, "_actions", ())
+        if a.dest in ("help", "help_all")
+        and ("-h" in a.option_strings or "--help" in a.option_strings)
+    ]
 
 
 def _format_args(item: HelpArg) -> str:

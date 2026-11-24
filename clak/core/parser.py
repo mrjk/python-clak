@@ -167,6 +167,12 @@ class ParserNode(
     meta__config__help_all_flag = MetaSetting(
         help="Flag printing the full help (default '--help-all'; None disables)",
     )
+    meta__config__help_split = MetaSetting(
+        help=(
+            "-h prints the short help, --help the full one (default False; "
+            "disables --help-all and --help-<topic>). Inherited; see LongHelpMixin."
+        ),
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -312,8 +318,13 @@ class ParserNode(
         return tuple(groups)
 
     def _resolve_help_all_flag(self) -> Optional[str]:
+        if self._is_help_split():
+            return None
         flag = self.query_cfg_parents("help_all_flag", default="--help-all")
         return flag if flag and self.add_help else None
+
+    def _is_help_split(self) -> bool:
+        return bool(self.query_cfg_parents("help_split", default=False))
 
     def _install_help_topics(self, all_flag: str) -> None:
         """Add ``--help-<topic>`` for each non-empty collapsed group."""
@@ -332,13 +343,25 @@ class ParserNode(
 
     def _install_help_flag(self) -> None:
         """Register ``-h/--help``; runs first so it leads usage and options."""
-        if self.add_help and hasattr(self.parser, "add_argument"):
+        if not self.add_help or not hasattr(self.parser, "add_argument"):
+            return
+        opts = dict(default=argparse.SUPPRESS)
+        if self._is_help_split():
             self.parser.add_argument(
-                "-h",
+                "-h", action="help", dest="help",
+                help="show the short help and exit", **opts
+            )
+            self.parser.add_argument(
                 "--help",
-                action="help",
-                default=argparse.SUPPRESS,
-                help="show this help message and exit",
+                action=HelpAllAction,
+                dest="help_all",
+                help="show the full help, including all options, and exit",
+                **opts,
+            )
+        else:
+            self.parser.add_argument(
+                "-h", "--help", action="help",
+                help="show this help message and exit", **opts,
             )
 
     def _install_help_flags(self) -> None:
@@ -372,6 +395,7 @@ class ParserNode(
             ),
             collapsed_groups=self._resolve_collapsed_groups(),
             help_all_flag=self._resolve_help_all_flag(),
+            help_split=self._is_help_split(),
         )
         renderer = HelpRenderer(self)
         fmt = self.get_help_formatter_class()

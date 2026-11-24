@@ -10,6 +10,8 @@
   `--help-output`) prints one group. `Argument(help_level="advanced")`
   collapses a single flag; `help_collapsed_groups = []` restores the old
   output, `help_all_flag = None` removes the flag.
+- `LongHelpMixin`: `-h` prints the short help and `--help` the full one (inherited
+  by subcommands); `--help-all` and `--help-<topic>` are not provided.
 - `ApiServerMixin`, `ApiEndpointMixin` and `ApiServeCmd` (POC): serve opted-in
   commands over HTTP (`POST /path/to/cmd`, JSON body), optional basic auth,
   pluggable drivers (FastAPI first, extra `api`).

@@ -16,7 +16,7 @@ Canonical public API (import from ``clak``):
 - Arg / Opt: optional sugar for positionals vs flags (Argument still accepts both)
 - Command: nested subcommand descriptor (``SubParser`` is the class name)
 
-Optional mixins (also from ``clak``): ApiServerMixin, ApiEndpointMixin, LoggingOptMixin, RuntimeOptMixin, RichHelpMixin,
+Optional mixins (also from ``clak``): ApiServerMixin, ApiEndpointMixin, LoggingOptMixin, RuntimeOptMixin, RichHelpMixin, LongHelpMixin,
 Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin, completion,
 XDGConfFileMixin / XDGDataDirMixin / XDGCacheDirMixin / XDGLogDirMixin,
 WorkDirMixin.
@@ -34,7 +34,7 @@ from clak.comp.config import (
     XDGDataDirMixin,
     XDGLogDirMixin,
 )
-from clak.comp.help import RichHelpMixin
+from clak.comp.help import LongHelpMixin, RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.api import ApiEndpointMixin, ApiServeCmd, ApiServerMixin
 from clak.comp.runtime import RuntimeOptMixin
@@ -90,6 +90,7 @@ __all__ = [
     "PprintViewMixin",
     "RawViewMixin",
     "RecursiveHelpFormatter",
+    "LongHelpMixin",
     "RichHelpMixin",
     "RstViewMixin",
     "ApiEndpointMixin",

@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from clak import Argument, Command, Parser, RecursiveHelpFormatter, RichHelpMixin
+from clak import Argument, Command, LongHelpMixin, Parser, RecursiveHelpFormatter, RichHelpMixin
 from clak.core.help_render import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
 from clak.core.help_render import RichRecursiveHelpFormatter
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
@@ -927,3 +927,35 @@ def test_collapse_can_be_disabled():
 
     text = _help(Plain(parse=False))
     assert "tuning options:\n" in text and "--fast" in text
+
+
+class _LongHelpApp(LongHelpMixin, Parser):
+    """Split help app."""
+
+    name = Argument("--name", help="Domain")
+    fast = Argument("--fast", action="store_true", option_group="tuning options")
+    odd = Argument("--odd", action="store_true", help_level="advanced")
+
+    def cli_run(self, **_):
+        pass
+
+
+def _help_out(args, capsys):
+    with pytest.raises(SystemExit):
+        _LongHelpApp(parse=False).dispatch(args)
+    return capsys.readouterr().out
+
+
+def test_long_help_mixin_splits_short_and_long(capsys):
+    short = _help_out(["-h"], capsys)
+    full = _help_out(["--help"], capsys)
+    assert "more help:" in short and "--odd" not in short.split("more help:")[0]
+    assert "tuning options:" in full and "--odd" in full
+    assert "--help-all" not in short + full
+
+
+def test_long_help_mixin_disables_topic_flags(capsys):
+    for flag in ("--help-all", "--help-tuning"):
+        with pytest.raises(SystemExit):
+            _LongHelpApp(parse=False).dispatch([flag])
+        capsys.readouterr()

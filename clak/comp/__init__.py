@@ -11,6 +11,7 @@ This module provides core component mixins for extending parser functionality:
 - LoggingOptMixin: Adds structured logging configuration
 - RuntimeOptMixin: Adds --interactive/--no-input/--yes runtime flags
 - ApiServerMixin / ApiEndpointMixin / ApiServeCmd: Serve commands over HTTP (extra: api)
+- LongHelpMixin: -h prints the short help, --help the full one
 - RichHelpMixin: Optional re-opt-in for Rich-colored --help after a parent opt-out
 - Show/List/Pprint/Raw/Markdown/Rst/Data/CompositeViewMixin: Auto CLI views + options
 
@@ -28,7 +29,7 @@ from clak.comp.config import (
     XDGDataDirMixin,
     XDGLogDirMixin,
 )
-from clak.comp.help import RichHelpMixin
+from clak.comp.help import LongHelpMixin, RichHelpMixin
 from clak.comp.logging import LoggingOptMixin
 from clak.comp.runtime import RuntimeOptMixin
 from clak.comp.ui import set_ui_settings, ui_policy, ui_session
