@@ -71,7 +71,7 @@ tasks:
           # Point at real implementation modules, not compat re-export shims
           # (pyreverse renders an empty graph for re-export-only files).
           - "parser:core/parser.py"
-          - "plugins:core/plugins.py"
+          - "comp:comp"
           - "argparse_:core/argp core/help_render.py"
           - "nodes:core/nodes.py"
           - "common:common.py"
