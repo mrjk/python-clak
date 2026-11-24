@@ -10,11 +10,8 @@ from typing import Any, Dict, List, Optional, Union
 from clak import exception
 from clak.core.argp import format_argument_error
 from clak.core.context import ClakContext, CliArgs
-from clak.core.plugins import CLI_HOOK_PREFIX
-from clak.runtime.facts import detect_facts
 from clak.runtime.runtime import detect_runtime
 from clak.runtime.settings import ClakSettings, apply_debug_logging
-from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
@@ -114,31 +111,11 @@ class Dispatcher:
             try:
                 data = self.cli_execute(args=args, settings=settings)
 
-                ctx = self.ctx
-                view_settings = ctx.view_settings if ctx is not None else {}
-                if ctx is not None:
-                    runtime = getattr(ctx, "runtime", None)
-                    if runtime is not None:
-                        view_settings.setdefault("term_width", runtime.term_width)
-                        view_settings.setdefault("stdout_tty", runtime.stdout_tty)
-                    ctx_settings = getattr(ctx, "settings", None)
-                    if ctx_settings is not None:
-                        view_settings.setdefault("clak_colors", ctx_settings.colors)
-                if isinstance(data, ClakView):
-                    render_kwargs = ClakView.merge_settings(
-                        getattr(data, "settings", None), view_settings
-                    )
-                    data.render(**render_kwargs)
-                else:
-                    viewer = cli_leaf.query_cfg_parents("cli_view", default=None)
-                    if isinstance(viewer, type) and issubclass(viewer, ClakView):
-                        viewer = viewer()
-                    if viewer is not None:
-                        if not isinstance(viewer, ClakView):
-                            raise TypeError(
-                                "Meta.cli_view must be a ClakView instance or subclass"
-                            )
-                        viewer.render(data, **view_settings)
+                # Imported here: core does not depend on views at import time.
+                # pylint: disable-next=import-outside-toplevel
+                from clak.views.base import render_result
+
+                render_result(data, cli_leaf, self.ctx.view_settings)
 
                 return data
 
@@ -227,7 +204,6 @@ class Dispatcher:
             cli_commands=cli_command_hier,
             args=CliArgs(**args),
             runtime=detect_runtime(narrow_width=narrow_width),
-            facts=detect_facts(),
             settings=settings,
         )
         self.ctx = ctx
@@ -238,15 +214,7 @@ class Dispatcher:
 
             logger.info("Processing node %d:%s.%s", idx, walk_node, fn_group_name)
 
-            node_hooks = getattr(walk_node, "_cli_hooks", None)
-            if node_hooks is None:
-                node_hooks = {
-                    method: getattr(walk_node, method)
-                    for method in dir(walk_node)
-                    if method.startswith(CLI_HOOK_PREFIX)
-                    and callable(getattr(walk_node, method, None))
-                }
-            hook_list.update(node_hooks)
+            hook_list.update(walk_node._cli_hooks)  # pylint: disable=protected-access
 
             ctx.cli_parent = hierarchy[-2] if len(hierarchy) > 1 else None
             ctx.cli_parents = hierarchy[:idx]

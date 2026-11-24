@@ -1,63 +1,25 @@
-"""Process / env context: runtime snapshot, facts, settings, log levels."""
+"""Process / env context: settings, runtime snapshot, facts, log levels.
 
-from clak.runtime.facts import FactsInfo, IdentityInfo, detect_facts
-from clak.runtime.log_levels import (
-    CLAK_CUSTOM_LEVEL_STYLES,
-    CLAK_CUSTOM_LEVELS,
-    add_logging_level,
-    register_clak_log_levels,
-)
+Import helpers from the submodules; ``clak.runtime.facts`` is loaded only
+when ``ctx.facts`` is first used.
+"""
+
 from clak.runtime.runtime import (
     COLOR_16,
     COLOR_256,
     COLOR_NONE,
     COLOR_TRUECOLOR,
-    DEFAULT_NARROW_WIDTH,
-    DEFAULT_TERM_HEIGHT,
-    DEFAULT_TERM_WIDTH,
     RuntimeInfo,
     detect_runtime,
 )
-from clak.runtime.settings import (
-    CLAK_COLOR_BACKEND_ENV,
-    COLOR_BACKENDS,
-    DEFAULT_COLOR_BACKEND,
-    LOG_FORMAT,
-    LOG_STYLES,
-    ClakSettings,
-    apply_coloredlogs_defaults,
-    apply_debug_logging,
-    color_backend_uses_rich,
-    resolve_color_backend,
-    resolve_log_colors,
-)
+from clak.runtime.settings import ClakSettings
 
 __all__ = [
-    "CLAK_COLOR_BACKEND_ENV",
-    "CLAK_CUSTOM_LEVEL_STYLES",
-    "CLAK_CUSTOM_LEVELS",
-    "ClakSettings",
-    "COLOR_BACKENDS",
-    "DEFAULT_COLOR_BACKEND",
     "COLOR_16",
     "COLOR_256",
     "COLOR_NONE",
     "COLOR_TRUECOLOR",
-    "DEFAULT_NARROW_WIDTH",
-    "DEFAULT_TERM_HEIGHT",
-    "DEFAULT_TERM_WIDTH",
-    "FactsInfo",
-    "IdentityInfo",
-    "LOG_FORMAT",
-    "LOG_STYLES",
+    "ClakSettings",
     "RuntimeInfo",
-    "add_logging_level",
-    "apply_coloredlogs_defaults",
-    "apply_debug_logging",
-    "color_backend_uses_rich",
-    "detect_facts",
     "detect_runtime",
-    "register_clak_log_levels",
-    "resolve_color_backend",
-    "resolve_log_colors",
 ]

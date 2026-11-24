@@ -12,7 +12,7 @@ from clak.comp.logging import LoggingOptMixin, get_app_logger
 from clak.core._dispatch import TRACE_DEST, TRACE_FLAG
 from clak.exception import ClakAppError
 from clak.runtime.settings import resolve_log_colors
-from tests.common import use_settings
+from tests.common import block_imports, use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -68,7 +68,7 @@ def test_logger_configuration_filters_to_stderr(capsys):
 
 
 def test_colors_fall_back_when_coloredlogs_is_unavailable(monkeypatch):
-    monkeypatch.setattr(logging_plugin, "coloredlogs", None)
+    block_imports(monkeypatch, "coloredlogs")
 
     get_app_logger(colors=True)
 

@@ -3,7 +3,7 @@
 import pytest
 
 from clak import Argument, Command, Parser
-from clak.core.context import ClakContext, CliArgs, PluginStore
+from clak.core.context import ClakContext, CliArgs
 from clak.runtime.settings import ClakSettings
 
 pytestmark = pytest.mark.tags("unit-tests")
@@ -28,7 +28,7 @@ def test_ctx_is_clak_context_with_settings():
     assert ctx.runtime is not None
     assert ctx.facts is not None
     assert ctx.args is not None
-    assert isinstance(ctx.plugins, PluginStore)
+    assert isinstance(ctx.plugins, dict)
     assert isinstance(ctx.data, dict)
     assert isinstance(ctx.args, CliArgs)
     assert "runtime" in ctx.as_kwargs()

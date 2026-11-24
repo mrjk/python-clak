@@ -215,7 +215,7 @@ def test_list_view_mixin_help_lists_view_flags():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
     assert "--columns" in help_text
     assert "--add-index" in help_text
@@ -232,12 +232,12 @@ def test_list_view_mixin_output_options_group_in_help():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
-    assert "Output options:" in help_text
+    assert "output options:" in help_text
     assert "--catalog" in help_text
-    # View flags sit under the Output options section
-    output_idx = help_text.index("Output options:")
+    # View flags sit under the output options section
+    output_idx = help_text.index("output options:")
     assert help_text.index("--columns", output_idx) > output_idx
     assert help_text.index("--sort-columns", output_idx) > output_idx
 
@@ -250,7 +250,7 @@ def test_list_view_mixin_view_column_names_in_help():
         def cli_run(self, **_):
             return USERS
 
-    help_text = App(parse=False, add_help=True).parser.format_help()
+    help_text = App(parse=False, add_help=True).help_renderer.format_help(full=True)
 
     assert "Available: Var, Value, Order" in help_text
     # --columns, --sort-columns, and --wrap get the Available: suffix

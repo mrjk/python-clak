@@ -9,24 +9,16 @@ class CliArgs(ObjectNamespace):
     """Parsed CLI destinations attached as ``ctx.args``."""
 
 
-class PluginStore(dict):
-    """Plugin payloads attached as ``ctx.plugins``."""
-
-
-class DataStore(dict):
-    """Scratch dict attached as ``ctx.data``."""
-
-
 class ClakContext(ObjectNamespace):
     """Per-dispatch CLI context.
 
     One instance is created in ``cli_execute`` and mutated as the command
-    hierarchy walks. Attribute access matches the old dict/namespace bag
-    (``ctx.runtime``, ``ctx.args``, ``ctx.cli_self``, ...). ``cli_group``
-    still receives ``**ctx.as_kwargs()``.
+    hierarchy walks (``ctx.runtime``, ``ctx.args``, ``ctx.cli_self``, ...).
+    ``ctx.plugins`` holds mixin payloads and ``ctx.data`` is free scratch
+    space; both are plain dicts. ``cli_group`` receives ``**ctx.as_kwargs()``.
     """
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-locals,useless-parent-delegation
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         *,
         registry: dict,
@@ -39,27 +31,10 @@ class ClakContext(ObjectNamespace):
         cli_commands: list,
         args: CliArgs,
         runtime: Any,
-        facts: Any,
         settings: Any = None,
         data: Optional[dict] = None,
         plugins: Optional[dict] = None,
-        cli_first: bool = True,
-        cli_state: Optional[str] = None,
-        cli_parent: Any = None,
-        cli_parents: Optional[list] = None,
-        cli_children: Optional[dict] = None,
-        cli_last: bool = False,
-        cli_hooks: Optional[dict] = None,
-        cli_index: int = 0,
     ):
-        if data is None:
-            data = DataStore()
-        elif not isinstance(data, DataStore):
-            data = DataStore(data)
-        if plugins is None:
-            plugins = PluginStore()
-        elif not isinstance(plugins, PluginStore):
-            plugins = PluginStore(plugins)
         super().__init__(
             registry=registry,
             name=name,
@@ -71,24 +46,46 @@ class ClakContext(ObjectNamespace):
             cli_commands=cli_commands,
             args=args,
             runtime=runtime,
-            facts=facts,
             settings=settings,
-            data=data,
-            plugins=plugins,
-            cli_first=cli_first,
-            cli_state=cli_state,
-            cli_parent=cli_parent,
-            cli_parents=[] if cli_parents is None else cli_parents,
-            cli_children={} if cli_children is None else cli_children,
-            cli_last=cli_last,
-            cli_hooks={} if cli_hooks is None else cli_hooks,
-            cli_index=cli_index,
+            data={} if data is None else dict(data),
+            plugins={} if plugins is None else dict(plugins),
+            cli_first=True,
+            cli_state=None,
+            cli_parent=None,
+            cli_parents=[],
+            cli_children={},
+            cli_last=False,
+            cli_hooks={},
+            cli_index=0,
         )
 
     @property
+    def facts(self):
+        """OS/process facts (:class:`~clak.runtime.facts.FactsInfo`), built on first use."""
+        facts = self.__dict__.get("facts")
+        if facts is None:
+            # pylint: disable-next=import-outside-toplevel
+            from clak.runtime.facts import detect_facts
+
+            facts = self.__dict__["facts"] = detect_facts()
+        return facts
+
+    @property
     def view_settings(self) -> dict:
-        """Copy of view mixin settings (also in ``ctx.plugins['view_settings']``)."""
-        return dict(self.plugins.get("view_settings") or {})
+        """View render settings: terminal facts, then view mixin settings.
+
+        Mixin settings live in ``ctx.plugins['view_settings']``; ``term_width``
+        / ``stdout_tty`` come from ``ctx.runtime`` and ``clak_colors`` from
+        ``ctx.settings`` unless a mixin set them.
+        """
+        out = {}
+        if self.runtime is not None:
+            out["term_width"] = self.runtime.term_width
+            out["stdout_tty"] = self.runtime.stdout_tty
+        if self.settings is not None:
+            out["clak_colors"] = self.settings.colors
+        out.update(self.plugins.get("view_settings") or {})
+        return out
 
     @property
     def ui_settings(self) -> dict:

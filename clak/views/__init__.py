@@ -1,7 +1,7 @@
 """View classes for command line output formatting.
 
 Public names are the view classes and a few format/width constants.
-Helpers (`parse_columns`, `resolve_view_width`, `require_yaml`, ...) live in
+Helpers (`parse_columns`, `resolve_view_width`, `dump_yaml`, ...) live in
 the submodules (`clak.views.table`, `clak.views.base`, ...).
 """
 

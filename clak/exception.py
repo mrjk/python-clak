@@ -59,3 +59,13 @@ class ClakBugError(ClakAppError):
     "Raised when a bug is found"
 
     rc = 32
+
+
+# Developer errors (Meta configuration)
+# ==============================
+class ConfigurationError(Exception):
+    """Raised when a configuration setting cannot be found."""
+
+
+class MissingMetaError(ConfigurationError):
+    """Raised when a meta setting is not declared before being used."""

@@ -94,7 +94,7 @@ class App(ListViewMixin, Parser):
         view_columns = ("name", "role")
 ```
 
-View flags appear under an **Output options** group in `--help` (same
+View flags appear under an **output options** group in `--help` (same
 `Argument(..., option_group=...)` API as any other flag; see
 [Named help groups](advanced.md#named-help-groups-and-exclusive-groups)).
 

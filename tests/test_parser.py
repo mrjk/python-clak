@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pytest
 
 from clak import Arg, Argument, Command, Opt, Parser, ParserNode, SubParser
-from clak.core.descriptors import FormatEnv, first_doc_line, prepare_docstring
+from clak.core.descriptors import first_doc_line, prepare_docstring
 from clak.exception import ClakError, ClakParseError, ClakUserError
 
 pytestmark = pytest.mark.tags("unit-tests")
@@ -76,17 +76,14 @@ def test_argument_flag_helpers():
     assert extra["option_group"] == "parent options"
 
 
-def test_parser_owns_dispatcher_and_terminator():
-    """ParserNode composes Dispatcher / Terminator instead of mixins."""
+def test_parser_owns_dispatcher():
+    """ParserNode composes a Dispatcher instead of mixins."""
     from clak.core._dispatch import Dispatcher
-    from clak.core._exception import Terminator
 
     parser = ParserNode()
     assert isinstance(parser.dispatcher, Dispatcher)
-    assert isinstance(parser.terminator, Terminator)
     assert parser.ctx is None
     assert parser.dispatcher.node is parser
-    assert parser.terminator.node is parser
 
 
 def test_arg_opt_public_import():
@@ -219,7 +216,7 @@ def test_option_group_kwarg_not_passed_to_argparse():
 
     class App(Parser):
         output_format = Argument(
-            "--format", option_group="Output options", help="Format"
+            "--format", option_group="output options", help="Format"
         )
 
         def cli_run(self, **_):
@@ -227,7 +224,7 @@ def test_option_group_kwarg_not_passed_to_argparse():
 
     # Would raise TypeError if option_group leaked into argparse.add_argument
     app = App(parse=False, add_help=True)
-    assert "Output options:" in app.parser.format_help()
+    assert "output options:" in app.help_renderer.format_help(full=True)
     args = app.parse_args(["--format", "x"])
     assert args.output_format == "x"
 
@@ -273,13 +270,13 @@ def test_exclusive_group_nests_under_option_group():
         quiet = Argument(
             "--quiet",
             action="store_true",
-            option_group="Output options",
+            option_group="output options",
             exclusive_group="verbosity",
         )
         verbose = Argument(
             "--verbose",
             action="store_true",
-            option_group="Output options",
+            option_group="output options",
             exclusive_group="verbosity",
         )
 
@@ -288,10 +285,10 @@ def test_exclusive_group_nests_under_option_group():
 
     app = App(parse=False, add_help=True)
     groups = getattr(app.parser, "_clak_argument_groups", {})
-    assert list(groups) == ["Output options"]
-    help_text = app.parser.format_help()
-    assert "Output options:" in help_text
-    output_idx = help_text.index("Output options:")
+    assert list(groups) == ["output options"]
+    help_text = app.help_renderer.format_help(full=True)
+    assert "output options:" in help_text
+    output_idx = help_text.index("output options:")
     assert help_text.index("--quiet", output_idx) > output_idx
     assert help_text.index("--verbose", output_idx) > output_idx
 
@@ -611,12 +608,16 @@ def test_prepare_docstring():
     assert "With 123" in result
 
 
-def test_format_env():
-    """Test FormatEnv class."""
-    env = FormatEnv({"test": "value"})
-    vars = env.get()
-    assert vars["test"] == "value"
-    assert "type" in vars  # Check default values
+def test_prepare_docstring_self_doc_is_cleaned():
+    """``{self.__doc__}`` is dedented the same way on every Python version."""
+
+    class Obj:
+        """First
+
+        Indented second line"""
+
+    result = prepare_docstring("{self.__doc__}", variables={"self": Obj()})
+    assert result == "First\n\nIndented second line"
 
 
 def _nested_parse_error_app():

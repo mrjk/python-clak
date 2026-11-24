@@ -16,7 +16,7 @@ Try:
 import time
 
 from clak import Argument, Parser, RuntimeOptMixin
-from clak.comp.runtime import ui_session
+from clak.comp.ui import ui_session
 
 
 class AppMain(RuntimeOptMixin, Parser):
@@ -30,7 +30,9 @@ class AppMain(RuntimeOptMixin, Parser):
         ui = ui_session(ctx)
 
         name = name or ui.text("Your name", default="anonymous")
-        role = role or ui.choice("Pick a role", ["admin", "dev", "guest"], default="dev")
+        role = role or ui.choice(
+            "Pick a role", ["admin", "dev", "guest"], default="dev"
+        )
 
         if not ui.confirm(f"Create {name} as {role}?", default=True):
             print("Cancelled.")

@@ -1,16 +1,27 @@
-"""Clak-owned --help layout (not an argparse HelpFormatter).
+"""Clak-owned --help layout and coloring (not an argparse HelpFormatter).
 
 Walks ParserNode / HelpArg records. Does not regex argparse output.
+``RichRecursiveHelpFormatter`` (Parser default) marks colored help: color
+follows ``NO_COLOR``, ``CLAK_COLORS``, ``CLAK_COLOR_BACKEND``, TTY stdout, and
+whether Rich is importable; otherwise the plain layout is printed.
 """
 
 from __future__ import annotations
 
+import sys
 import textwrap
 from argparse import OPTIONAL, SUPPRESS, ZERO_OR_MORE, RawDescriptionHelpFormatter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from clak._optional import optional
+from clak.runtime.rich_style import make_rich_console, render_markup_text
 from clak.runtime.runtime import terminal_size
+from clak.runtime.settings import (
+    color_backend_uses_rich,
+    colors_enabled,
+    stream_isatty,
+)
 
 HELP_SUBCOMMANDS_TOP = "top"
 HELP_SUBCOMMANDS_ALL = "all"
@@ -33,6 +44,9 @@ class HelpLayout:
     subcommands: str = HELP_SUBCOMMANDS_ALL
     hide_parent: bool = True
     command_groups: tuple = ()
+    collapsed_groups: tuple = ()  # option groups summarized in short --help
+    help_all_flag: Optional[str] = None  # flag printing the full help
+    help_split: bool = False  # -h short, --help full; no topic flags
 
     def __post_init__(self):
         if self.subcommands not in HELP_SUBCOMMANDS_CHOICES:
@@ -70,9 +84,10 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
     choices: Any = None
     group: Optional[str] = None
     suppress: bool = False
+    advanced: bool = False  # collapsed in short --help (help_level="advanced")
 
     @classmethod
-    def from_action(cls, action, group=None) -> "HelpArg":
+    def from_action(cls, action, group=None, advanced=False) -> "HelpArg":
         """Build a HelpArg from an argparse Action."""
         help_msg = action.help
         suppress = help_msg == SUPPRESS
@@ -87,6 +102,7 @@ class HelpArg:  # pylint: disable=too-many-instance-attributes
             choices=getattr(action, "choices", None),
             group=group,
             suppress=suppress,
+            advanced=advanced,
         )
 
     def is_positional(self) -> bool:
@@ -112,19 +128,22 @@ class HelpLine:
 
 @dataclass
 class HelpDocument:
-    """Structured help; render to plain text or styled parts."""
+    """Structured help: lines of typed parts, rendered plain or styled."""
 
     lines: list[HelpLine] = field(default_factory=list)
-    usage_lines: list[HelpLine] = field(default_factory=list)
 
-    def to_plain(self, *, usage_only: bool = False) -> str:
-        """Render lines as a string; usage_only uses usage_lines."""
-        rows = self.usage_lines if usage_only else self.lines
-        chunks = []
-        for line in rows:
-            chunks.append("".join(text for _kind, text in line.parts))
-            chunks.append("\n")
-        return "".join(chunks)
+    def to_plain(self) -> str:
+        """Render lines as a string."""
+        return "".join(
+            "".join(text for _kind, text in line.parts) + "\n" for line in self.lines
+        )
+
+    def add(self, *parts: tuple[str, str]) -> None:
+        """Append one line made of ``(kind, text)`` parts (none: blank line)."""
+        line = HelpLine()
+        for kind, text in parts:
+            line.append(kind, text)
+        self.lines.append(line)
 
 
 class RecursiveHelpFormatter(RawDescriptionHelpFormatter):
@@ -143,12 +162,8 @@ class RecursiveHelpFormatter(RawDescriptionHelpFormatter):
         )
 
 
-def help_layout_for(node) -> HelpLayout:
-    """Layout stored on the node, or defaults."""
-    layout = getattr(node, "help_layout", None)
-    if layout is None:
-        return HelpLayout()
-    return layout
+class RichRecursiveHelpFormatter(RecursiveHelpFormatter):
+    """Marker: same layout as ``RecursiveHelpFormatter``, with Rich color."""
 
 
 class HelpRenderer:
@@ -158,133 +173,137 @@ class HelpRenderer:
         self.node = node
         self.colorizer = colorizer
 
-    def format_usage(self) -> str:
-        """Plain usage text for argparse format_usage."""
-        doc = self.build()
-        return doc.to_plain(usage_only=True)
+    def format_help(self, full: bool = False, topic: Optional[str] = None) -> str:
+        """Help text, colorized when a colorizer is set.
 
-    def format_help(self) -> str:
-        """Full help text, colorized when a colorizer is set."""
-        doc = self.build()
+        Short by default (collapsed groups summarized); ``full`` lists all.
+        """
+        doc = self.build(full=full, topic=topic)
         if self.colorizer is not None:
             return self.colorizer(doc)
         return doc.to_plain()
 
     def build(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        self,
+        self, full: bool = True, topic: Optional[str] = None
     ) -> HelpDocument:
         """Assemble the HelpDocument for this node."""
         node = self.node
         parser = node.parser
-        width = _help_width()
+        layout = node.help_layout
+
         args = list(getattr(node, "help_args", None) or [])
-        if getattr(node, "add_help", True):
-            args = [_help_flag_arg()] + args
+        collapsed_titles = set(layout.collapsed_groups)
+        hidden_items = [
+            item
+            for item in args
+            if not item.is_hidden()
+            and (item.advanced or item.group in collapsed_titles)
+        ]
+        flag = layout.help_all_flag
+        if full or not hidden_items:
+            hidden_items = []
+        help_args = _help_flag_args(parser)
+        args = help_args + args
+        if topic is not None:  # one group only: --help-<topic>
+            hidden_items = []
+            args = [item for item in args if item.group == topic]
+        elif flag and full and _has_collapsible(args, layout):
+            args.insert(len(help_args), _help_all_arg(flag))
+        visible = [
+            item
+            for item in args
+            if not item.is_hidden() and not any(item is h for h in hidden_items)
+        ]
 
-        layout = help_layout_for(node)
-        invocations = {}
-        visible = [item for item in args if not item.is_hidden()]
+        def arg_rows(items):
+            return [(_format_invocation(item), _help_text_for(item)) for item in items]
+
+        positionals = [i for i in visible if i.is_positional() and i.group is None]
+        options = [i for i in visible if not i.is_positional() and i.group is None]
+        groups: dict[str, list] = {}
         for item in visible:
-            invocations[id(item)] = _format_invocation(item)
+            if item.group is not None:
+                groups.setdefault(item.group, []).append(item)
+        command_sections = [
+            (title, _command_rows(members, layout))
+            for title, members in _command_sections(node, layout)
+        ]
+        if topic is not None:
+            command_sections = []
+        sections = [
+            ("positional arguments:", arg_rows(positionals), "cmds"),
+            *((title, rows, "cmds") for title, rows in command_sections),
+            ("options:", arg_rows(options), "args"),
+            *(
+                (f"{title}:", arg_rows(items), "args")
+                for title, items in groups.items()
+            ),
+        ]
 
-        cmd_labels = _collect_command_labels(node, layout)
-        max_inv = 0
-        if invocations:
-            max_inv = max(len(text) for text in invocations.values())
-        if cmd_labels:
-            max_inv = max(max_inv, max(len(label) for label in cmd_labels))
+        labels = [label for _title, rows, _kind in sections for label, _help in rows]
         if node.children:
-            max_inv = max(max_inv, len("{" + ",".join(node.children) + "}"))
-        indent = 2
-        help_position = min(max_inv + indent + 2, MAX_HELP_POSITION)
-        action_width = help_position - indent - 2
-        if action_width < 1:
-            action_width = max(max_inv, 1)
-        help_position = action_width + indent + 2
-        widths = _HelpWidths(
-            action_width=action_width,
-            help_position=help_position,
-            help_width=max(width - help_position, 11),
-        )
+            labels.append("{" + ",".join(node.children) + "}")
+        widths = _help_widths(max((len(label) for label in labels), default=0))
 
         doc = HelpDocument()
-        usage_text = parser.format_usage().rstrip("\n")
-        for raw in usage_text.splitlines() or [""]:
-            usage_line = HelpLine()
+        usage = parser.format_usage()
+        if hidden_items and parser.usage is None:
+            usage = _short_usage(parser.prog, visible, hidden_items)
+        for raw in usage.rstrip("\n").splitlines() or [""]:
             if raw.startswith("usage:"):
-                usage_line.append("group", "usage:")
-                usage_line.append("plain", raw[len("usage:") :])
+                doc.add(("group", "usage:"), ("plain", raw[len("usage:") :]))
             else:
-                usage_line.append("plain", raw)
-            doc.usage_lines.append(usage_line)
-            doc.lines.append(usage_line)
+                doc.add(("plain", raw))
         description = strip_rst_literals(parser.description).rstrip("\n")
         if description:
-            desc_lines = description.splitlines() or [""]
+            desc_lines = description.splitlines()
             if desc_lines[0] != "":
-                doc.lines.append(HelpLine())
+                doc.add()
             for raw in desc_lines:
-                line = HelpLine()
-                line.append("markup", raw)
-                doc.lines.append(line)
-            doc.lines.append(HelpLine())
-        else:
-            doc.lines.append(HelpLine())
+                doc.add(("markup", raw))
+        doc.add()
 
-        positionals = [
-            item for item in visible if item.is_positional() and item.group is None
-        ]
-        ungrouped_opts = [
-            item
-            for item in visible
-            if (not item.is_positional()) and item.group is None
-        ]
-        extra_groups: list[str] = []
-        grouped: dict[str, list] = {}
-        for item in visible:
-            if item.group is None:
+        for title, rows, kind in sections:
+            if not rows:
                 continue
-            if item.group not in grouped:
-                extra_groups.append(item.group)
-                grouped[item.group] = []
-            grouped[item.group].append(item)
+            doc.add(("group", title))
+            for label, help_msg in rows:
+                _append_entry_lines(doc, label, help_msg, widths, name_kind=kind)
+            doc.add()
 
-        def add_section(title: str, items: list, kind: str) -> None:
-            if not items:
-                return
-            heading = HelpLine()
-            heading.append("group", title)
-            doc.lines.append(heading)
-            for item in items:
-                _append_entry_lines(
-                    doc,
-                    invocations[id(item)],
-                    _help_text_for(item),
-                    widths,
-                    name_kind=kind,
-                )
-            doc.lines.append(HelpLine())
-
-        add_section("positional arguments:", positionals, "cmds")
-        _append_subcommand_sections(doc, node, layout, widths)
-        add_section("options:", ungrouped_opts, "args")
-        for title in extra_groups:
-            add_section(f"{title}:", grouped[title], "args")
+        if hidden_items:
+            doc.add(("group", "more help:"))
+            split = layout.help_split
+            rows = _more_help_rows(
+                hidden_items, set() if split else collapsed_titles, None if split else flag
+            )
+            more_widths = _help_widths(max(len(label) for label, _ in rows))
+            for label, help_msg in rows:
+                _append_entry_lines(doc, label, help_msg, more_widths, name_kind="args")
+            doc.add()
 
         epilog = strip_rst_literals(parser.epilog).rstrip("\n")
         if epilog:
-            for raw in epilog.splitlines() or [""]:
-                line = HelpLine()
-                line.append("markup", raw)
-                doc.lines.append(line)
-            doc.lines.append(HelpLine())
+            for raw in epilog.splitlines():
+                doc.add(("markup", raw))
 
-        # argparse format_help ends with a trailing newline after last content;
-        # we already add newline per line. Drop a surplus empty tail if epilog
-        # already provided the blank. Keep one trailing newline via to_plain.
+        # One newline per line is added by to_plain: drop trailing blanks.
         while doc.lines and not doc.lines[-1].parts:
             doc.lines.pop()
         return doc
+
+
+def _help_widths(max_label: int) -> _HelpWidths:
+    indent = 2
+    action_width = min(max_label + indent + 2, MAX_HELP_POSITION) - indent - 2
+    if action_width < 1:
+        action_width = max(max_label, 1)
+    help_position = action_width + indent + 2
+    return _HelpWidths(
+        action_width=action_width,
+        help_position=help_position,
+        help_width=max(_help_width() - help_position, 11),
+    )
 
 
 def _help_width() -> int:
@@ -292,15 +311,104 @@ def _help_width() -> int:
     return max(width - 2, 40)
 
 
-def _help_flag_arg() -> HelpArg:
+def topic_flag(title: str) -> str:
+    """``--help-<slug>`` flag for an option group title."""
+    slug = title.lower().removesuffix(" options").strip()
+    slug = "".join(ch if ch.isalnum() else "-" for ch in slug).strip("-")
+    return f"--help-{slug}"
+
+
+def _has_collapsible(args, layout: HelpLayout) -> bool:
+    titles = set(layout.collapsed_groups)
+    return any(
+        not item.is_hidden() and (item.advanced or item.group in titles)
+        for item in args
+    )
+
+
+def _help_all_arg(flag: str) -> HelpArg:
     return HelpArg(
-        dest="help",
-        option_strings=("-h", "--help"),
-        help="show this help message and exit",
+        dest="help_all",
+        option_strings=(flag,),
+        help="show all options, including output and parent options",
         default=SUPPRESS,
         nargs=0,
-        suppress=False,
     )
+
+
+SUMMARY_NAMES = 4
+
+
+def _more_help_rows(hidden_items, collapsed_titles, all_flag) -> list:
+    """``(flag, text)`` rows: one per collapsed group, then ``--help-all``."""
+    groups: dict[str, list] = {}
+    for item in hidden_items:
+        groups.setdefault(item.group or "advanced", []).append(item)
+    rows = []
+    for title, items in groups.items():
+        names = [
+            next((o for o in i.option_strings if o.startswith("--")), None)
+            or (i.option_strings[0] if i.option_strings else i.dest)
+            for i in items
+        ]
+        shown = ", ".join(names[:SUMMARY_NAMES])
+        more = ", ..." if len(names) > SUMMARY_NAMES else ""
+        text = f"{title} ({len(names)}): {shown}{more}"
+        flag = topic_flag(title) if title in collapsed_titles else None
+        rows.append((flag or "", text))
+    rows = [(flag, text) for flag, text in rows if flag] + [
+        ("", text) for flag, text in rows if not flag
+    ]
+    if all_flag:
+        rows.append((all_flag, "Show every option, all sections"))
+    return rows
+
+
+def _usage_token(item: HelpArg) -> str:
+    opts = list(item.option_strings)
+    if not opts:
+        return _format_args(item)
+    if len(opts) > 1 and any(o.startswith("--no-") for o in opts):
+        return "[" + " | ".join(opts) + "]"
+    if item.nargs == 0:
+        return f"[{opts[0]}]"
+    return f"[{opts[0]} {_format_args(item)}]"
+
+
+def _short_usage(prog: str, visible, hidden_items) -> str:
+    """Usage with domain options only, plus one placeholder per hidden group."""
+    flags = [i for i in visible if i.option_strings]
+    positionals = [i for i in visible if not i.option_strings]
+    groups = []
+    for item in hidden_items:
+        label = f"[{(item.group or 'advanced').upper()}]"
+        if label not in groups:
+            groups.append(label)
+    tokens = (
+        [_usage_token(i) for i in flags]
+        + groups
+        + [_usage_token(i) for i in positionals]
+    )
+    prefix = f"usage: {prog} "
+    lines = textwrap.wrap(
+        " ".join(tokens),
+        width=_help_width(),
+        initial_indent=prefix,
+        subsequent_indent=" " * len(prefix),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _help_flag_args(parser) -> list:
+    """Describe the registered ``-h`` / ``--help`` actions (none if absent)."""
+    return [
+        HelpArg.from_action(a)
+        for a in getattr(parser, "_actions", ())
+        if a.dest in ("help", "help_all")
+        and ("-h" in a.option_strings or "--help" in a.option_strings)
+    ]
 
 
 def _format_args(item: HelpArg) -> str:
@@ -392,26 +500,6 @@ def _nested_cmd_label(prefix: str, dest: str, hide_parent: bool, level: int) -> 
     return f"{prefix}{dest}"
 
 
-def _collect_command_labels(node, layout: HelpLayout) -> list[str]:
-    labels = []
-    list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
-    hide_parent = layout.hide_parent
-
-    def walk(current, prefix: str, level: int) -> None:
-        for dest, child in current.children.items():
-            if getattr(child, "command_help_suppress", False):
-                continue
-            labels.append(_nested_cmd_label(prefix, dest, hide_parent, level))
-            if list_nested:
-                walk(child, f"{prefix}{dest} ", level + 1)
-
-    for dest in node.children:
-        labels.append(dest)
-        if list_nested:
-            walk(node.children[dest], f"{dest} ", 1)
-    return labels
-
-
 def _grouped_subcommand_sections(node, layout: HelpLayout):
     named_groups = layout.command_groups or ()
     named_titles = dict(named_groups)
@@ -442,49 +530,97 @@ def _grouped_subcommand_sections(node, layout: HelpLayout):
         yield "subcommands:", leftover
 
 
-def _append_subcommand_sections(doc, node, layout, widths: _HelpWidths):
+def _command_sections(node, layout: HelpLayout):
+    """``(title, [(dest, child), ...])`` subcommand sections of *node*."""
     if not node.children:
-        return
+        return []
+    if not any(getattr(c, "command_group", None) for c in node.children.values()):
+        return [("subcommands:", list(node.children.items()))]
+    return list(_grouped_subcommand_sections(node, layout))
+
+
+def _command_rows(members, layout: HelpLayout) -> list[tuple[str, str]]:
+    """``(label, help)`` rows for *members*, plus nested ones when listing all."""
+    rows = []
     list_nested = layout.subcommands == HELP_SUBCOMMANDS_ALL
-    hide_parent = layout.hide_parent
-    grouped = any(
-        getattr(child, "command_group", None) for child in node.children.values()
-    )
 
-    def add_choice(dest, child, level=0, prefix=""):
-        help_msg = strip_rst_literals(getattr(child, "command_help", None) or "")
+    def add(dest, child, level, prefix):
         label = (
-            dest if level == 0 else _nested_cmd_label(prefix, dest, hide_parent, level)
+            dest
+            if level == 0
+            else _nested_cmd_label(prefix, dest, layout.hide_parent, level)
         )
-        _append_entry_lines(
-            doc,
-            label,
-            help_msg,
-            widths,
-            name_kind="cmds",
+        rows.append(
+            (label, strip_rst_literals(getattr(child, "command_help", None) or ""))
         )
-        if list_nested and child.children:
+        if list_nested:
             for nested_dest, nested in child.children.items():
-                add_choice(
-                    nested_dest,
-                    nested,
-                    level=level + 1,
-                    prefix=f"{prefix}{dest} " if prefix or level else f"{dest} ",
-                )
+                add(nested_dest, nested, level + 1, f"{prefix}{dest} ")
 
-    if not grouped:
-        heading = HelpLine()
-        heading.append("group", "subcommands:")
-        doc.lines.append(heading)
-        for dest, child in node.children.items():
-            add_choice(dest, child)
-        doc.lines.append(HelpLine())
-        return
+    for dest, child in members:
+        add(dest, child, 0, "")
+    return rows
 
-    for title, members in _grouped_subcommand_sections(node, layout):
-        heading = HelpLine()
-        heading.append("group", title)
-        doc.lines.append(heading)
-        for dest, child in members:
-            add_choice(dest, child)
-        doc.lines.append(HelpLine())
+
+_HELP_STYLES = {
+    "argparse.groups": "bold magenta",
+    "argparse.args": "cyan",
+    "argparse.cmds": "dark_cyan",
+    "argparse.default": "dim",
+}
+
+_PART_STYLES = {
+    "group": "argparse.groups",
+    "args": "argparse.args",
+    "cmds": "argparse.cmds",
+    "default": "argparse.default",
+}
+
+
+def help_uses_rich() -> bool:
+    """Whether ``--help`` should emit ANSI."""
+    if not colors_enabled() or not stream_isatty(sys.stdout):
+        return False
+    return color_backend_uses_rich()
+
+
+def help_document_colorizer(document: HelpDocument) -> str:
+    """Style a HelpDocument. No regex on argparse text."""
+    if not help_uses_rich():
+        return document.to_plain()
+    # Imported lazily: rich is slow to import and only needed for color.
+    rich_console = optional("rich.console")
+    rich_text = optional("rich.text")
+    if rich_console is None or rich_text is None:
+        return document.to_plain()
+    Text = rich_text.Text  # pylint: disable=invalid-name
+    styled = Text()
+    max_len = 80
+    for line in document.lines:
+        line_text = "".join(text for _kind, text in line.parts)
+        max_len = max(max_len, len(line_text))
+        for kind, chunk in line.parts:
+            if kind == "markup":
+                rendered = render_markup_text(chunk)
+                if rendered != chunk and hasattr(Text, "from_ansi"):
+                    styled.append_text(Text.from_ansi(rendered))
+                elif rendered != chunk:
+                    styled.append(rendered)
+                else:
+                    try:
+                        styled.append_text(Text.from_markup(chunk))
+                    except Exception:  # pylint: disable=broad-exception-caught
+                        styled.append(chunk)
+            else:
+                style = _PART_STYLES.get(kind)
+                if style:
+                    styled.append(chunk, style=style)
+                else:
+                    styled.append(chunk)
+        styled.append("\n")
+    console = make_rich_console(
+        rich_console, width=max(max_len, 80), theme=_HELP_STYLES
+    )
+    with console.capture() as capture:
+        console.print(styled, end="", overflow="ignore", crop=False, highlight=False)
+    return capture.get()

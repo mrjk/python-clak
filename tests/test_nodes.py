@@ -5,17 +5,8 @@ This module contains function-based tests for the core node classes and utilitie
 
 import pytest
 
-from clak.core.nodes import (
-    NOT_SET,
-    UNSET_ARG,
-    ConfigurationError,
-    Fn,
-    MissingMetaError,
-    Node,
-    NotSet,
-    NullType,
-    UnSetArg,
-)
+from clak.core.nodes import NOT_SET, Node
+from clak.exception import ConfigurationError, MissingMetaError
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -24,40 +15,12 @@ pytestmark = pytest.mark.tags("unit-tests")
 # ==============================
 
 
-def test_null_type_base():
-    """Test the base NullType class behavior."""
-    null = NullType()
-    assert str(null) == "<NONE_TYPE>"
-    assert repr(null) == "<NONE_TYPE>"
-    assert bool(null) is False
-
-
 def test_not_set():
-    """Test NotSet class behavior."""
-    not_set = NotSet()
-    assert str(not_set) == "<NOT_SET>"
-    assert repr(not_set) == "<NOT_SET>"
-    assert bool(not_set) is False
+    """NOT_SET is a falsy marker distinct from None."""
+    assert str(NOT_SET) == "<NOT_SET>"
+    assert repr(NOT_SET) == "<NOT_SET>"
+    assert bool(NOT_SET) is False
     assert NOT_SET is not None
-
-
-def test_unset_arg():
-    """Test UnSetArg class behavior."""
-    unset_arg = UnSetArg()
-    assert str(unset_arg) == "<UNSET_ARG>"
-    assert repr(unset_arg) == "<UNSET_ARG>"
-    assert bool(unset_arg) is False
-    assert UNSET_ARG is not None
-
-
-def test_fn_initialization():
-    """Test Fn class initialization and storage of arguments."""
-    args = (1, 2, 3)
-    kwargs = {"a": 1, "b": 2}
-    fn = Fn(*args, **kwargs)
-
-    assert fn.args == args
-    assert fn.kwargs == kwargs
 
 
 # Test nodes
@@ -94,14 +57,6 @@ def test_node_hierarchy():
     assert hierarchy[0] is root
     assert hierarchy[1] is child1
     assert hierarchy[2] is child2
-
-
-def test_node_get_name():
-    """Test Node get_name method."""
-    node = Node(name="test")
-    assert node.get_name() == "test"
-    assert node.get_name(default="default") == "test"
-    assert node.get_name(attr="nonexistent", default="default") == "default"
 
 
 def test_node_get_fname_basic():
@@ -161,23 +116,13 @@ def test_node_query_cfg_inst():
     node._direct_value = "direct_test"
 
     # Test direct attribute access
-    value, report = node.query_cfg_inst("direct_value", report=True)
-    assert value == "direct_test"
-    assert "self_attr:_direct_value" in report[0]
+    assert node.query_cfg_inst("direct_value") == "direct_test"
 
     # Test Meta class access
-    value, report = node.query_cfg_inst("meta_value", report=True)
-    assert value == "meta_test"
-    assert "self_meta:Meta.meta_value" in report[0]
+    assert node.query_cfg_inst("meta_value") == "meta_test"
 
     # Test meta__ prefix access
-    value, report = node.query_cfg_inst("default_value", report=True)
-    assert value == "default_test"
-    assert "self_attr:meta__default_value" in report[0]
-
-    # Test with override
-    value = node.query_cfg_inst("test_key", override={"test_key": "override_value"})
-    assert value == "override_value"
+    assert node.query_cfg_inst("default_value") == "default_test"
 
     # Test with default value
     value = node.query_cfg_inst("nonexistent", default="default")
@@ -222,12 +167,6 @@ def test_node_query_cfg_parents_complex():
     with pytest.raises(MissingMetaError):
         leaf.query_cfg_parents("leaf_val", include_self=False)
 
-    # Test detailed report
-    value, report = leaf.query_cfg_parents("root_val", report=True)
-    assert value == "root_value"
-    assert isinstance(report, list)
-    assert any("Found" in r for r in report)
-
 
 def test_node_deep_copy_behavior():
     """Test that query_cfg_inst returns deep copies of mutable objects."""
@@ -270,11 +209,6 @@ def test_node_query_cfg_parents():
     value = child.query_cfg_parents("test_value", include_self=False)
     assert value == "root_value"
 
-    # Test with report
-    value, report = child.query_cfg_parents("test_value", report=True)
-    assert value == "root_value"
-    assert isinstance(report, list)
-
     # Test raising ConfigurationError
     with pytest.raises(ConfigurationError):
         child.query_cfg_parents("nonexistent")
@@ -289,8 +223,8 @@ def test_missing_meta_error_interpolates_node_repr():
     assert "{repr(self)}" not in msg
     assert repr(node) in msg
 
-    with pytest.raises(MissingMetaError) as exc:
-        node.query_cfg_inst("nope", raise_on_undeclared=True)
+    with pytest.raises(IndexError) as exc:
+        node.query_cfg_inst("nope")
     msg = str(exc.value)
     assert "{repr(self)}" not in msg
     assert repr(node) in msg

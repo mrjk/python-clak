@@ -313,3 +313,21 @@ def test_composite_unknown_primary_raises():
             [("users", ListView([{"name": "ada"}]))],
             primary="missing",
         ).render(stdout=False)
+
+
+def test_composite_view_fit_equalizes_tables_within_terminal():
+    """In fit mode, equalized tables wider than the terminal shrink to it."""
+    from clak.views import CompositeView
+
+    out = CompositeView(
+        [
+            ("short", ListView([{"name": "ada"}])),
+            ("long", ListView([{"name": "linus", "note": "word " * 40}])),
+        ],
+        width="fit",
+        term_width=60,
+        stdout_tty=True,
+    ).render(stdout=False)
+    borders = [line for line in out.splitlines() if line.startswith("+")]
+    assert borders
+    assert {len(line) for line in borders} == {60}

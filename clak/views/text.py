@@ -43,17 +43,6 @@ def _wrap_text(
     return textwrap.fill(text, width=budget, replace_whitespace=False)
 
 
-def require_rich():
-    """Import rich for markdown terminal rendering, or raise ClakUserError."""
-    purpose = "Markdown rendering"
-    return require("rich.console", purpose), require("rich.markdown", purpose)
-
-
-def require_docutils():
-    """Import docutils for RST rendering, or raise ClakUserError."""
-    return require("docutils.core", "RST rendering")
-
-
 _FG_MARKDOWN_CLS = None
 
 
@@ -99,7 +88,8 @@ def render_markdown_text(
     **_,
 ):
     """Render markdown source to terminal text via rich (fg-only code)."""
-    rich_console, rich_markdown = require_rich()
+    rich_console = require("rich.console", "Markdown rendering")
+    rich_markdown = require("rich.markdown", "Markdown rendering")
     import rich.syntax as rich_syntax  # pylint: disable=import-outside-toplevel
 
     wrap, budget = resolve_line_length(
@@ -122,7 +112,7 @@ def render_markdown_text(
 
 def render_rst_text(text: str, line_length=None, term_width=None, stdout_tty=None, **_):
     """Render reStructuredText source to plain text via docutils."""
-    docutils_core = require_docutils()
+    docutils_core = require("docutils.core", "RST rendering")
     wrap, budget = resolve_line_length(
         line_length=line_length, term_width=term_width, stdout_tty=stdout_tty
     )
@@ -187,12 +177,8 @@ class PprintView(ClakView):
         "line_length": DEFAULT_LINE_LENGTH,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
-        rendered = pformat_truncated(payload, **settings)
-        return self._output(rendered, stdout=stdout)
+    def to_text(self, payload, settings):
+        return pformat_truncated(payload, **settings)
 
 
 class RawView(ClakView):
@@ -202,55 +188,19 @@ class RawView(ClakView):
         "line_length": DEFAULT_LINE_LENGTH,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
-        text = _as_text(payload)
-        rendered = _wrap_text(text, **settings)
-        return self._output(rendered, stdout=stdout)
+    def to_text(self, payload, settings):
+        return _wrap_text(_as_text(payload), **settings)
 
 
-class MarkdownView(ClakView):
-    "Render markdown text (or raw source with format=raw)"
-
-    settings_default = {
-        "line_length": DEFAULT_LINE_LENGTH,
-        "format": "view",
-        "theme": None,
-    }
-
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
-        text = _as_text(payload)
-        fmt = settings.pop("format", None) or "view"
-        if fmt not in TEXT_FORMATS:
-            raise ValueError(
-                f"Unsupported format {fmt!r}, choose one of: {sorted(TEXT_FORMATS)}"
-            )
-        merged_theme = settings.pop("theme", None)
-        theme = self.settings.get("theme") or merged_theme
-        if fmt == "raw" or resolve_color_backend() == "none":
-            rendered = _wrap_text(text, **settings)
-        else:
-            rendered = render_markdown_text(text, theme=theme, **settings)
-        return self._output(rendered, stdout=stdout)
-
-
-class RstView(ClakView):
-    "Render reStructuredText (or raw source with format=raw)"
+class _MarkupView(ClakView):
+    """Markup source rendered for the terminal, or raw with ``format=raw``."""
 
     settings_default = {
         "line_length": DEFAULT_LINE_LENGTH,
         "format": "view",
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         text = _as_text(payload)
         fmt = settings.pop("format", None) or "view"
         if fmt not in TEXT_FORMATS:
@@ -258,7 +208,28 @@ class RstView(ClakView):
                 f"Unsupported format {fmt!r}, choose one of: {sorted(TEXT_FORMATS)}"
             )
         if fmt == "raw":
-            rendered = _wrap_text(text, **settings)
-        else:
-            rendered = render_rst_text(text, **settings)
-        return self._output(rendered, stdout=stdout)
+            return _wrap_text(text, **settings)
+        return self.render_markup(text, settings)
+
+    def render_markup(self, text: str, settings: dict) -> str:
+        """Render markup *text* for the terminal."""
+        raise NotImplementedError
+
+
+class MarkdownView(_MarkupView):
+    "Render markdown text (or raw source with format=raw)"
+
+    settings_default = {**_MarkupView.settings_default, "theme": None}
+    instance_settings = ("theme",)
+
+    def render_markup(self, text, settings):
+        if resolve_color_backend() == "none":
+            return _wrap_text(text, **settings)
+        return render_markdown_text(text, **settings)
+
+
+class RstView(_MarkupView):
+    "Render reStructuredText (or raw source with format=raw)"
+
+    def render_markup(self, text, settings):
+        return render_rst_text(text, **settings)

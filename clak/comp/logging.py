@@ -68,15 +68,15 @@ With log_prefix set:
 import argparse
 import logging
 import logging.config
-import os
 from types import SimpleNamespace
 
 from clak._optional import optional
-from clak.common import to_boolean
+from clak.common import env_bool
 from clak.core._dispatch import TRACE_FLAG
 from clak.core.descriptors import Argument, MetaSetting
 from clak.exception import ClakAppError
 from clak.runtime.log_levels import register_clak_log_levels
+from clak.runtime.settings import CLAK_LOG_COLORS_ENV as DEFAULT_LOG_COLORS_ENV
 from clak.runtime.settings import (
     LOG_FORMAT,
     ClakSettings,
@@ -84,23 +84,15 @@ from clak.runtime.settings import (
     resolve_log_colors,
 )
 
-DEFAULT_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
-
-# coloredlogs is imported on first logger setup (see _coloredlogs()).
-# Tests may set ``coloredlogs = None`` to simulate it missing.
-_COLOREDLOGS_UNRESOLVED = object()
-coloredlogs = _COLOREDLOGS_UNRESOLVED  # pylint: disable=invalid-name
-
 
 def _coloredlogs():
     """coloredlogs module with Clak styles applied, or None."""
-    global coloredlogs  # pylint: disable=global-statement
-    if coloredlogs is _COLOREDLOGS_UNRESOLVED:
-        module = optional("coloredlogs") if ClakSettings.current().colors else None
-        if module is not None:
-            apply_coloredlogs_defaults(module)
-        coloredlogs = module
-    return coloredlogs
+    if not ClakSettings.current().colors:
+        return None
+    module = optional("coloredlogs")
+    if module is not None:
+        apply_coloredlogs_defaults(module)
+    return module
 
 
 register_clak_log_levels()
@@ -218,6 +210,13 @@ def get_app_logger(
     logging.config.dictConfig(logging_config)
 
 
+def _log_colors_env(node) -> str:
+    """Env var name read for ``--log-colors`` (``Meta.log_colors_env``)."""
+    return (
+        node.query_cfg_parents("log_colors_env", default=None) or DEFAULT_LOG_COLORS_ENV
+    )
+
+
 class LoggingOptMixin:
     "Logging options support"
 
@@ -290,13 +289,7 @@ class LoggingOptMixin:
         if key == "log_colors":
             help_text = arg.kwargs.get("help")
             if isinstance(help_text, str) and "{log_colors_env}" in help_text:
-                env_name = (
-                    self.query_cfg_parents(
-                        "log_colors_env",
-                        default=DEFAULT_LOG_COLORS_ENV,
-                    )
-                    or DEFAULT_LOG_COLORS_ENV
-                )
+                env_name = _log_colors_env(self)
                 arg = arg.with_kwargs(help=help_text.format(log_colors_env=env_name))
         return arg
 
@@ -400,17 +393,9 @@ class LoggingOptMixin:
             if log_default_level is None:
                 log_default_level = DEFAULT_LOG_LEVEL
             log_verbosity = ctx.args.verbosity
-            log_colors_env = instance.query_cfg_parents(
-                "log_colors_env", default=DEFAULT_LOG_COLORS_ENV
-            )
-            if not log_colors_env:
-                log_colors_env = DEFAULT_LOG_COLORS_ENV
-            raw_log_colors = os.environ.get(log_colors_env)
-            env_log_colors = (
-                to_boolean(raw_log_colors) if raw_log_colors is not None else None
-            )
             log_colors = resolve_log_colors(
-                ctx.args.get("log_colors"), env_value=env_log_colors
+                ctx.args.get("log_colors"),
+                env_value=env_bool(_log_colors_env(instance)),
             )
 
             log_silent = log_silent or []
@@ -481,16 +466,3 @@ class LoggingOptMixin:
                 "log_suffix": suffix,
             }
         )
-
-    def test_logger(self, instance: object | None = None) -> None:
-        """Test the logger by sending test messages at different log levels.
-
-        Args:
-            instance: The instance to test logging for. If None, uses self.
-        """
-        instance = instance if instance else self
-        instance.logger.debug("Test logger with DEBUG")
-        instance.logger.info("Test logger with INFO")
-        instance.logger.warning("Test logger with WARNING")
-        instance.logger.error("Test logger with ERROR")
-        instance.logger.critical("Test logger with CRITICAL")

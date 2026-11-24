@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from typing import List, Optional, Sequence, Tuple
 
@@ -21,6 +20,7 @@ from clak.views.base import (
     strip_ansi,
 )
 from clak.views.data import DataView
+from clak.views.serialize import dump
 from clak.views.table import (
     ListView,
     ShowView,
@@ -28,7 +28,6 @@ from clak.views.table import (
     _project_item_columns,
     _project_list_columns,
 )
-from clak.views.table_formatter import require_yaml
 from clak.views.text import MarkdownView, PprintView, RawView, RstView
 
 _SHARED_SETTINGS = frozenset({"width", "wrap", "wrap_min", "term_width", "stdout_tty"})
@@ -151,13 +150,10 @@ class CompositeView(ClakView):
         super().__init__(payload=sections, **kwargs)
         self.primary_name = primary
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render composite sections"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         sections = normalize_sections(payload)
         if not sections:
-            return self._output("", stdout=stdout)
+            return ""
 
         fmt = settings.pop("format", None) or "view"
         scope = settings.pop("format_scope", None) or DEFAULT_FORMAT_SCOPE
@@ -170,8 +166,7 @@ class CompositeView(ClakView):
         primary_name, primary_view, _ = self._resolve_primary(sections)
 
         if fmt == "view":
-            rendered = self._render_view(sections, settings, primary_name)
-            return self._output(rendered, stdout=stdout)
+            return self._render_view(sections, settings, primary_name)
 
         if fmt not in OUTPUT_FORMATS - {"view"}:
             raise ValueError(
@@ -182,10 +177,9 @@ class CompositeView(ClakView):
             child_kw = self._settings_for_child(
                 primary_view, settings, is_primary=True, fmt=fmt
             )
-            return primary_view.render(stdout=stdout, **child_kw)
+            return primary_view.render(stdout=False, **child_kw)
 
-        rendered = self._render_envelope(sections, settings, primary_name, fmt)
-        return self._output(rendered, stdout=stdout)
+        return self._render_envelope(sections, settings, primary_name, fmt)
 
     def _resolve_primary(self, sections: Sequence[Section]) -> Section:
         if self.primary_name is None:
@@ -293,10 +287,10 @@ class CompositeView(ClakView):
             return settings
 
         max_natural = max(naturals)
-        if mode == "auto" and term_budget is not None:
-            target = term_budget if max_natural > term_budget else max_natural
+        if mode == "fit" and term_budget is not None:
+            target = min(max_natural, term_budget)
         else:
-            # min (or auto without budget): equalize to widest natural table
+            # content (or fit without budget): equalize to widest natural table
             target = max_natural
 
         out = dict(settings)
@@ -337,13 +331,7 @@ class CompositeView(ClakView):
                 entry["description"] = meta["description"]
             envelope["sections"].append(entry)
 
-        if fmt == "json":
-            return json.dumps(envelope, indent=2, default=str)
-        if fmt == "yaml":
-            return require_yaml().safe_dump(
-                envelope, sort_keys=False, default_flow_style=False
-            ).strip("\n")
-        raise ValueError(f"Unsupported format {fmt!r}")
+        return dump(envelope, fmt)
 
     def _render_envelope_csv(self, sections, settings, primary_name):
         blocks = []

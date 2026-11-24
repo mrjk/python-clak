@@ -18,23 +18,28 @@ from typing import Any, Optional
 
 from clak import exception
 from clak.core._dispatch import Dispatcher
-from clak.core._exception import Terminator
+from clak.core._exception import clean_terminate
 from clak.core.argp import ArgumentParser as ClakArgumentParser
 from clak.core.argp import SubParsersAction
+from clak.core.argp.actions import HelpAllAction
 from clak.core.context import ClakContext
 from clak.core.descriptors import (
     Argument,
-    FormatEnv,
     MetaSetting,
     SubParser,
     first_doc_line,
     prepare_docstring,
 )
-from clak.core.help_render import HELP_SUBCOMMANDS_ALL, HelpLayout, HelpRenderer
+from clak.core.help_render import (
+    HELP_SUBCOMMANDS_ALL,
+    HelpLayout,
+    HelpRenderer,
+    RichRecursiveHelpFormatter,
+    help_document_colorizer,
+    topic_flag,
+)
 from clak.core.nodes import NOT_SET, Node
-from clak.core.plugins import CLI_HOOK_PREFIX
 from clak.runtime.settings import apply_debug_logging
-from clak.views import ClakView
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +47,13 @@ logger = logging.getLogger(__name__)
 Command = SubParser
 
 PROPAGATE_OPTIONS_GROUP_DEFAULT = "parent options"
+
+# Mixin plugin convention: a mixin contributes behavior by defining
+# ``cli_hook__<name>(self, instance, ctx, **_)`` methods. They are collected
+# at build time and run for every node of the command path, before
+# ``cli_group`` / ``cli_run``. Read configuration from ``instance`` (the node
+# being walked) so a subcommand's ``Meta`` wins.
+CLI_HOOK_PREFIX = "cli_hook__"
 
 
 class ParserNode(
@@ -72,7 +84,7 @@ class ParserNode(
     meta__subcommands_dict: dict[str, SubParser] = {}
     meta__arguments_dict: dict[str, Argument] = {}
 
-    meta__cli_view: ClakView = None
+    meta__cli_view = None  # ClakView instance or subclass (see Meta.cli_view)
 
     # Meta settings
     meta__config__name = MetaSetting(
@@ -145,6 +157,22 @@ class ParserNode(
             "(default 'parent options'). Inherited; a child may override."
         ),
     )
+    meta__config__help_collapsed_groups = MetaSetting(
+        help=(
+            "Option group titles summarized in short --help and listed by "
+            "--help-all (default: 'output options' and the propagated group; "
+            "[] disables). Inherited."
+        ),
+    )
+    meta__config__help_all_flag = MetaSetting(
+        help="Flag printing the full help (default '--help-all'; None disables)",
+    )
+    meta__config__help_split = MetaSetting(
+        help=(
+            "-h prints the short help, --help the full one (default False; "
+            "disables --help-all and --help-<topic>). Inherited; see LongHelpMixin."
+        ),
+    )
     meta__config__known_exceptions = MetaSetting(
         help="List of known exceptions to handle",
     )
@@ -190,7 +218,6 @@ class ParserNode(
         super().__init__(parent=parent)
 
         self.dispatcher = Dispatcher(self)
-        self.terminator = Terminator(self)
         self.help_args = []
         self.command_group = None
         self.command_help = None
@@ -219,6 +246,8 @@ class ParserNode(
             # add_parser() builds ClakArgumentParser without clak_instance.
             if hasattr(self.parser, "clak_instance"):
                 self.parser.clak_instance = self
+
+        self._install_help_flag()
 
         # Init _subparsers
         self._subparsers = None
@@ -251,7 +280,7 @@ class ParserNode(
 
     def create_parser(self):
         "Create a new parser"
-        usage, desc, epilog = self.help_texts(FormatEnv({"self": self}).get())
+        usage, desc, epilog = self.help_texts({"self": self})
         # parse_intermixed / allow_abbrev are set by _install_help.
         parser = ClakArgumentParser(
             prog=self.proc_name,
@@ -259,7 +288,7 @@ class ParserNode(
             description=desc,
             epilog=epilog,
             formatter_class=self.get_help_formatter_class(),
-            add_help=self.add_help,
+            add_help=False,  # help flags are owned by _install_help_flags
             exit_on_error=False,
             clak_instance=self,
         )
@@ -272,22 +301,86 @@ class ParserNode(
         Unset walks parents, then ``RichRecursiveHelpFormatter``.
         Opt out with ``Meta.help_formatter = RecursiveHelpFormatter``.
         """
-        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
-            RichRecursiveHelpFormatter,
-        )
-
         return self.query_cfg_parents(
             "help_formatter",
             default=RichRecursiveHelpFormatter,
         )
 
+    def _resolve_collapsed_groups(self) -> tuple:
+        groups = self.query_cfg_parents("help_collapsed_groups", default=None)
+        if groups is None:
+            groups = (
+                "output options",
+                self.query_cfg_parents(
+                    "propagate_options_group", default=PROPAGATE_OPTIONS_GROUP_DEFAULT
+                ),
+            )
+        return tuple(groups)
+
+    def _resolve_help_all_flag(self) -> Optional[str]:
+        if self._is_help_split():
+            return None
+        flag = self.query_cfg_parents("help_all_flag", default="--help-all")
+        return flag if flag and self.add_help else None
+
+    def _is_help_split(self) -> bool:
+        return bool(self.query_cfg_parents("help_split", default=False))
+
+    def _install_help_topics(self, all_flag: str) -> None:
+        """Add ``--help-<topic>`` for each non-empty collapsed group."""
+        present = {a.group for a in self.help_args if not a.is_hidden()}
+        for title in self.help_layout.collapsed_groups:
+            flag = topic_flag(title)
+            if title in present and flag != all_flag:
+                self.parser.add_argument(
+                    flag,
+                    action=HelpAllAction,
+                    const=title,
+                    dest=f"help_{flag[7:].replace('-', '_')}",
+                    default=argparse.SUPPRESS,
+                    help=argparse.SUPPRESS,
+                )
+
+    def _install_help_flag(self) -> None:
+        """Register ``-h/--help``; runs first so it leads usage and options."""
+        if not self.add_help or not hasattr(self.parser, "add_argument"):
+            return
+        opts = dict(default=argparse.SUPPRESS)
+        if self._is_help_split():
+            self.parser.add_argument(
+                "-h", action="help", dest="help",
+                help="show the short help and exit", **opts
+            )
+            self.parser.add_argument(
+                "--help",
+                action=HelpAllAction,
+                dest="help_all",
+                help="show the full help, including all options, and exit",
+                **opts,
+            )
+        else:
+            self.parser.add_argument(
+                "-h", "--help", action="help",
+                help="show this help message and exit", **opts,
+            )
+
+    def _install_help_flags(self) -> None:
+        """Register ``--help-all`` and ``--help-<topic>`` (needs the layout)."""
+        if not self.add_help or not hasattr(self.parser, "add_argument"):
+            return
+        flag = self.help_layout.help_all_flag
+        if flag:
+            self.parser.add_argument(
+                flag,
+                action=HelpAllAction,
+                dest="help_all",
+                default=argparse.SUPPRESS,
+                help=argparse.SUPPRESS,
+            )
+            self._install_help_topics(flag)
+
     def _install_help(self):
         """Attach HelpRenderer and version-stable parse flags to the wrapper."""
-        from clak.comp.help import (  # pylint: disable=import-outside-toplevel
-            RichRecursiveHelpFormatter,
-            help_document_colorizer,
-        )
-
         self.help_layout = HelpLayout(
             subcommands=self.query_cfg_parents(
                 "help_subcommands",
@@ -300,12 +393,16 @@ class ParserNode(
             command_groups=tuple(
                 self.query_cfg_inst("command_groups", default=()) or ()
             ),
+            collapsed_groups=self._resolve_collapsed_groups(),
+            help_all_flag=self._resolve_help_all_flag(),
+            help_split=self._is_help_split(),
         )
         renderer = HelpRenderer(self)
         fmt = self.get_help_formatter_class()
         if isinstance(fmt, type) and issubclass(fmt, RichRecursiveHelpFormatter):
             renderer.colorizer = help_document_colorizer
         self.help_renderer = renderer
+        self._install_help_flags()
         if hasattr(self.parser, "clak_help_renderer"):
             self.parser.clak_help_renderer = renderer
         if hasattr(self.parser, "parse_intermixed"):
@@ -366,21 +463,9 @@ class ParserNode(
         """
         if arguments is None:
             arguments = getattr(self, "meta__arguments_dict", None)
-        if arguments is None:
-            arguments = {}
-        if not isinstance(arguments, dict):
-            raise TypeError(f"Got {type(arguments)} instead of dict")
-        arguments = dict(arguments)
-
-        skip = self._skip_argument_names()
-
-        # Add arguments from class attributes including inherited ones
-        for cls in self.__class__.__mro__:
-            for name, value in vars(cls).items():
-                if isinstance(value, Argument) and name not in arguments:
-                    if name in skip:
-                        continue
-                    arguments[name] = value
+        arguments = self._collect_descriptors(
+            arguments, Argument, skip=self._skip_argument_names()
+        )
 
         # Add __cli_self__ argument
         arguments["__cli_self__"] = Argument(help=argparse.SUPPRESS, default=self)
@@ -403,16 +488,37 @@ class ParserNode(
         if self.query_cfg_parents("propagate_options", default=True):
             self._attach_inherited_parent_flags(arguments, local_flags)
 
+    def _collect_descriptors(self, explicit, kind, skip=()) -> dict:
+        """``{name: descriptor}``: *explicit* dict, then class attrs of *kind*.
+
+        Walks the MRO so a subclass attribute wins over an inherited one;
+        class attributes named in *skip* are ignored.
+        """
+        if explicit is None:
+            explicit = {}
+        if not isinstance(explicit, dict):
+            raise TypeError(f"Got {type(explicit)} instead of dict")
+        found = dict(explicit)
+        for cls in type(self).__mro__:
+            for name, value in vars(cls).items():
+                if isinstance(value, kind) and name not in found and name not in skip:
+                    found[name] = value
+        return found
+
+    def _iter_ancestor_flags(self):
+        """``(dest, Argument)`` flags defined locally on ancestors, closest first."""
+        node = self.parent
+        while node:
+            yield from node.local_flag_arguments.items()
+            node = node.parent
+
     def _ancestor_flag_index(self) -> tuple[set[str], set[str]]:
         """Dests and option strings from ancestors' locally defined flags."""
         dests: set[str] = set()
         strings: set[str] = set()
-        node = self.parent
-        while node:
-            for dest, arg in node.local_flag_arguments.items():
-                dests.add(dest)
-                strings.update(arg.flag_strings(dest))
-            node = node.parent
+        for dest, arg in self._iter_ancestor_flags():
+            dests.add(dest)
+            strings.update(arg.flag_strings(dest))
         return dests, strings
 
     def _attach_inherited_parent_flags(
@@ -433,24 +539,19 @@ class ParserNode(
             "argument_group": None,
         }
 
-        node = self.parent
-        while node:
-            for dest, arg in node.local_flag_arguments.items():
-                if dest in seen_dests:
-                    continue
-                if not arg.propagates():
-                    continue
-                strings = arg.flag_strings(dest)
-                if not strings or (seen_strings & set(strings)):
-                    continue
-                self.add_argument(
-                    dest,
-                    arg,
-                    attach_overrides=arg.suppress_attach_overrides(extra=group_extra),
-                )
-                seen_dests.add(dest)
-                seen_strings.update(strings)
-            node = node.parent
+        for dest, arg in self._iter_ancestor_flags():
+            if dest in seen_dests or not arg.propagates():
+                continue
+            strings = arg.flag_strings(dest)
+            if not strings or (seen_strings & set(strings)):
+                continue
+            self.add_argument(
+                dest,
+                arg,
+                attach_overrides=arg.suppress_attach_overrides(extra=group_extra),
+            )
+            seen_dests.add(dest)
+            seen_strings.update(strings)
 
     def add_argument(
         self,
@@ -490,17 +591,7 @@ class ParserNode(
 
         if subcommands is None:
             subcommands = getattr(self, "meta__subcommands_dict", None)
-        if subcommands is None:
-            subcommands = {}
-        if not isinstance(subcommands, dict):
-            raise TypeError(f"Got {type(subcommands)} instead of dict")
-        subcommands = dict(subcommands)
-
-        # Collect Command instances from class attributes (child wins)
-        for cls in self.__class__.__mro__:
-            for attr_name, attr_value in cls.__dict__.items():
-                if isinstance(attr_value, Command) and attr_name not in subcommands:
-                    subcommands[attr_name] = attr_value
+        subcommands = self._collect_descriptors(subcommands, Command)
 
         for key, arg in subcommands.items():
             self.add_subcommand(key, arg)
@@ -523,10 +614,6 @@ class ParserNode(
         """Display the usage message for this parser."""
         self.parser.print_usage()
 
-    def show_epilog(self):
-        """Display the epilog message for this parser."""
-        self.parser.print_epilog()
-
     # Execution helpers
     # ========================
 
@@ -543,8 +630,8 @@ class ParserNode(
         return self.dispatcher.cli_execute(*args, **kwargs)
 
     def clean_terminate(self, *args, **kwargs):
-        """Handle a dispatch error; see ``Terminator.clean_terminate``."""
-        return self.terminator.clean_terminate(*args, **kwargs)
+        """Handle a dispatch error; see ``clak.core._exception.clean_terminate``."""
+        return clean_terminate(self, *args, **kwargs)
 
     @property
     def ctx(self):

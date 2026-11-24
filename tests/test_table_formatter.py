@@ -7,13 +7,9 @@ from pprint import pprint
 import pytest
 
 from clak.views.base import DEFAULT_WIDTH_MODE
-from clak.views.table_formatter import (
-    TableListFormatter,
-    TableShowFormatter,
-    resolve_column_index,
-    resolve_column_keys,
-    resolve_sort_column_index,
-)
+from clak.views.columns import resolve_column_index, resolve_column_keys
+from clak.views.table_formatter import TableListFormatter, TableShowFormatter
+from tests.common import block_imports, use_settings
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -282,14 +278,14 @@ def test_render_stdout_still_returns_output(capsys):
     assert output in capsys.readouterr().out
 
 
-def test_resolve_sort_column_index_negative_and_one_based():
+def test_resolve_column_index_negative_and_one_based():
     headers = ["name", "role", "city"]
 
-    assert resolve_sort_column_index(-1, headers) == 2
-    assert resolve_sort_column_index(-3, headers) == 0
-    assert resolve_sort_column_index(1, headers) == 0
-    assert resolve_sort_column_index(2, headers) == 1
-    assert resolve_sort_column_index("role", headers) == 1
+    assert resolve_column_index(-1, headers) == 2
+    assert resolve_column_index(-3, headers) == 0
+    assert resolve_column_index(1, headers) == 0
+    assert resolve_column_index(2, headers) == 1
+    assert resolve_column_index("role", headers) == 1
 
 
 def test_resolve_column_index_rejects_zero():
@@ -462,11 +458,12 @@ def test_table_width_fit_does_not_stretch_when_narrower_than_tty():
     assert fit_border < 80
 
 
-def test_table_width_terminal_long_cell_honors_term_width_with_colors():
-    from clak.views.table_formatter import table_cls
+def test_table_width_terminal_long_cell_honors_term_width_with_colors(monkeypatch):
+    pytest.importorskip("prettytable.colortable")
+    use_settings(monkeypatch, colors=True)
+    from clak.views.table_formatter import _new_table
 
-    if table_cls.__name__ != "ColorTable":
-        pytest.skip("ColorTable not active (CLAK_COLORS off)")
+    assert type(_new_table()).__name__ == "ColorTable"
     data = [{"name": "web", "note": _LONG_NOTE}]
     output = _render_list_table(
         data,
@@ -728,7 +725,9 @@ def test_list_yaml_cells_no_expand_does_not_split_items():
         [{"name": "linus"}], width="min", expand_keys=False
     )
     assert "name: linus" in out
-    out = TableListFormatter().render({"k": {"name": "linus"}}, width="min", expand_keys=False)
+    out = TableListFormatter().render(
+        {"k": {"name": "linus"}}, width="min", expand_keys=False
+    )
     assert "name: linus" in out
 
 
@@ -760,12 +759,7 @@ def test_yaml_cells_csv_keeps_repr():
 
 
 def test_yaml_cells_falls_back_silently(monkeypatch):
-    import clak.views.table_formatter as tf
-
-    def _boom():
-        raise RuntimeError("no yaml")
-
-    monkeypatch.setattr(tf, "require_yaml", _boom)
+    block_imports(monkeypatch, "yaml")
     out = TableListFormatter().render(NESTED, width="min")
     assert "['a', 'b']" in out
 

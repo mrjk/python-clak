@@ -1,170 +1,28 @@
 """Table views: ShowView, ListView, and structured payload helpers."""
 
-# pylint: disable=too-few-public-methods,cyclic-import
+# pylint: disable=too-few-public-methods
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 
 from clak.views.base import (
     DEFAULT_WIDTH_MODE,
     DEFAULT_WRAP_MODE,
     OUTPUT_FORMATS,
-    WRAP_MODES,
     ClakView,
 )
-from clak.views.table_formatter import (
-    TableListFormatter,
-    TableShowFormatter,
+from clak.views.columns import (
     default_sort_columns,
-    format_structured,
-    require_yaml,
     resolve_column_keys,
     sort_table_rows,
 )
-
-
-def parse_columns(value):
-    """Parse a comma-separated --columns value into a list of keys/indexes.
-
-    Integer tokens use the same rules as --sort-columns: 1-based indexes
-    (1=first), negatives from end (-1=last). Index 0 is rejected at resolve.
-    """
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise TypeError(f"columns must be a string, got {type(value).__name__}")
-    cols = []
-    for part in value.split(","):
-        part = part.strip()
-        if not part:
-            continue
-        try:
-            cols.append(int(part))
-        except ValueError:
-            cols.append(part)
-    return cols
-
-
-def _normalize_column_spec(value, label, parse_str, parse_seq=list):
-    """Normalize a Meta column spec: None, int index, string, or sequence."""
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError(
-            f"{label} must be a string, int, or sequence, got {type(value).__name__}"
-        )
-    if isinstance(value, int):
-        return [value]
-    if isinstance(value, str):
-        return parse_str(value)
-    if isinstance(value, (list, tuple)):
-        return parse_seq(value)
-    raise TypeError(
-        f"{label} must be a string, int, or sequence, got {type(value).__name__}"
-    )
-
-
-def normalize_columns(value):
-    """Normalize Meta.view_columns (string, int index, or sequence) for render."""
-    return _normalize_column_spec(value, "view_columns", parse_columns)
-
-
-def parse_sort_columns(value):
-    """Parse --sort-columns: names, 1-based indexes (1=first), or negatives from end."""
-    if value is None:
-        return None
-    if isinstance(value, (list, tuple)):
-        return list(value)
-    if not isinstance(value, str):
-        raise TypeError(
-            f"sort_columns must be a string or sequence, got {type(value).__name__}"
-        )
-    return parse_columns(value)
-
-
-def normalize_sort_columns(value):
-    """Normalize Meta.view_sort_columns (string, int index, or sequence)."""
-    return _normalize_column_spec(value, "view_sort_columns", parse_sort_columns)
-
-
-def _dedupe_wrap_specs(specs):
-    """Drop duplicate wrap column specs, keeping first-seen order."""
-    seen = set()
-    out = []
-    for spec in specs:
-        if spec in seen:
-            continue
-        seen.add(spec)
-        out.append(spec)
-    return out
-
-
-def parse_wrap(value):
-    """Parse --wrap: keyword last/all/first, or flexible column specs.
-
-    Keywords are recognized only when they are the entire value (case
-    insensitive). Otherwise the value is a comma-separated column list
-    (same rules as --columns). Listed columns expand or shrink to fit
-    the terminal; other columns stay content-sized.
-    """
-    if value is None:
-        return None
-    if isinstance(value, (list, tuple)):
-        specs = _dedupe_wrap_specs(list(value))
-        if not specs:
-            raise ValueError("wrap column list must not be empty")
-        return specs
-    if not isinstance(value, str):
-        raise TypeError(
-            f"wrap must be a string or sequence, got {type(value).__name__}"
-        )
-    stripped = value.strip()
-    if not stripped:
-        return None
-    if stripped.lower() in WRAP_MODES:
-        return stripped.lower()
-    cols = parse_columns(stripped)
-    if not cols:
-        raise ValueError("wrap column list must not be empty")
-    return _dedupe_wrap_specs(cols)
-
-
-def normalize_wrap(value):
-    """Normalize Meta.view_wrap (keyword or flexible column specs)."""
-    return _normalize_column_spec(value, "view_wrap", parse_wrap, parse_seq=parse_wrap)
-
-
-def normalize_wrap_min(value):
-    """Normalize Meta.view_wrap_min: positive int or column-spec mapping."""
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError(
-            "wrap_min must be a positive int or mapping, " f"got {type(value).__name__}"
-        )
-    if isinstance(value, int):
-        if value <= 0:
-            raise ValueError("wrap_min must be > 0")
-        return value
-    if isinstance(value, Mapping):
-        out = {}
-        for key, val in value.items():
-            if isinstance(key, bool) or not isinstance(key, (str, int)):
-                raise TypeError(
-                    "wrap_min keys must be column names or indexes, "
-                    f"got {type(key).__name__}"
-                )
-            if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
-                raise ValueError(
-                    f"wrap_min[{key!r}] must be a positive int, got {val!r}"
-                )
-            out[key] = val
-        return out
-    raise TypeError(
-        "wrap_min must be a positive int or mapping, " f"got {type(value).__name__}"
-    )
+from clak.views.serialize import dump
+from clak.views.table_formatter import (
+    TableListFormatter,
+    TableShowFormatter,
+    format_structured,
+)
 
 
 def _project_item_columns(item, columns):
@@ -192,19 +50,6 @@ def _project_list_columns(payload, columns):
         return [_project_item_columns(item, columns) for item in payload]
 
     return payload
-
-
-def _dump_structured_payload(payload, fmt):
-    """Serialize an original payload as json or yaml."""
-    if fmt == "json":
-        return json.dumps(payload, indent=2, default=str)
-
-    if fmt == "yaml":
-        return require_yaml().safe_dump(
-            payload, sort_keys=False, default_flow_style=False
-        ).strip("\n")
-
-    raise ValueError(f"Unsupported format {fmt!r}")
 
 
 def format_show_payload(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -238,7 +83,7 @@ def format_show_payload(  # pylint: disable=too-many-arguments,too-many-position
     if columns is not None:
         payload = _project_item_columns(payload, columns)
     payload = _sort_show_payload(payload, sort_columns, sort_mode)
-    return _dump_structured_payload(payload, fmt)
+    return dump(payload, fmt)
 
 
 def _sort_show_payload(payload, sort_columns=None, sort_mode="asc"):
@@ -279,7 +124,7 @@ def format_list_payload(
 
     projected = _project_list_columns(payload, columns)
     projected = _sort_list_payload(projected, sort_columns, sort_mode)
-    return _dump_structured_payload(projected, fmt)
+    return dump(projected, fmt)
 
 
 def _sorted_mapping_order(items, sort_columns, sort_mode):
@@ -304,11 +149,9 @@ def _sorted_mapping_order(items, sort_columns, sort_mode):
 
 def _sort_mapping_payload(payload, sort_columns, sort_mode):
     """Sort a dict-of-row-mappings; preserve key association."""
-    if not payload:
-        return payload
     keys = list(payload.keys())
     values = list(payload.values())
-    if not isinstance(values[0], Mapping):
+    if not values or not isinstance(values[0], Mapping):
         return payload
     order = _sorted_mapping_order(values, sort_columns, sort_mode)
     if order is None:
@@ -322,7 +165,9 @@ def _sort_sequence_payload(payload, sort_columns, sort_mode):
         return payload
     first = payload[0]
     if isinstance(first, Mapping):
-        return _sort_sequence_of_mappings(list(payload), sort_columns, sort_mode)
+        items = list(payload)
+        order = _sorted_mapping_order(items, sort_columns, sort_mode)
+        return items if order is None else [items[i] for i in order]
     if isinstance(first, Sequence) and not isinstance(first, (str, bytes)):
         headers = list(range(len(first)))
         if sort_columns is None:
@@ -354,17 +199,7 @@ def _remap_sort_cols_after_index(sort_columns):
     return remapped
 
 
-def _sort_sequence_of_mappings(items, sort_columns=None, sort_mode="asc"):
-    """Sort a list of mapping rows; return original dicts in sorted order."""
-    if not items:
-        return items
-    order = _sorted_mapping_order(items, sort_columns, sort_mode)
-    if order is None:
-        return items
-    return [items[i] for i in order]
-
-
-class TableView(ClakView):
+class TableView(ClakView):  # pylint: disable=abstract-method
     "Table view base: shared settings for Show and List"
 
     settings_default = {
@@ -388,28 +223,19 @@ class ShowView(TableView):
         "add_index": True,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         fmt = settings.pop("format", None) or "view"
-        if fmt != "view":
-            rendered = format_show_payload(
-                payload,
-                fmt,
-                columns=settings.get("columns"),
-                sort_columns=settings.get("sort_columns"),
-                sort_mode=settings.get("sort_mode") or "asc",
-                add_index=(
-                    settings["add_index"]
-                    if isinstance(settings.get("add_index"), bool)
-                    else True
-                ),
-            )
-            return self._output(rendered, stdout=stdout)
-
-        rendered = TableShowFormatter().render(payload, **settings)
-        return self._output(rendered, stdout=stdout)
+        if fmt == "view":
+            return TableShowFormatter().render(payload, **settings)
+        add_index = settings.get("add_index")
+        return format_show_payload(
+            payload,
+            fmt,
+            columns=settings.get("columns"),
+            sort_columns=settings.get("sort_columns"),
+            sort_mode=settings.get("sort_mode") or "asc",
+            add_index=add_index if isinstance(add_index, bool) else True,
+        )
 
 
 class ListView(TableView):
@@ -421,20 +247,14 @@ class ListView(TableView):
         "add_index": None,
     }
 
-    def render(self, *args, stdout=True, **kwargs):
-        "Render data"
-
-        payload, settings = self._render(*args, **kwargs)
+    def to_text(self, payload, settings):
         fmt = settings.pop("format", None) or "view"
         if fmt in {"yaml", "json"}:
-            rendered = format_list_payload(
+            return format_list_payload(
                 payload,
                 fmt,
                 columns=settings.get("columns"),
                 sort_columns=settings.get("sort_columns"),
                 sort_mode=settings.get("sort_mode") or "asc",
             )
-            return self._output(rendered, stdout=stdout)
-
-        rendered = TableListFormatter().render(payload, format=fmt, **settings)
-        return self._output(rendered, stdout=stdout)
+        return TableListFormatter().render(payload, format=fmt, **settings)

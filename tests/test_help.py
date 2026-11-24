@@ -6,13 +6,13 @@ import sys
 
 import pytest
 
-from clak import Argument, Command, Parser, RecursiveHelpFormatter, RichHelpMixin
-from clak.comp.help import RichRecursiveHelpFormatter
+from clak import Argument, Command, LongHelpMixin, Parser, RecursiveHelpFormatter, RichHelpMixin
 from clak.core.help_render import RecursiveHelpFormatter as CoreRecursiveHelpFormatter
+from clak.core.help_render import RichRecursiveHelpFormatter
 from clak.runtime.settings import CLAK_COLOR_BACKEND_ENV
 from clak.views.base import strip_ansi
-from tests.view_fixtures import _has_background_csi
 from tests.common import use_settings
+from tests.view_fixtures import _has_background_csi
 
 pytestmark = pytest.mark.tags("unit-tests")
 
@@ -301,8 +301,12 @@ def test_help_colorizer_styles_cmds_and_groups():
     pytest.importorskip("rich")
     from rich.text import Text
 
-    from clak.comp.help import _PART_STYLES, help_document_colorizer
-    from clak.core.help_render import HelpDocument, HelpLine
+    from clak.core.help_render import (
+        _PART_STYLES,
+        HelpDocument,
+        HelpLine,
+        help_document_colorizer,
+    )
 
     doc = HelpDocument()
     usage = HelpLine()
@@ -876,3 +880,82 @@ def test_rst_literals_stripped_on_forced_color(monkeypatch):
     stripped = strip_ansi(help_text)
     assert "``" not in stripped
     assert "cmd" in stripped
+
+
+class _CollapseApp(Parser):
+    """Demo help."""
+
+    class Meta:
+        help_collapsed_groups = ["tuning options"]
+
+    name = Argument("--name", help="Domain option")
+    fast = Argument("--fast", action="store_true", option_group="tuning options")
+    slow = Argument("--slow", action="store_true", option_group="tuning options")
+    odd = Argument("--odd", action="store_true", help_level="advanced")
+
+    def cli_run(self, **_):
+        return None
+
+
+def _help(app, **kwargs):
+    """Help body without the usage block (it lists every option)."""
+    return app.help_renderer.format_help(**kwargs).split("Demo help.", 1)[1]
+
+
+def test_short_help_collapses_groups():
+    text = _help(_CollapseApp(parse=False))
+    assert "--name" in text
+    assert "--help-tuning" in text and "tuning options (2): --fast, --slow" in text
+    assert "--help-all" in text
+    assert "advanced (1): --odd" in text
+
+
+def test_help_all_and_topic():
+    app = _CollapseApp(parse=False)
+    full = _help(app, full=True)
+    assert "tuning options:\n" in full and "--fast" in full and "--odd" in full
+    topic = _help(app, full=True, topic="tuning options")
+    assert "--fast" in topic and "--name" not in topic
+
+
+def test_collapse_can_be_disabled():
+    class Plain(_CollapseApp):
+        """Demo help."""
+
+        class Meta:
+            help_collapsed_groups = []
+
+    text = _help(Plain(parse=False))
+    assert "tuning options:\n" in text and "--fast" in text
+
+
+class _LongHelpApp(LongHelpMixin, Parser):
+    """Split help app."""
+
+    name = Argument("--name", help="Domain")
+    fast = Argument("--fast", action="store_true", option_group="tuning options")
+    odd = Argument("--odd", action="store_true", help_level="advanced")
+
+    def cli_run(self, **_):
+        pass
+
+
+def _help_out(args, capsys):
+    with pytest.raises(SystemExit):
+        _LongHelpApp(parse=False).dispatch(args)
+    return capsys.readouterr().out
+
+
+def test_long_help_mixin_splits_short_and_long(capsys):
+    short = _help_out(["-h"], capsys)
+    full = _help_out(["--help"], capsys)
+    assert "more help:" in short and "--odd" not in short.split("more help:")[0]
+    assert "tuning options:" in full and "--odd" in full
+    assert "--help-all" not in short + full
+
+
+def test_long_help_mixin_disables_topic_flags(capsys):
+    for flag in ("--help-all", "--help-tuning"):
+        with pytest.raises(SystemExit):
+            _LongHelpApp(parse=False).dispatch([flag])
+        capsys.readouterr()

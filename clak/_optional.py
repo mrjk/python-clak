@@ -19,6 +19,8 @@ _EXTRAS = {
     "rich": ("rich", "markdown"),
     "docutils": ("docutils", "rst"),
     "coloredlogs": ("coloredlogs", "colors"),
+    "fastapi": ("fastapi", "api"),
+    "uvicorn": ("uvicorn", "api"),
 }
 
 

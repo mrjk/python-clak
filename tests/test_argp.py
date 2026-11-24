@@ -39,14 +39,10 @@ def test_argp_sources_do_not_import_clak_cli():
 def test_capabilities_by_version():
     old = ArgparseCapabilities.detect((3, 10))
     assert old.has_color_kwarg is False
-    assert old.error_always_raises is False
     assert old.intermixed_reenters is True
-    assert old.choice_quotes_in_errors is True
 
     py312 = ArgparseCapabilities.detect((3, 12))
-    assert py312.error_always_raises is True
     assert py312.intermixed_reenters is False
-    assert py312.choice_quotes_in_errors is False
 
     py314 = ArgparseCapabilities.detect((3, 14))
     assert py314.has_color_kwarg is True

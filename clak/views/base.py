@@ -37,36 +37,36 @@ def strip_ansi(text: str) -> str:
 
 
 class ClakView:
-    "Render command line output"
+    """Render command line output.
+
+    Subclasses implement :meth:`to_text`; :meth:`render` merges settings
+    (``settings_default`` < constructor kwargs < render kwargs), prints the
+    text unless ``stdout=False``, and returns it. Keys listed in
+    ``instance_settings`` keep a non-empty constructor value over render kwargs.
+    """
 
     settings_default = {}
+    instance_settings = ()
 
     def __init__(self, payload=None, **kwargs):
         self.settings = kwargs or {}
         self.payload = payload
 
-    def _render(self, *args, **settings):
-        "Render data"
-
-        # Fetch best payload
-        if len(args) > 0:
-            payload = args[0]
-        else:
-            payload = self.payload
-
-        # Process settings
-        _settings = dict(self.settings_default)
-        _settings.update(self.settings)
-        _settings.update(settings)
-
-        return payload, _settings
-
-    @staticmethod
-    def _output(rendered, stdout=True):
-        "Optionally print rendered output and always return it."
+    def render(self, *args, stdout=True, **settings):
+        """Render ``args[0]`` (default: the constructor payload) as text."""
+        payload = args[0] if args else self.payload
+        merged = {**self.settings_default, **self.settings, **settings}
+        for key in self.instance_settings:
+            if self.settings.get(key):
+                merged[key] = self.settings[key]
+        rendered = self.to_text(payload, merged)
         if stdout:
             print(rendered)
         return rendered
+
+    def to_text(self, payload, settings: dict) -> str:
+        """Build the output text (*settings* is a fresh dict, safe to pop)."""
+        raise NotImplementedError(f"{type(self).__name__} must implement to_text()")
 
     @staticmethod
     def merge_settings(existing=None, cli_settings=None):
@@ -88,6 +88,26 @@ class ClakView:
                 )
             merged[key] = cli_val
         return merged
+
+
+def render_result(data, leaf, view_settings: dict) -> None:
+    """Print a ``cli_run`` result with the view that applies.
+
+    A returned :class:`ClakView` renders itself (CLI view settings win over
+    its own); otherwise *leaf*'s ``Meta.cli_view`` (instance or subclass), if
+    any, renders *data*.
+    """
+    if isinstance(data, ClakView):
+        data.render(**ClakView.merge_settings(data.settings, view_settings))
+        return
+    viewer = leaf.query_cfg_parents("cli_view", default=None)
+    if isinstance(viewer, type) and issubclass(viewer, ClakView):
+        viewer = viewer()
+    if viewer is None:
+        return
+    if not isinstance(viewer, ClakView):
+        raise TypeError("Meta.cli_view must be a ClakView instance or subclass")
+    viewer.render(data, **view_settings)
 
 
 def normalize_width_mode(mode: Optional[str] = None) -> str:

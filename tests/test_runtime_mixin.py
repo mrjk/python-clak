@@ -5,7 +5,8 @@ import io
 import pytest
 
 from clak import Parser, RuntimeOptMixin
-from clak.comp.runtime import resolve_runtime, set_ui_settings, ui_policy, ui_session
+from clak.comp.runtime import resolve_runtime
+from clak.comp.ui import set_ui_settings, ui_policy, ui_session
 from clak.core.descriptors import Argument
 from clak.exception import ClakUserError
 from clak.ui import NO_ANSWER, MappingResponder, Question, UINoInputError, UIPolicy
@@ -47,9 +48,12 @@ def test_cli_beats_env_beats_ci():
     # env says never, tty available
     assert rr(env={"CLAK_INTERACTIVE": "never"})["interactive"] is False
     # CLI always beats env never and CI
-    assert rr({"interactive": "always"}, {"CLAK_INTERACTIVE": "never", "CI": "1"})[
-        "interactive"
-    ] is True
+    assert (
+        rr({"interactive": "always"}, {"CLAK_INTERACTIVE": "never", "CI": "1"})[
+            "interactive"
+        ]
+        is True
+    )
     # env always beats CI
     assert rr(env={"CLAK_INTERACTIVE": "always", "CI": "1"})["interactive"] is True
 
@@ -65,9 +69,12 @@ def test_explicit_auto_resets_env():
     "raw,expected", [("1", True), ("true", True), ("0", False), ("no", False)]
 )
 def test_env_boolean_forms(raw, expected):
-    assert rr(env={"CLAK_INTERACTIVE": raw}, streams=PIPE if expected else TTY)[
-        "interactive"
-    ] is expected
+    assert (
+        rr(env={"CLAK_INTERACTIVE": raw}, streams=PIPE if expected else TTY)[
+            "interactive"
+        ]
+        is expected
+    )
 
 
 def test_invalid_env_ignored(caplog):
@@ -185,7 +192,11 @@ def test_set_ui_settings_merges_and_appends():
     first, second = (lambda q: NO_ANSWER), (lambda q: NO_ANSWER)
     set_ui_settings(ctx, interactive=False, responders=[first])
     settings = set_ui_settings(ctx, hint="h", responders=[second])
-    assert settings == {"interactive": False, "hint": "h", "responders": (first, second)}
+    assert settings == {
+        "interactive": False,
+        "hint": "h",
+        "responders": (first, second),
+    }
 
 
 def test_ui_policy_overrides_and_extra_responders():

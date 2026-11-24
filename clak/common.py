@@ -5,6 +5,7 @@ around handling docstring indentation and formatting.
 """
 
 import inspect
+import os
 
 
 def replace_tabs(text, value=None):
@@ -107,6 +108,12 @@ def to_boolean(value):
         raise ValueError(f"Invalid boolean value: {value}") from None
 
 
+def env_bool(name, default=None, env=None):
+    """Boolean value of environment variable *name*, or *default* when unset."""
+    raw = (os.environ if env is None else env).get(name)
+    return default if raw is None else to_boolean(raw)
+
+
 def resolve_bool_option(cli_value=None, env_value=None, auto=False):
     """Resolve optional boolean: explicit CLI, then env, then auto.
 
@@ -128,8 +135,7 @@ class ObjectNamespace:
     # see also: https://dev.to/taqkarim/extending-simplenamespace-for-nested-dictionaries-58e8
 
     def __init__(self, **kwargs):
-        self.__dict__ = {}
-        self.__dict__.update(kwargs)  # or self.__dict__ = kwargs
+        self.__dict__.update(kwargs)
 
     def __repr__(self):
         keys = sorted(k for k in self.__dict__ if not k.startswith("_"))

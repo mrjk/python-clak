@@ -22,25 +22,12 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from clak._optional import install_hint, optional
+from clak._optional import require
 from clak.common import ObjectNamespace
 from clak.core.descriptors import Argument, MetaSetting
 from clak.exception import ClakUserError
 
 logger = logging.getLogger(__name__)
-
-# Optional YAML support (extra: mrjk.clak[config]), imported on first use.
-# Tests may set ``_yaml = None`` to simulate a missing PyYAML.
-_YAML_UNRESOLVED = object()
-_yaml = _YAML_UNRESOLVED  # pylint: disable=invalid-name
-
-
-def _yaml_module():
-    """PyYAML module, or None when not installed (resolved lazily)."""
-    if _yaml is _YAML_UNRESOLVED:
-        return optional("yaml")
-    return _yaml
-
 
 _DEFAULT_XDG = {
     "XDG_CONFIG_HOME": "~/.config",
@@ -49,9 +36,6 @@ _DEFAULT_XDG = {
 }
 
 _UNSAFE_APP_NAME = re.compile(r"[^\w.-]+")
-
-_YAML_SUFFIXES = {".yaml", ".yml"}
-_JSON_SUFFIXES = {".json"}
 
 _DEFAULT_LOCAL_NAMES = (".{app}.yaml", ".{app}.yml", ".{app}.json")
 
@@ -90,6 +74,23 @@ def resolve_xdg_paths(app_name: str) -> dict[str, str]:
     }
 
 
+def _json_loader():
+    return json.load, json.JSONDecodeError
+
+
+def _yaml_loader():
+    yaml = require("yaml", "YAML config")
+    return yaml.safe_load, yaml.YAMLError
+
+
+# suffix -> (label, () -> (load function, parse error class))
+_CONFIG_LOADERS = {
+    ".json": ("JSON", _json_loader),
+    ".yaml": ("YAML", _yaml_loader),
+    ".yml": ("YAML", _yaml_loader),
+}
+
+
 def load_config_file(path: str | Path) -> dict[str, Any]:
     """Load a mapping from a JSON or YAML config file.
 
@@ -101,47 +102,25 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
             non-mapping root document.
     """
     conf_path = Path(path)
-    suffix = conf_path.suffix.lower()
-
-    if suffix in _JSON_SUFFIXES:
-        try:
-            with conf_path.open(encoding="utf-8") as handle:
-                data = json.load(handle)
-        except OSError as err:
-            raise ClakUserError(
-                f"Could not read config file: {conf_path}",
-                advice=str(err),
-            ) from err
-        except json.JSONDecodeError as err:
-            raise ClakUserError(
-                f"Invalid JSON in config file: {conf_path}",
-                advice=str(err),
-            ) from err
-    elif suffix in _YAML_SUFFIXES:
-        yaml = _yaml_module()
-        if yaml is None:
-            raise ClakUserError(
-                f"YAML config requires PyYAML ({conf_path})",
-                advice=f"Install with: {install_hint('yaml')}",
-            )
-        try:
-            with conf_path.open(encoding="utf-8") as handle:
-                data = yaml.safe_load(handle)
-        except OSError as err:
-            raise ClakUserError(
-                f"Could not read config file: {conf_path}",
-                advice=str(err),
-            ) from err
-        except yaml.YAMLError as err:
-            raise ClakUserError(
-                f"Invalid YAML in config file: {conf_path}",
-                advice=str(err),
-            ) from err
-    else:
+    entry = _CONFIG_LOADERS.get(conf_path.suffix.lower())
+    if entry is None:
         raise ClakUserError(
             f"Unsupported config format: {conf_path}",
             advice="Use a .json, .yaml, or .yml file",
         )
+    label, get_loader = entry
+    load, parse_error = get_loader()
+    try:
+        with conf_path.open(encoding="utf-8") as handle:
+            data = load(handle)
+    except OSError as err:
+        raise ClakUserError(
+            f"Could not read config file: {conf_path}", advice=str(err)
+        ) from err
+    except parse_error as err:
+        raise ClakUserError(
+            f"Invalid {label} in config file: {conf_path}", advice=str(err)
+        ) from err
 
     if data is None:
         return {}
@@ -207,12 +186,15 @@ class WorkDirMixin:  # pylint: disable=too-few-public-methods
 # ============================
 
 
+# Flag attributes whose default comes from ``resolve_xdg_paths()`` (same key).
+_XDG_PATH_FLAGS = frozenset({"conf_file", "data_dir", "cache_dir", "log_dir"})
+
+
 class _XDGPathMixin:  # pylint: disable=too-few-public-methods
     """Shared helpers for XDG path mixins.
 
-    Subclasses declare one ``Argument`` plus ``_xdg_path_keys`` (attribute name
-    -> ``resolve_xdg_paths`` key); the default is injected by
-    ``_prepare_argument``.
+    Each subclass declares one ``Argument`` named after a
+    ``resolve_xdg_paths`` key; its default is injected by ``_prepare_argument``.
     """
 
     def _xdg_app_name(self) -> str:
@@ -222,24 +204,11 @@ class _XDGPathMixin:  # pylint: disable=too-few-public-methods
             name = getattr(self, "name", None) or self.__class__.__name__
         return sanitize_xdg_app_name(name)
 
-    # Class attribute name -> key in ``resolve_xdg_paths()``; set per mixin.
-    _xdg_path_keys: dict[str, str] = {}
-
-    def _xdg_path_key(self, attr_name: str) -> str | None:
-        """Look ``attr_name`` up in ``_xdg_path_keys`` across all mixins in the MRO."""
-        for cls in type(self).__mro__:
-            keys = vars(cls).get("_xdg_path_keys")
-            if keys and attr_name in keys:
-                return keys[attr_name]
-        return None
-
     def _prepare_argument(self, key: str, arg: Argument) -> Argument:
         """Inject the XDG default path for this mixin's flag."""
         arg = super()._prepare_argument(key, arg)
-        path_key = self._xdg_path_key(key)
-        if path_key is not None and "default" not in arg.kwargs:
-            paths = resolve_xdg_paths(self._xdg_app_name())
-            arg = arg.with_kwargs(default=paths[path_key])
+        if key in _XDG_PATH_FLAGS and "default" not in arg.kwargs:
+            arg = arg.with_kwargs(default=resolve_xdg_paths(self._xdg_app_name())[key])
         return arg
 
 
@@ -264,8 +233,6 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     ``Meta.config_required`` is true. Loaded data is available as
     ``ctx.config`` (dict) and ``cli_root.config`` (attribute namespace).
     """
-
-    _xdg_path_keys = {"conf_file": "conf_file"}
 
     conf_file = Argument(
         "--conf-file",
@@ -347,8 +314,6 @@ class XDGConfFileMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
 class XDGDataDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--data-dir`` flag, default ``$XDG_DATA_HOME/<app>``."""
 
-    _xdg_path_keys = {"data_dir": "data_dir"}
-
     data_dir = Argument(
         "--data-dir",
         help="Data directory",
@@ -358,8 +323,6 @@ class XDGDataDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
 class XDGCacheDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--cache-dir`` flag, default ``$XDG_CACHE_HOME/<app>``."""
 
-    _xdg_path_keys = {"cache_dir": "cache_dir"}
-
     cache_dir = Argument(
         "--cache-dir",
         help="Cache directory",
@@ -368,8 +331,6 @@ class XDGCacheDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
 
 class XDGLogDirMixin(_XDGPathMixin):  # pylint: disable=too-few-public-methods
     """``--log-dir`` flag, default ``$XDG_CACHE_HOME/<app>/logs``."""
-
-    _xdg_path_keys = {"log_dir": "log_dir"}
 
     log_dir = Argument(
         "--log-dir",

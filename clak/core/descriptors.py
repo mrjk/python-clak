@@ -1,8 +1,7 @@
 """CLI descriptors: Argument, SubParser, MetaSetting, docstring helpers.
 
-Extracted from parser.py to keep the build/execute core smaller.
-Public imports remain available from ``clak``, ``clak.parser``, and
-``clak.core.descriptors``.
+Descriptors are class attributes of a Parser; ParserNode attaches them to
+argparse at build time. Public names are re-exported from ``clak``.
 """
 
 import argparse
@@ -14,7 +13,6 @@ from typing import Any, Dict, Optional, Tuple
 
 from clak.common import CleandocProxy, deindent_docstring
 from clak.core.help_render import HelpArg
-from clak.core.nodes import Fn
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +83,15 @@ def _parser_add_target(parser, help_group_title, exclusive_key):
     return target
 
 
-class ArgParseItem(Fn):
+class _Fn:  # pylint: disable=too-few-public-methods
+    """Keep the ``*args`` / ``**kwargs`` a descriptor was declared with."""
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+
+class ArgParseItem(_Fn):
     """Base class for argument parser items.
 
     This class represents a generic argument parser item that can be added to an argument parser.
@@ -205,6 +211,8 @@ class Argument(ArgParseItem):
       (``add_mutually_exclusive_group``). Same key reuses one XOR set
       (``required=False``). May nest under a help section when a help-group
       kwarg is also set.
+    - ``help_level``: ``"main"`` (default) or ``"advanced"``. Advanced flags are
+      summarized in short ``--help`` and listed by ``--help-all``.
     - ``propagate``: Copy this flag onto descendant parsers (default True).
       Set False to keep it on this parser only.
     """
@@ -279,6 +287,7 @@ class Argument(ArgParseItem):
         help_group_title = _help_group_title_from_kwargs(key, kwargs)
         exclusive_key = kwargs.pop("exclusive_group", None)
         kwargs.pop("propagate", None)
+        advanced = kwargs.pop("help_level", "main") == "advanced"
 
         # Create argument
         logger.debug(
@@ -292,7 +301,8 @@ class Argument(ArgParseItem):
         action = target.add_argument(*args, **_kwargs_for_add_argument(kwargs, parser))
         help_args = getattr(config, "help_args", None)
         if help_args is not None:
-            help_args.append(HelpArg.from_action(action, group=help_group_title))
+            help_args.append(HelpArg.from_action(action, group=help_group_title, advanced=advanced)
+            )
         return action
 
 
@@ -359,20 +369,7 @@ class SubParser(ArgParseItem):
       ``Meta.command_groups`` on the parent Parser. Formatter metadata only;
       not a second ``add_subparsers``. Commands with no key stay under
       leftover ``subcommands:``.
-
-    Attributes:
-        meta__help_flags (bool): Whether to enable -h and --help support
-        meta__usage (str): Custom usage message
-        meta__description (str): Custom description message
-        meta__epilog (str): Custom epilog message
     """
-
-    # If true, enable -h and --help support
-    meta__help_flags = True
-
-    meta__usage = None
-    meta__description = None
-    meta__epilog = None
 
     def __init__(self, cls, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -418,15 +415,15 @@ class SubParser(ArgParseItem):
             self.cls.query_cfg_inst(self.cls, "help_flags", default=True),
         )
 
-        ctx_vars = {"key": key, "self": config}
-
         # Create a new subparser for this command (flat structure)
-        parser_help = prepare_docstring(first_doc_line(parser_help), variables=ctx_vars)
+        parser_help = prepare_docstring(
+            first_doc_line(parser_help), variables={"key": key, "self": config}
+        )
         parser_kwargs = dict(self.kwargs)
         parser_kwargs.update(
             {
                 "formatter_class": config.get_help_formatter_class(),
-                "add_help": parser_help_enabled,  # Add support for --help
+                "add_help": False,  # help flags are installed by the child ParserNode
                 "exit_on_error": False,
                 "help": parser_help,
             }
@@ -440,16 +437,16 @@ class SubParser(ArgParseItem):
         )
 
         # Create an instance of the command class with the subparser
-        child = self.cls(parent=config, parser=subparser, key=key)
+        child = self.cls(
+            parent=config, parser=subparser, key=key, add_help=parser_help_enabled
+        )
         child.command_group = command_group
         child.command_help = parser_help
-        ctx_vars["self"] = child
 
         # Reconfigure subparser
         child_usage, child_desc, child_epilog = child.help_texts(
-            ctx_vars, first_line=True
+            {"key": key, "self": child}, first_line=True
         )
-        subparser.add_help = False
         subparser.usage = child_usage
         subparser.description = child_desc
         subparser.epilog = child_epilog
@@ -490,7 +487,8 @@ def prepare_docstring(
 
     Args:
         text (str): The docstring text to prepare
-        variables (dict, optional): Variables to format into the docstring
+        variables (dict, optional): Variables to format into the docstring;
+            ``self`` is wrapped so ``{self.__doc__}`` is version-stable
         reindent (str, optional): String to use for reindenting
 
     Returns:
@@ -501,9 +499,9 @@ def prepare_docstring(
         TypeError: If variables arg is not a dict
     """
 
-    variables = variables or {}
-    if not isinstance(variables, dict):
-        raise TypeError(f"Got {type(variables)} instead of dict")
+    variables = dict(variables or {})
+    if variables.get("self") is not None:
+        variables["self"] = CleandocProxy(variables["self"])
 
     if text is None:
         return None
@@ -525,28 +523,5 @@ def prepare_docstring(
     return text
 
 
-class FormatEnv:  # pylint: disable=too-few-public-methods
-    "Format env for docstring variable substitution"
-
-    _default = {
-        "type": "type FUNC",
-    }
-
-    def __init__(self, variables=None):
-        self._variables = dict(variables or {})
-
-    def get(self):
-        "Get dict of vars"
-        out = {}
-        out.update(self._default)
-        for key, value in self._variables.items():
-            # Normalize object.__doc__ across Python versions (3.13+ cleandoc).
-            if key == "self" and value is not None:
-                out[key] = CleandocProxy(value)
-            else:
-                out[key] = value
-        return out
-
-
-class MetaSetting(Fn):  # pylint: disable=too-few-public-methods
+class MetaSetting(_Fn):  # pylint: disable=too-few-public-methods
     "A setting that is used to configure a node"

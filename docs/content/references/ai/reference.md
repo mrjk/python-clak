@@ -346,7 +346,7 @@ HELP GROUPS AND EXCLUSIVE GROUPS (shipped)
 
 Argument(..., option_group="Title") or argument_group="Title" places the flag
 under a titled --help section. Same title reuses one section (do not set both
-kwargs on one Argument). View mixins use option_group="Output options".
+kwargs on one Argument). View mixins use option_group="output options".
 
 Argument(..., exclusive_group="key") maps to add_mutually_exclusive_group
 (at most one member; required=False). May combine with a help-group kwarg.

@@ -5,12 +5,13 @@ import os
 import sys
 
 from clak._optional import available, install_hint, optional
-from clak.common import resolve_bool_option, to_boolean
+from clak.common import env_bool, resolve_bool_option
 from clak.exception import ClakUserError
 from clak.runtime.log_levels import CLAK_CUSTOM_LEVEL_STYLES, register_clak_log_levels
 
 COLOR_BACKENDS = frozenset({"none", "rich", "auto"})
 CLAK_COLOR_BACKEND_ENV = "CLAK_COLOR_BACKEND"
+CLAK_LOG_COLORS_ENV = "CLAK_LOG_COLORS"
 DEFAULT_COLOR_BACKEND = "auto"
 
 LOG_STYLES = {
@@ -109,14 +110,11 @@ class ClakSettings:
     @classmethod
     def from_env(cls) -> "ClakSettings":
         """Build settings from the current process environment."""
-        raw_log_colors = os.environ.get("CLAK_LOG_COLORS")
         return cls(
-            debug=to_boolean(os.environ.get("CLAK_DEBUG", False)),
-            colors=to_boolean(os.environ.get("CLAK_COLORS", True)),
+            debug=env_bool("CLAK_DEBUG", False),
+            colors=env_bool("CLAK_COLORS", True),
             color_backend=resolve_color_backend(),
-            log_colors=(
-                to_boolean(raw_log_colors) if raw_log_colors is not None else None
-            ),
+            log_colors=env_bool(CLAK_LOG_COLORS_ENV),
             styles=dict(LOG_STYLES),
             log_format=LOG_FORMAT,
         )
